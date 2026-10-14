@@ -15,10 +15,10 @@ SherlysOS keeps schema changes in `supabase/migrations`. Apply them in filename 
 ## Planned order
 
 1. Phase 1, this repository: foundation marker only. No operational tables and no stock mutations.
-2. Identity and access: role catalog from the business process document, profiles, and row level security.
+2. Identity and access: drafted in `supabase/migrations/20261014150000_access_control.sql` and explained in `docs/access-control.md`. It is not applied yet.
 3. Master data: shops, products, batches, and related reference tables.
 4. Inventory ledger: balances, movements, FEFO/FIFO, and batch tracking, with mutations only through transactional functions.
 5. Operational modules: orders, deliveries, damage quarantine, receiving, daily verification, and refill.
 6. Documents and realtime: storage policies for invoices, photos, and proofs, then live status updates.
 
-The business process PDF is not in this workspace yet. Role names and workflow rules should be taken from that document before the identity migration is written.
+The business process PDF is `reference/Sherlys_Distribution_Agents_BPM.pdf`. Role names in the access-control draft come from that document. Open questions are listed in `docs/access-control.md` and should be settled before the migration is applied.

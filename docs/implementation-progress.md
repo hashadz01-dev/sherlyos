@@ -1,58 +1,126 @@
 # Implementation progress
 
-Phase 1 is verified. The active application is `c:\Users\Hash\Desktop\Hashdev\sherlyos`. The sibling folder `bpm-sherlys-distribution-agents` is a separate Vite app and was not changed. Operational modules stay empty. There are no stock mutations and no sample dashboard figures. Phase 2 has not started.
+Phase 1 is on `main` at `66b3624` on GitHub. Phase 2A access-control design passed a **static security gate** on 2026-10-14. The migration has **not** been applied to remote Supabase. Phase 2B has not started.
 
-## Checks
+## Phase 2A security gate (latest)
 
-| Check                  | Result                    |
-| ---------------------- | ------------------------- |
-| `npm run typecheck`    | Passed                    |
-| `npm run lint`         | Passed                    |
-| `npm test`             | Passed, 6 files, 12 tests |
-| `npm run test:e2e`     | Passed, 4 Chromium tests  |
-| `npm run build`        | Passed                    |
-| `npm run format:check` | Passed                    |
+### Static SQL / security review
 
-## Supabase
+| Area                           | Result                                                                                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Syntax and dependency order    | No issues found in manual review (foundation migration first, then access control).                                                     |
+| Grants and RLS                 | All eight tables: RLS enabled + forced; `authenticated` has select-only via policies; no client insert/update/delete policies.          |
+| SECURITY DEFINER               | Public RPCs and `app_private.*` helpers use `set search_path = ''`.                                                                     |
+| Privilege escalation           | Self-target blocked on roles, active status, administered profile, branch assignments.                                                  |
+| Bootstrap                      | `bootstrap_initial_admin` granted to `service_role` only, not `authenticated`; confirmation phrase required; fails if any Admin exists. |
+| Godown Manager verification    | `stock.verify` granted only to Godown Manager.                                                                                          |
+| Adjustment posting             | `stock.adjustment.post` (Godown Manager) separate from `stock.adjustment.approve_exceptional` (Admin).                                  |
+| Store Keeper                   | `stock.count_assist` only — not verification owner.                                                                                     |
+| Delivery Person transit damage | Documented as unresolved; `damage.record` **not** granted.                                                                              |
+| 50-unit configuration seed     | Treated as **provisional placeholder**, not an approved business rule.                                                                  |
 
-The browser reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from `.env.local`. Both values point at development project `ypkfondrkhkydkgovwup`. Vite gives `.env.local` priority over `.env`. The dev server was restarted after `.env.local` was added so that file is the one in use.
+### Defects found and fixed in this gate
 
-`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` remain in `.env` only, without a `VITE_` prefix. They are not in source, tests, the production bundle, or `.env.example`. `.env` and `.env.local` are gitignored. The publishable key is present in the production bundle because the browser client needs it. `dist/` is gitignored.
+1. **`assign_user_branch`** — now rejects unknown or inactive operating sites before insert.
 
-## Authentication
+### Remaining security concerns (accepted for dev apply with review)
 
-Checked in the browser at `http://127.0.0.1:5173` against the real project:
+1. **No local migration execution** — Docker Desktop daemon was not running; `npx supabase status` failed. SQL was **not** machine-applied in this environment.
+2. **`service_role` bypasses RLS** — Supabase platform behavior; mitigated by keeping the key out of the repo and browser.
+3. **`has_permission` executable by any authenticated user** — returns only the caller’s own permission state; acceptable for app use, minor probing surface.
+4. **`grant usage on schema app_private to authenticated`** — required for executing granted functions in that schema.
+5. **RPC and RLS not smoke-tested with JWT roles** — schema apply and advisors passed locally; authenticated RPC paths were not exercised end-to-end.
 
-- Signing out returns to `/login`.
-- Visiting `/orders` while signed out redirects to `/login`.
-- A wrong password stays on `/login` and shows “Invalid login credentials”.
-- The provisioned account signs in and opens Operations Overview.
-- Reloading `/` keeps the session. The stored key is `sb-ypkfondrkhkydkgovwup-auth-token`.
-- Signing out again clears that session.
-- The login page does not show the missing-configuration notice.
-- Overview metrics say “Not connected”, and recent orders stay empty.
+### Local migration validation (Docker running, 2026-10-14)
 
-Playwright covers the signed-out redirect, invalid credentials, the phone layout, and the logo response. Vitest still covers the unconfigured login path with the Supabase client mocked, so that check does not depend on local secrets.
+| Command                            | Result                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `npx supabase start`               | **Passed** — `20261014000000_foundation.sql` and `20261014150000_access_control.sql` applied.                     |
+| `npx supabase db lint --local`     | **Passed** — no schema errors.                                                                                    |
+| `npx supabase db reset --local`    | **Passed** — clean reapply.                                                                                       |
+| `npx supabase db advisors --local` | **Passed** — no issues.                                                                                           |
+| Stock permission spot-check        | Godown Manager has verify/post/request/report; Admin has approve_exceptional; Store Keeper has count_assist only. |
 
-## Assets
+**SQL validation passed** on local Supabase. Remote project `ypkfondrkhkydkgovwup` was not modified.
 
-- `public/branding/sherlys-logo.png` is the original Sherlys script mark, saved as PNG. The signed-in shell loads it from `/branding/sherlys-logo.png`.
-- `reference/Sherlys_Distribution_Agents_BPM.pdf` is a readable PDF. Its title text is “Sherlys Distribution & Agents OS - Business Process and Automation Blueprint v1.”
+### Application validation (actual)
 
-## Production bundle
+| Command             | Result                     |
+| ------------------- | -------------------------- |
+| `npm run typecheck` | Passed                     |
+| `npm run lint`      | Passed                     |
+| `npm test`          | Passed — 6 files, 12 tests |
+| `npm run build`     | Passed                     |
 
-`npm run build` emits one JavaScript file, `dist/assets/index-aIfr18OX.js`, at 894.99 kB minified and 269.24 kB gzipped. Vite warns because that chunk is over 500 kB.
+## Safe apply to development Supabase (when approved)
 
-The size comes from one eager entry. `src/app/router.tsx` statically imports every page, and the entry also includes React, React Router, the Supabase client, TanStack Query, TanStack Table, and the Radix-based shell. Nothing is deferred.
+Do **not** apply until stakeholders accept `docs/access-control.md` and open items below.
 
-Recommended change, not applied in this phase: load each route element with `React.lazy` and render it through `Suspense` in the shell. Login and the overview can stay in the first chunk. Orders, deliveries, damage, receiving, verification, refill, inventory, masters, reports, and settings should each become their own chunk. That is route-based splitting, and it does not require a second bundler.
+```powershell
+cd C:\Users\Hash\Desktop\Hashdev\sherlyos
+# Optional but recommended when Docker works:
+# npx supabase init   # only if config.toml is added later
+# npx supabase start
+# npx supabase db reset   # local dry-run only
+
+# Link dev project (access token in environment, not in repo):
+# npx supabase link --project-ref ypkfondrkhkydkgovwup
+
+# Apply to linked development database:
+# npx supabase db push
+
+# One-time in SQL editor (postgres / dashboard), after Auth user exists:
+# select app_private.bootstrap_initial_admin('<auth-user-id>'::uuid, 'create-initial-administrator');
+```
+
+After apply: assign roles and sites via `assign_user_role`, `create_branch`, `assign_user_branch`. Verify RLS manually with test JWTs in the SQL editor or a small script.
+
+## Gate recommendation
+
+**READY** to apply the reviewed migrations to the **development** Supabase project via `npx supabase db push` after `supabase link`. Local apply and lint succeeded.
+
+**NOT READY** for production until dev apply, bootstrap, RPC smoke tests, and business sign-off on provisional configuration values are complete.
+
+## Development cloud deployment attempt (2026-10-14)
+
+- Target project from `.env.example`, docs, and code: `ypkfondrkhkydkgovwup`.
+- `.env` and `.env.local` exist locally and are git-ignored. Access token is present in `.env` (presence only checked, value never printed).
+- `npx supabase link --project-ref ypkfondrkhkydkgovwup` **failed** with `LinkProjectStatusError`: the token's account lacks privileges for that project endpoint.
+- `npx supabase projects list` with the same token shows only project `b2bintelli` (`ivmgjtinhpyvtsogpjyt`). Target `ypkfondrkhkydkgovwup` is **not visible** to this token.
+- Remote migration history could **not** be checked. `db push --dry-run` was **not** run because linking is a prerequisite.
+- No remote database was modified. No Admin bootstrap was run. No role/RPC/JWT tests against cloud were run.
+- Fresh app checks in this pass: typecheck passed, lint passed, Vitest 12/12 passed, production build passed (894.99 kB JS warning unchanged).
+
+## Re-check with corrected token (2026-10-14)
+
+- `npx supabase projects list` now shows only `sherlysos` (`ypkfondrkhkydkgovwup`, `ACTIVE_HEALTHY`, `ap-northeast-2`, created `2026-10-14`). Target confirmed.
+- `npx supabase link --project-ref ypkfondrkhkydkgovwup` succeeded.
+- `npx supabase migration list --linked` shows both local migrations with empty remote history: `20261014000000` and `20261014150000` are pending, nothing else.
+- `npx supabase db push --linked --dry-run` would push exactly `20261014000000_foundation.sql` and `20261014150000_access_control.sql`. Remote database was **not** modified. Actual push awaits explicit approval.
+
+## Cloud apply + JWT validation (2026-10-14, after approval)
+
+- `npx supabase db push --linked` applied `20261014000000_foundation.sql` and `20261014150000_access_control.sql` to development. `migration list --linked` now shows both as applied.
+- Created six throwaway Auth users (`phase2a.*@example.com`, email-confirmed, server-side Admin API). Trigger created one profile each with **zero** roles. The pre-existing account also has no roles: no auto-admin anywhere.
+- `app_private.bootstrap_initial_admin` ran once via owner SQL (SQL-editor equivalent): succeeded. Repeat run correctly failed with `initial administrator already exists`.
+- Signed in as all six users (real JWTs) — **34/34 checks passed**:
+  - Admin assigned the other five roles via `assign_user_role`; self-assign rejected (`you cannot change your own roles`).
+  - Salesperson granting Admin rejected (`not authorized`).
+  - Admin created site `godown_main`, assigned the Godown Manager; godown sees 1 site, unassigned salesperson sees 0; unknown-branch and self-branch changes rejected.
+  - Admin reads audit rows; salesperson reads zero rows; direct `user_roles` insert denied (`permission denied`).
+  - Matrix confirmed: godown has `stock.verify` + report/request/post, Admin has `approve_exceptional`, store has `count_assist` only (no `stock.verify`), delivery has no `damage.record`.
+  - Threshold key reads `50` (**provisional placeholder, not an approved rule**).
+  - `update_own_profile` works; self-deactivation rejected.
+- Cleanup: all six throwaway users deleted (profiles/roles cascaded; 8 audit rows preserved as append-only proof). Temp credentials destroyed. One test site row (`godown_main`) remains in dev `branches`; delete it or keep it as a dev fixture.
+- Godown Manager verification ownership and routine-post vs exceptional-approve split hold as documented. Transit-damage grant still withheld.
+
+## Outstanding business decisions
+
+1. Replace provisional `stock.adjustment.exceptional_absolute_units` seed after formal approval.
+2. Delivery Person + `damage.record` for transit (DMG-05) — still unresolved.
+3. INR-based exceptional thresholds — deferred.
+4. Real Admin provisioning: run the documented bootstrap for the actual administrator account, then assign staff and sites.
 
 ## Git
 
-This folder is not a Git repository, so the verified foundation was not committed. `git init` was not run.
-
-## Remaining blockers
-
-1. Initialize Git and commit the Phase 1 foundation before treating the history as saved. Do not commit `.env`, `.env.local`, or `dist/`.
-2. `npm audit` reports 7 high findings. They come through `shadcn` from `braces` and the packages around it. The offered fix downgrades `shadcn` to 1.0.0, so it was left unchanged.
-3. The foundation migration does not create operational tables. Apply schema only when that later phase starts.
+Phase 2A is committed and pushed (see log). `.env`, `.env.local`, and `dist/` stay ignored. No secrets committed.

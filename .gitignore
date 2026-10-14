@@ -19,6 +19,9 @@ test-results
 blob-report
 playwright/.cache
 
+# Supabase CLI cache. Do not commit local link state.
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -1,0 +1,2 @@
+-- Phase 1 has no seed data.
+-- Do not insert sample orders, stock balances, or users here.

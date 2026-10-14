@@ -1,22 +1,31 @@
 import { NavLink } from "react-router"
 import { cn } from "cn"
 import { navigationGroups, navigationItems } from "@/app/navigation"
+import { useAccess } from "@/lib/access/use-access"
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { can, loading } = useAccess()
+  const visible = navigationItems.filter(
+    (item) => !item.permission || (!loading && can(item.permission)),
+  )
+
   return (
     <nav
       aria-label="Primary"
       className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-6"
     >
-      {navigationGroups.map((group) => (
-        <div key={group}>
-          <p className="px-3 pb-2 text-[11px] font-semibold tracking-[0.16em] text-white/40 uppercase">
-            {group}
-          </p>
-          <div className="flex flex-col gap-1">
-            {navigationItems
-              .filter((item) => item.group === group)
-              .map((item) => {
+      {navigationGroups.map((group) => {
+        const items = visible.filter((item) => item.group === group)
+        if (items.length === 0) {
+          return null
+        }
+        return (
+          <div key={group}>
+            <p className="px-3 pb-2 text-[11px] font-semibold tracking-[0.16em] text-white/40 uppercase">
+              {group}
+            </p>
+            <div className="flex flex-col gap-1">
+              {items.map((item) => {
                 const Icon = item.icon
                 return (
                   <NavLink
@@ -37,9 +46,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   </NavLink>
                 )
               })}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </nav>
   )
 }

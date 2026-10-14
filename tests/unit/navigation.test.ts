@@ -17,7 +17,21 @@ const requiredPaths = [
 
 describe("navigation", () => {
   it("registers every Phase 1 route", () => {
-    expect(navigationItems.map((item) => item.to)).toEqual(requiredPaths)
+    const paths = navigationItems.map((item) => item.to)
+    for (const path of requiredPaths) {
+      expect(paths).toContain(path)
+    }
+  })
+
+  it("gates administration screens on database permissions", () => {
+    expect(
+      navigationItems.find((item) => item.to === "/employees")?.permission,
+    ).toBe("employees.read")
+    expect(
+      navigationItems.find((item) => item.to === "/audit")?.permission,
+    ).toBe("audit.read")
+    expect(navigationItems.at(-1)?.to).toBe("/users-roles")
+    expect(navigationItems.at(-1)?.label).toBe("Users & role")
   })
 
   it("matches the overview route only at the root", () => {

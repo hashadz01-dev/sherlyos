@@ -1,4 +1,5 @@
 import {
+  Building2,
   ChartColumn,
   ClipboardCheck,
   LayoutDashboard,
@@ -6,10 +7,13 @@ import {
   Package,
   PackageOpen,
   RefreshCw,
+  ScrollText,
   Settings,
   ShoppingCart,
   TriangleAlert,
   Truck,
+  UserRound,
+  Users,
 } from "lucide-react"
 import type { AppNavItem, NavGroup } from "@/types/navigation"
 
@@ -111,9 +115,52 @@ export const navigationItems: AppNavItem[] = [
     group: "Workspace",
     icon: Settings,
   },
+  {
+    to: "/employees",
+    label: "Employees",
+    title: "Employees",
+    description: "Profiles, roles, and operating-site assignments.",
+    group: "Administration",
+    icon: Users,
+    permission: "employees.read",
+  },
+  {
+    to: "/branches",
+    label: "Branches",
+    title: "Operating sites",
+    description:
+      "Godowns and other sites. Workflow branches from the blueprint are not listed here.",
+    group: "Administration",
+    icon: Building2,
+    permission: "employees.read",
+  },
+  {
+    to: "/audit",
+    label: "Audit",
+    title: "Audit history",
+    description: "Security events recorded by privileged changes.",
+    group: "Administration",
+    icon: ScrollText,
+    permission: "audit.read",
+  },
+  {
+    to: "/users-roles",
+    label: "Users & role",
+    title: "Users & role",
+    description:
+      "People who can sign in, and the roles currently assigned to them.",
+    group: "Administration",
+    icon: UserRound,
+    permission: "employees.read",
+  },
 ]
 
-export const navigationGroups: NavGroup[] = ["Operations", "Stock", "Workspace"]
+export const navigationGroups: NavGroup[] = [
+  "Operations",
+  "Stock",
+  "Workspace",
+  "Administration",
+]
 
 export function findNavigationItem(pathname: string) {
   return navigationItems.find((item) => {

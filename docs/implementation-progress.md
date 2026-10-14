@@ -124,3 +124,13 @@ After apply: assign roles and sites via `assign_user_role`, `create_branch`, `as
 ## Git
 
 Phase 2A is committed and pushed (see log). `.env`, `.env.local`, and `dist/` stay ignored. No secrets committed.
+
+## Phase 2B (in progress, not committed)
+
+Employee, operating-site, and audit screens are wired to the Phase 2A RPCs and row-level security. Navigation hides Administration until the signed-in user has the matching permission. Direct visits without that permission show an access-denied page.
+
+New Auth accounts are still created outside the app. The confirmed development account was bootstrapped as Admin after its missing profile was inserted (the account existed before the profile trigger). Repeat bootstrap will now fail. Site rename is not available; only create and active status exist.
+
+Checks after this UI: typecheck passed, oxlint passed with no errors, Vitest 13 tests passed.
+
+Users & role lists signed-in people by name. New accounts are created by the `create-employee` Edge Function, which requires `employees.manage` and `roles.assign`. The browser still uses only the publishable key. Profiles now store a phone number.

@@ -4,6 +4,15 @@ import { describe, expect, it, vi } from "vitest"
 import { AppShell } from "@/app/layouts/AppShell"
 import { DashboardPage } from "@/pages/dashboard/DashboardPage"
 
+vi.mock("@/lib/access/use-access", () => ({
+  useAccess: () => ({
+    loading: false,
+    roles: [],
+    permissions: [],
+    can: () => false,
+  }),
+}))
+
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     configured: true,

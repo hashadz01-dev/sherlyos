@@ -125,12 +125,29 @@ After apply: assign roles and sites via `assign_user_role`, `create_branch`, `as
 
 Phase 2A is committed and pushed (see log). `.env`, `.env.local`, and `dist/` stay ignored. No secrets committed.
 
-## Phase 2B (in progress, not committed)
+## Phase 2B verification (2026-10-14)
 
-Employee, operating-site, and audit screens are wired to the Phase 2A RPCs and row-level security. Navigation hides Administration until the signed-in user has the matching permission. Direct visits without that permission show an access-denied page.
+Employee, operating-site, audit, and Users & role screens are wired to Phase 2A RPCs and row-level security. Navigation hides Administration until the signed-in user has the matching permission. Direct visits without that permission show an access-denied page.
 
-New Auth accounts are still created outside the app. The confirmed development account was bootstrapped as Admin after its missing profile was inserted (the account existed before the profile trigger). Repeat bootstrap will now fail. Site rename is not available; only create and active status exist.
+New accounts are created by the deployed `create-employee` Edge Function. The browser still uses only the publishable key. The function checks that the caller is active and holds both `employees.manage` and `roles.assign`, validates the form on the server, creates a confirmed Auth user, and lets the profile trigger store name, phone, and email. The selected role is assigned with `assign_user_role`. If that assignment fails, the new Auth user is deleted. Only Admin currently holds both permissions, so a Salesperson cannot create accounts or grant Admin. An existing Admin can create another Admin. Self-role changes and self-deactivation stay rejected.
 
-Checks after this UI: typecheck passed, oxlint passed with no errors, Vitest 13 tests passed.
+Profiles store `phone_number` and `email` (migrations `20261014180000_profile_phone.sql` and `20261014190000_profile_email.sql`, already applied to development). There is no screen or RPC to edit a phone number after creation. `update_employee_profile` still changes name and employee code only, and that editor is not on these screens.
 
-Users & role lists signed-in people by name. New accounts are created by the `create-employee` Edge Function, which requires `employees.manage` and `roles.assign`. The browser still uses only the publishable key. Profiles now store a phone number.
+Deactivated users can still complete Supabase sign-in. The app then stops them on an inactive-account screen and does not open the workspace. `has_permission` also ignores inactive profiles, so privileged RPCs fail for them.
+
+Site rename is not available. The confirmed Admin account remains Jeffin Pappachan.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed |
+| `npm run lint` (oxlint) | Passed |
+| `npm test` | Passed — 6 files, 13 tests |
+| `npm run build` | Passed — JS chunk about 932 kB |
+| Browser, signed-in Admin | Directory, search, role filter, details dialog, mismatched passwords, duplicate email 409, invalid body 400 |
+| Browser, disposable Salesperson | Sign-in works; Administration hidden; `/users-roles` access denied; create-user 403; self-assign Admin rejected |
+| Browser, role and site | Store Keeper assigned and revoked; Main Godown assigned |
+| Browser, deactivation | Disposable user set inactive; sign-in shows the inactive screen; Admin self-deactivation rejected; Admin session restored |
+
+The disposable account `phase2b.verify.salesperson@example.com` was removed after these checks. The real Admin account was not deleted.

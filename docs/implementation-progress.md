@@ -3,7 +3,7 @@
 ## Current status
 
 - Phase 2B — committed and pushed to `origin/main`.
-- Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 implementation is complete. Phase 2C is not complete, and Phase 2C.3 has not started.
+- Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
 
 The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
@@ -267,10 +267,54 @@ Disposable products, categories, suppliers, shops, assignments, zones, crates, t
 | `npm test` | Passed. 7 files, 18 tests. |
 | `npm run build` | Passed. Warning: the JS chunk is about 966 kB, above the 500 kB notice. CSS is about 83 kB. |
 
-Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. The unresolved business decisions in section 14.4 of `docs/phase-2c-master-data-plan.md` remain pending. Phase 2C.3 has not started.
+Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. The unresolved business decisions in section 14.4 of `docs/phase-2c-master-data-plan.md` remain pending except the two inventory decisions recorded in Phase 2C.3. Phase 2C.3 was applied to the development project after this record; see the Phase 2C.3 section below.
 
 Non-blocking follow-ups:
 
 - oxlint reports `react(incompatible-library)` on the React Hook Form setup in `ProductsPage.tsx`. The lint command still exits successfully.
 - The production JavaScript chunk is about 966 kB, which is above Vite's 500 kB notice. The build still succeeds.
 - `npx supabase migration list --linked` later failed with password authentication for `cli_login_postgres`. Remote history was confirmed through the Management API query of `supabase_migrations.schema_migrations`.
+
+## Phase 2C.3 inventory ledger (2026-10-15)
+
+Migration: `supabase/migrations/20261015180000_inventory_ledger.sql`. It is applied on local Supabase and on development project `ypkfondrkhkydkgovwup`. Remote history was not forced, and the remote database was not reset.
+
+The ledger is append-only. `stock_balances` is a projection maintained in the same transaction as the ledger. Opening stock is Admin only and once per product and crate. Transfers stay inside one authorized godown. Negative quantities are rejected. A crate may hold more than one SKU. A crate or zone with a positive balance cannot be deactivated.
+
+`stock.read` is granted to Admin, Accounts, Godown Manager, and Store Keeper. It does not open every godown. Reads use `app_private.can_work_at_branch`. Accounts and Store Keeper see stock only after an existing site assignment. This phase does not assign them automatically. Salesperson and Delivery Person have no stock read or post grants. `stock.transfer.post` is new and is granted to Admin and Godown Manager. `stock.opening.post` stays Admin only. Existing `stock.adjustment.*` grants were not widened.
+
+Screens: Inventory, Opening stock, Transfers, and History. Opening stock requires `stock.opening.post`. Transfers require `stock.transfer.post`.
+
+| Check | Result |
+| --- | --- |
+| `npx supabase db reset --local` | Passed. Applied through `20261015180000_inventory_ledger.sql`. |
+| `npx supabase db lint --local` | Passed. No schema errors. |
+| `npx supabase db advisors --local` | Passed. No issues. |
+| `supabase/tests/phase_2c1_master_data.sql` | Passed and rolled back. |
+| `supabase/tests/phase_2c2_master_data_access.sql` | Passed and rolled back. |
+| `supabase/tests/phase_2c3_inventory_ledger.sql` | Passed and rolled back. |
+| Overlapping sessions | Seven races passed, including an in-flight transfer against deactivation of a stocked crate and a transfer into a crate deactivated first. |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed (oxlint). React Hook Form warnings remain on `ProductsPage.tsx:294`, `OpeningStockPage.tsx:38`, and `TransfersPage.tsx:44`. |
+| `npm test` | Passed. 8 files, 21 tests. |
+| `npm run build` | Passed. JS chunk about 984 kB. CSS about 84 kB. |
+| Browser, local Vite | Admin opening stock and same-godown transfer. Godown Manager transfer, with opening stock denied. Accounts and Store Keeper read-only. Salesperson denied `/inventory`. A 390px inventory view kept the sidebar collapsed and the table scrolling. |
+
+Before the disposable local rows were removed, ledger sums matched `stock_balances` with no negatives. The posted opening of 12 carton cases reconciled to balances of 6 and 6 after two transfers. Append-only triggers were re-enabled after that local cleanup.
+
+Development-cloud deployment used `npx supabase db push --linked` and applied only `20261015180000`. Remote history now runs from `20261014000000` through `20261015180000`. `stock_transactions`, `stock_ledger`, and `stock_balances` exist, with the posting and list functions and the stock checks on crate and zone deactivation. `godown_main` and the existing administrator remained. Products and shops were already empty.
+
+Cloud security verification passed 26 cases with real JWTs, covering opening, transfer, isolation, idempotency, direct-write, deactivation, inactive-user, and reconciliation. Successful posts ran inside one statement that raised at the end, so the ledger rows rolled back. That session reported one opening for the test product and crate, transfer entries netting to zero, source balance 4 and destination balance 6 after an opening of 10 and transfers of 4 and 2, zero mismatches, zero negatives, no stock in an inactive crate, and at least five posting audit rows. After the rollback the development ledger was empty.
+
+The Vite app on port 5173 used `ypkfondrkhkydkgovwup`. Admin saw the inventory overview, opening form, transfer form, and empty history, and opened the opening-stock confirmation without posting. Godown Manager saw only the assigned test godown on the transfer form, and `/inventory/opening` was denied. Accounts and Store Keeper could open inventory and history and were denied both posting routes. Salesperson and Delivery Person had no inventory navigation, and `/inventory` was denied. At 390px the sidebar was hidden and the inventory filters stacked. Opening stock, a same-godown transfer, and deactivation of a stocked crate were not submitted in the browser, because those ledger rows cannot be removed without disabling the append-only triggers.
+
+After cleanup the development project has one Auth user, `godown_main` as its only branch, no products, no shops, and no stock rows. Disposable users, assignments, sites, products, and their audit rows were removed. The temporary password file was deleted.
+
+| Cloud check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed. The three React Hook Form warnings above remain. |
+| `npm test` | Passed. 8 files, 21 tests. |
+| `npm run build` | Passed. JS chunk `index-B22omsK7.js` is 983.63 kB. CSS `index--4B1rOFm.css` is 83.64 kB. |
+
+Details, the permission matrix, and the remaining decisions are in `docs/phase-2c3-inventory-ledger-plan.md`.

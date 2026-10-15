@@ -70,7 +70,7 @@ begin
     join public.role_permissions on role_permissions.role_id = roles.id
     join public.permissions on permissions.id = role_permissions.permission_id
     where roles.code <> 'admin'
-      and permissions.code in ('stock.opening.post', 'stock.read', 'shops.assign')
+      and permissions.code in ('stock.opening.post', 'shops.assign')
   ) then
     raise exception 'a non-admin received a restricted permission';
   end if;

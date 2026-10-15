@@ -7,7 +7,10 @@ import { UsersRolesPage } from "@/features/administration/users/UsersRolesPage"
 import { DamagePage } from "@/features/damage/DamagePage"
 import { SettingsPage } from "@/features/administration/SettingsPage"
 import { DeliveriesPage } from "@/features/dispatch/DeliveriesPage"
+import { HistoryPage } from "@/features/inventory/HistoryPage"
 import { InventoryPage } from "@/features/inventory/InventoryPage"
+import { OpeningStockPage } from "@/features/inventory/OpeningStockPage"
+import { TransfersPage } from "@/features/inventory/TransfersPage"
 import { CategoriesPage } from "@/features/masters/categories/CategoriesPage"
 import { LocationsPage } from "@/features/masters/locations/LocationsPage"
 import { MastersPage } from "@/features/masters/MastersPage"
@@ -43,7 +46,38 @@ export const appRouteObjects: RouteObject[] = [
           { path: "receiving", element: <ReceivingPage /> },
           { path: "stock-verification", element: <StockVerificationPage /> },
           { path: "refill", element: <RefillPage /> },
-          { path: "inventory", element: <InventoryPage /> },
+          {
+            path: "inventory",
+            element: (
+              <RequirePermission permission="stock.read">
+                <InventoryPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "inventory/opening",
+            element: (
+              <RequirePermission permission="stock.opening.post">
+                <OpeningStockPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "inventory/transfers",
+            element: (
+              <RequirePermission permission="stock.transfer.post">
+                <TransfersPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "inventory/history",
+            element: (
+              <RequirePermission permission="stock.read">
+                <HistoryPage />
+              </RequirePermission>
+            ),
+          },
           { path: "masters", element: <MastersPage /> },
           {
             path: "masters/products",

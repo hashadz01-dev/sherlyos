@@ -96,13 +96,19 @@ reset role;
 
 do $$
 begin
-  if to_regclass('public.stock_balances') is not null
-    or to_regclass('public.stock_movements') is not null
+  if to_regclass('public.stock_movements') is not null
     or to_regclass('public.units_of_measure') is not null
     or to_regclass('public.product_site_settings') is not null
     or to_regclass('public.product_crate_assignments') is not null
   then
-    raise exception 'a deferred table was created';
+    raise exception 'an unapproved table was created';
+  end if;
+
+  if to_regclass('public.stock_transactions') is null
+    or to_regclass('public.stock_ledger') is null
+    or to_regclass('public.stock_balances') is null
+  then
+    raise exception 'the inventory ledger tables are missing';
   end if;
 
   if to_regclass('public.product_categories') is null
@@ -646,17 +652,37 @@ $$;
 reset role;
 
 -- Phase 2C.2 grants the master-data permissions this script used to remove.
--- stock.opening.post stays Admin-only, and stock posting functions stay absent.
+-- Phase 2C.3 grants stock.read and stock.transfer.post to the approved roles.
+-- stock.opening.post stays Admin-only. Receiving and adjustment posting stay absent.
 
 do $$
 begin
+  if (
+    select count(*)
+    from public.role_permissions
+    join public.roles on roles.id = role_permissions.role_id
+    join public.permissions on permissions.id = role_permissions.permission_id
+    where (roles.code, permissions.code) in (
+      ('admin', 'stock.read'),
+      ('accounts', 'stock.read'),
+      ('godown_manager', 'stock.read'),
+      ('store_keeper', 'stock.read'),
+      ('admin', 'stock.transfer.post'),
+      ('godown_manager', 'stock.transfer.post')
+    )
+  ) <> 6 then
+    raise exception 'approved stock grants are incomplete';
+  end if;
+
   if exists (
     select 1
     from public.role_permissions
+    join public.roles on roles.id = role_permissions.role_id
     join public.permissions on permissions.id = role_permissions.permission_id
-    where permissions.code = 'stock.read'
+    where permissions.code in ('stock.read', 'stock.transfer.post', 'stock.opening.post')
+      and roles.code in ('salesperson', 'delivery_person')
   ) then
-    raise exception 'stock.read was granted';
+    raise exception 'salesperson or delivery person received a stock grant';
   end if;
 
   if (
@@ -686,9 +712,9 @@ begin
     from pg_proc
     join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
     where pg_namespace.nspname = 'public'
-      and pg_proc.proname ~ 'opening|stock_balance|receipt'
+      and pg_proc.proname ~ 'receipt|stock_adjustment'
   ) then
-    raise exception 'a stock posting function was created';
+    raise exception 'an unapproved stock posting function was created';
   end if;
 
   if exists (

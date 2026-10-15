@@ -703,7 +703,7 @@ These were not treated as approved:
 19. An INR approval threshold.
 20. Product price and stock valuation.
 
-Items 14 and 15 above were decided for Phase 2C.2. Section 14 records the grants and the provisional `shops.assign` permission. The other items in this list remain pending.
+Items 14 and 15 above were decided for Phase 2C.2. Section 14 records the grants and the provisional `shops.assign` permission. Items 9 and 16 were decided in Phase 2C.3: one crate may hold several SKUs, and a zone or crate with a positive balance cannot be deactivated. The remaining items in this list are still pending. See `docs/phase-2c3-inventory-ledger-plan.md`.
 
 ## 14. Phase 2C.2 access and screens
 
@@ -746,9 +746,9 @@ Master data navigation shows Products, Categories, Suppliers, Shops, Godown loca
 4. Cross-godown salesperson assignments.
 5. Salesperson authority to assign or revoke other salespersons.
 6. A safe owner for a newly created shop.
-7. Whether a crate may hold several SKUs.
+7. Whether a crate may hold several SKUs. Decided in Phase 2C.3: several SKUs may share a crate. Capacity is still not enforced.
 8. Crate capacity.
-9. Deactivation of a zone or crate that contains stock.
+9. Deactivation of a zone or crate that contains stock. Decided in Phase 2C.3: deactivation is rejected while any positive balance remains. There is no Admin override.
 10. Moving a zone or crate after stock exists.
 11. Informational pieces per carton.
 12. Product pricing and valuation.
@@ -769,6 +769,6 @@ Disposable rows, grants, audit rows, and the eight Auth users were removed. The 
 
 Application checks after deployment: typecheck passed, oxlint passed with one React Hook Form warning in `ProductsPage.tsx`, 7 test files and 18 tests passed, and the production build passed with the existing chunk-size warning.
 
-Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. The decisions in section 14.4 remain pending. Phase 2C.3 has not started.
+Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. Phase 2C.3 is applied to development Supabase `ypkfondrkhkydkgovwup` in `20261015180000_inventory_ledger.sql` and is committed to `main`. The decisions in section 14.4 that are not marked decided remain pending. See `docs/phase-2c3-inventory-ledger-plan.md`.
 
 Non-blocking follow-ups: the React Hook Form lint notice in `ProductsPage.tsx`, the Vite chunk-size notice on the production build, and a later `supabase migration list --linked` failure for `cli_login_postgres`. Remote migration history was confirmed through the Management API. Details are in `docs/implementation-progress.md`.

@@ -1,6 +1,11 @@
 # Implementation progress
 
-Phase 1 is on `main` at `66b3624` on GitHub. Phase 2A access-control design passed a **static security gate** on 2026-10-14. The migration has **not** been applied to remote Supabase. Phase 2B has not started.
+## Current status
+
+- Phase 2B — committed and pushed to `origin/main`.
+- Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 is applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 has not started. Phase 2C is not complete.
+
+The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
 ## Phase 2A security gate (latest)
 
@@ -151,3 +156,52 @@ Site rename is not available. The confirmed Admin account remains Jeffin Pappach
 | Browser, deactivation | Disposable user set inactive; sign-in shows the inactive screen; Admin self-deactivation rejected; Admin session restored |
 
 The disposable account `phase2b.verify.salesperson@example.com` was removed after these checks. The real Admin account was not deleted.
+
+## Phase 2C (planning, then local 2C.1)
+
+Architecture for master data and the stock ledger is in `docs/phase-2c-master-data-plan.md`. Section 13 records the Phase 2C.1 schema. Phase 2C.2 has not started. No master-data screen, stock table, or opening-stock function was added.
+
+### Phase 2C.1 development deployment (2026-10-15)
+
+`20261014210000_master_data.sql` is applied on development project `ypkfondrkhkydkgovwup` (`sherlysos`). Point-in-time recovery is off and no physical backup was listed. A logical schema and data dump of `public` and `auth` was saved outside the repository before the push: `C:\Users\Hash\Desktop\Hashdev\sherlyos-recovery\`.
+
+`npx supabase db push --linked` applied only that migration. Remote history now matches local through `20261014210000`. `godown_main` remains the only operating site. The original administrator remains the only Auth user.
+
+Cloud checks after deployment:
+
+- Seven tables exist, with forced row-level security, the expected foreign keys, and the case-insensitive unique indexes.
+- Authenticated users can select products and cannot insert them. Anonymous users cannot select products.
+- The only new grant is Admin → `stock.opening.post`. No stock-posting function exists.
+- Real Admin JWT: product creation and direct insert are denied, self-role change and self-deactivation are denied, profile read still works, and the create-employee function still rejects a duplicate email.
+- Disposable Salesperson JWT: cannot create users or grant Admin.
+- Disposable inactive Admin JWT: sign-in still returns a session, and `create_branch` is denied.
+- With temporary permissions that were removed afterward, a disposable Godown Manager could create a zone and crate only in `godown_main`, duplicate zone and crate codes were rejected, and a second godown was refused. Admin product, supplier, and shop checks passed, including salesperson eligibility, duplicate active assignments, and assignment history. Removing the Salesperson role deactivated that assignment.
+- Those temporary grants and every disposable row and user were removed. The grant list is back to Admin → `stock.opening.post`.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed (oxlint). |
+| `npm test` | Passed. 6 files, 13 tests. |
+| `npm run build` | Passed. |
+
+Phase 2C.2 has not started. No master-data management permission is granted except Admin → `stock.opening.post`.
+
+### Phase 2C.1 local schema (2026-10-14)
+
+`supabase/migrations/20261014210000_master_data.sql` adds categories, suppliers, products, shops, shop salesperson assignments, zones, and crates. The godown remains `branches`. Stock quantities are not stored. The operational unit is a whole carton case, so there is no units table.
+
+RLS is enabled and forced. Clients can select only when they hold the matching read permission, and location reads also require the parent godown. Mutations are security-definer functions. The new permission rows are not granted, except Admin → `stock.opening.post`. That grant has no posting function.
+
+| Check | Result |
+| --- | --- |
+| `npx supabase db reset --local` | Passed. Local only. |
+| `npx supabase db lint --local` | Passed. |
+| `npx supabase db advisors --local` | Passed. |
+| `supabase/tests/phase_2c1_master_data.sql` | Passed and rolled back. No sample rows left. |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed (oxlint). |
+| `npm test` | Passed. 6 files, 13 tests. |
+| `npm run build` | Passed. |
+
+This local record preceded the development deployment above. Phase 2C.2 has not started.

@@ -653,7 +653,8 @@ reset role;
 
 -- Phase 2C.2 grants the master-data permissions this script used to remove.
 -- Phase 2C.3 grants stock.read and stock.transfer.post to the approved roles.
--- stock.opening.post stays Admin-only. Receiving and adjustment posting stay absent.
+-- stock.opening.post stays Admin-only. Stock adjustment posting stays absent.
+-- Phase 3.1 adds receipt functions under receiving.execute and receiving.verify.
 
 do $$
 begin
@@ -712,7 +713,7 @@ begin
     from pg_proc
     join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
     where pg_namespace.nspname = 'public'
-      and pg_proc.proname ~ 'receipt|stock_adjustment'
+      and pg_proc.proname ~ 'stock_adjustment'
   ) then
     raise exception 'an unapproved stock posting function was created';
   end if;

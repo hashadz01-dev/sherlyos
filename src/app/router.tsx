@@ -18,10 +18,13 @@ import { ProductsPage } from "@/features/masters/products/ProductsPage"
 import { ShopsPage } from "@/features/masters/shops/ShopsPage"
 import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
 import { OrdersPage } from "@/features/orders/OrdersPage"
+import { ReceiptDetailPage } from "@/features/receiving/ReceiptDetailPage"
+import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
 import { RefillPage } from "@/features/refill/RefillPage"
 import { ReportsPage } from "@/features/reports/ReportsPage"
 import { StockVerificationPage } from "@/features/stock-verification/StockVerificationPage"
+import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
 import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
@@ -43,7 +46,34 @@ export const appRouteObjects: RouteObject[] = [
           { path: "orders", element: <OrdersPage /> },
           { path: "deliveries", element: <DeliveriesPage /> },
           { path: "damage", element: <DamagePage /> },
-          { path: "receiving", element: <ReceivingPage /> },
+          {
+            path: "receiving",
+            element: (
+              <RequireAnyPermission
+                permissions={["receiving.execute", "receiving.verify", "operations.monitor"]}
+              >
+                <ReceivingPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "receiving/new",
+            element: (
+              <RequirePermission permission="receiving.execute">
+                <ReceiptEditorPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "receiving/:receiptId",
+            element: (
+              <RequireAnyPermission
+                permissions={["receiving.execute", "receiving.verify", "operations.monitor"]}
+              >
+                <ReceiptDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
           { path: "stock-verification", element: <StockVerificationPage /> },
           { path: "refill", element: <RefillPage /> },
           {

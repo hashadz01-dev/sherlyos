@@ -8,6 +8,7 @@ import { SearchField } from "@/features/masters/MasterControls"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { listStockTransactions, type StockTransaction } from "@/lib/inventory/api"
+import { stockMovementLabel, stockTransactionLabel } from "@/lib/inventory/labels"
 import { matchesSearch } from "@/lib/masters/filters"
 
 export function HistoryPage() {
@@ -33,7 +34,7 @@ export function HistoryPage() {
     <section>
       <PageHeader
         title="Stock history"
-        description="Posted opening stock and same-godown transfers. This list is read only."
+        description="Posted opening stock, same-godown transfers, and verified receipts. This list is read only."
       />
       <InventoryLinks />
       {history.isLoading ? <LoadingBlock label="Loading history" /> : null}
@@ -82,10 +83,11 @@ export function HistoryPage() {
 }
 
 function HistoryRow({ row }: { row: StockTransaction }) {
-  const movement =
-    row.transaction_type === "OPENING_STOCK"
-      ? row.destination_crate_code
-      : `${row.source_crate_code ?? "Source"} → ${row.destination_crate_code}`
+  const movement = stockMovementLabel({
+    transactionType: row.transaction_type,
+    sourceCrateCode: row.source_crate_code,
+    destinationCrateCode: row.destination_crate_code,
+  })
   const posted = new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -95,7 +97,7 @@ function HistoryRow({ row }: { row: StockTransaction }) {
     <tr className="border-t border-slate-100">
       <td className="px-4 py-3 font-medium">{row.reference_number}</td>
       <td className="px-4 py-3">
-        {row.transaction_type === "OPENING_STOCK" ? "Opening stock" : "Transfer"}
+        {stockTransactionLabel(row.transaction_type)}
       </td>
       <td className="px-4 py-3">
         {row.product_name}

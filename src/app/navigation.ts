@@ -66,9 +66,10 @@ export const navigationItems: AppNavItem[] = [
     label: "Receiving",
     title: "Stock Receiving",
     description:
-      "Inbound stock receiving will be recorded here in a later phase.",
+      "Record supplier deliveries and verify accepted carton cases before they enter inventory.",
     group: "Operations",
     icon: PackageOpen,
+    anyPermissions: ["receiving.execute", "receiving.verify", "operations.monitor"],
   },
   {
     to: "/stock-verification",

@@ -4,6 +4,7 @@
 
 - Phase 2B — committed and pushed to `origin/main`.
 - Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
+- Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`. Phase 3.2 has not started.
 
 The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
@@ -318,3 +319,50 @@ After cleanup the development project has one Auth user, `godown_main` as its on
 | `npm run build` | Passed. JS chunk `index-B22omsK7.js` is 983.63 kB. CSS `index--4B1rOFm.css` is 83.64 kB. |
 
 Details, the permission matrix, and the remaining decisions are in `docs/phase-2c3-inventory-ledger-plan.md`.
+
+## Phase 3.1 stock receiving (development cloud, 2026-10-15)
+
+Phase 2C.3 remains deployed and committed on development Supabase `ypkfondrkhkydkgovwup`. Phase 3.1 migration `20261015200000_stock_receiving.sql` is applied to that same development project and committed to `main`. Phase 3.2 has not started.
+
+Migration: `supabase/migrations/20261015200000_stock_receiving.sql`. It adds `stock_receipts` and `stock_receipt_lines`, extends the existing ledger with `RECEIPT`, and adds the receiving RPCs. Earlier migrations were not edited. Existing role grants were not changed. `receiving.execute` stays Store Keeper only. `receiving.verify` stays Godown Manager only. Admin keeps `operations.monitor` for read-only monitoring and was not granted receiving execute or verify.
+
+A receipt moves draft, submitted, held, posted, or cancelled. Submit does not post stock. Verification posts accepted cases in the same transaction. Damaged cases are recorded and do not enter available stock. Posted and cancelled receipts stay closed. Corrections of posted stock are deferred.
+
+| Check | Result |
+| --- | --- |
+| `npx supabase db reset --local` | Passed. Applied through `20261015200000_stock_receiving.sql`. The linked cloud project was not reset. |
+| `npx supabase db lint --local` | Passed. No schema errors. |
+| `npx supabase db advisors --local` | Passed. No issues. |
+| `supabase/tests/phase_2c1_master_data.sql` | Passed and rolled back on the receiving schema before the disposable browser seed. |
+| `supabase/tests/phase_2c2_master_data_access.sql` | Passed and rolled back on that same schema. |
+| `supabase/tests/phase_2c3_inventory_ledger.sql` | Passed and rolled back. Opening stock and same-godown transfer still posted. |
+| `supabase/tests/phase_3_1_stock_receiving.sql` | Passed and rolled back. |
+| Overlapping sessions | Eleven receiving races passed, including verify, edit, cancel, shared crate, crate and zone deactivation, duplicate documents, and product or supplier deactivation. |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed. React Hook Form warnings remain on `ProductsPage.tsx:294`, `OpeningStockPage.tsx:38`, and `TransfersPage.tsx:44`. |
+| `npm test` | Passed. 9 files, 30 tests. |
+| `npm run build` | Passed. JS chunk about 1,005 kB. CSS about 84 kB. |
+| Browser, local Vite on port 5175 | Store Keeper created a two-line receipt, submitted it, and cancelled a separate draft. Godown Manager held, returned, and posted the submitted receipt. Inventory showed 5 soap cases and 4 oil cases. The other godown manager, Admin create and verify, Accounts, Salesperson, and Delivery Person were denied the unauthorized actions. At 390px the sidebar stayed collapsed and the receipt table scrolled inside the page. |
+
+After the browser post, local ledger sums matched `stock_balances`: 0 mismatches, 0 negatives, and every receipt ledger row had a receipt and line reference. Accepted cases were 9. The damaged case was not in the balance. Those rows are disposable local data. The next local reset clears them. They were not copied to the development project.
+
+The clean local reset for this deployment removed the earlier disposable browser administrator. Phase 2C.1, 2C.2, 2C.3, and Phase 3.1 SQL then passed and rolled back from that clean database. The eleven receiving concurrency races passed, and their fixture was removed.
+
+Development deployment used `npx supabase db push --linked` after a dry run that listed only `20261015200000_stock_receiving.sql`. The linked project was `ypkfondrkhkydkgovwup`. Remote history was not reset or repaired. Local and remote histories both end at `20261015200000`.
+
+Real JWT checks covered Admin, two Godown Managers, Accounts, Store Keeper, Salesperson, Delivery Person, and an inactive user. Store Keeper created and submitted an assigned-godown receipt. Godown Manager verification, accepted-only posting, exact and conflicting retries, posted and cancelled immutability, opening stock, and a same-godown transfer ran inside one statement that rolled back. Direct receipt, ledger, and balance writes were denied. After that statement, `stock_transactions` and `stock_balances` were still empty.
+
+Cloud browser checks used the Vite app on `[::1]:5173`, which reads the development project. Store Keeper saw Receiving, the submitted receipt, its lines and history, and a new-receipt form limited to the assigned godown, zone, and crates. The draft was not saved. Godown Manager saw Hold, Verify and post, and Cancel receipt, and `/receiving/new` was denied. The verify control was not activated, so the cloud browser did not post stock. Admin could read the list and detail and had no New receipt or verify action. Accounts, Salesperson, and Delivery Person had no Receiving navigation; `/receiving`, `/receiving/new`, and the receipt URL were denied. At 390px the page stayed within the viewport, filters stacked, and the receipt table scrolled inside the page.
+
+Ledger reconciliation before and after the browser checks was the same: 0 transactions, 0 balances, 0 mismatches, 0 negatives, 0 receipt ledger rows, and both append-only triggers enabled. The original administrator and `godown_main` remained.
+
+Disposable cloud users, roles, assignments, branches, zones, crates, products, the supplier, the unposted receipt, and related audit rows were removed. Eight disposable Auth users were deleted. One Auth user remains. No test stock remains. The temporary browser password file was deleted.
+
+| Cloud check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed. The three React Hook Form warnings above remain. |
+| `npm test` | Passed. 9 files, 30 tests. |
+| `npm run build` | Passed. JS chunk `index-Bgrnsx9x.js` is 1,005.17 kB. CSS `index-DzDfXFBY.css` is 83.95 kB. |
+
+Details are in `docs/phase-3-1-stock-receiving-plan.md`.

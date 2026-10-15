@@ -242,6 +242,16 @@ exception
 end;
 $$;
 
+select set_config(
+  'request.jwt.claims',
+  (
+    select json_build_object('sub', id, 'role', 'authenticated')::text
+    from fixture
+    where name = 'salesperson'
+  ),
+  true
+);
+
 set local role authenticated;
 
 do $$
@@ -325,7 +335,8 @@ select roles.id, permissions.id
 from public.roles
 join public.permissions
   on permissions.code in ('locations.read', 'locations.manage')
-where roles.code = 'godown_manager';
+where roles.code = 'godown_manager'
+on conflict do nothing;
 
 insert into public.role_permissions (role_id, permission_id)
 select roles.id, permissions.id
@@ -338,7 +349,8 @@ join public.permissions
     'shops.manage',
     'shops.read'
   )
-where roles.code = 'admin';
+where roles.code = 'admin'
+on conflict do nothing;
 
 select set_config(
   'request.jwt.claims',
@@ -633,19 +645,8 @@ $$;
 
 reset role;
 
-delete from public.role_permissions
-using public.roles, public.permissions
-where role_permissions.role_id = roles.id
-  and role_permissions.permission_id = permissions.id
-  and permissions.code in (
-    'products.read',
-    'products.manage',
-    'suppliers.manage',
-    'shops.manage',
-    'shops.read',
-    'locations.read',
-    'locations.manage'
-  );
+-- Phase 2C.2 grants the master-data permissions this script used to remove.
+-- stock.opening.post stays Admin-only, and stock posting functions stay absent.
 
 do $$
 begin
@@ -653,19 +654,9 @@ begin
     select 1
     from public.role_permissions
     join public.permissions on permissions.id = role_permissions.permission_id
-    where permissions.code in (
-      'products.read',
-      'products.manage',
-      'suppliers.read',
-      'suppliers.manage',
-      'shops.read',
-      'shops.manage',
-      'locations.read',
-      'locations.manage',
-      'stock.read'
-    )
+    where permissions.code = 'stock.read'
   ) then
-    raise exception 'a deferred permission remained granted';
+    raise exception 'stock.read was granted';
   end if;
 
   if (

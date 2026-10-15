@@ -3,7 +3,7 @@
 ## Current status
 
 - Phase 2B — committed and pushed to `origin/main`.
-- Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 is applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 has not started. Phase 2C is not complete.
+- Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 implementation is complete. Phase 2C is not complete, and Phase 2C.3 has not started.
 
 The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
@@ -159,13 +159,13 @@ The disposable account `phase2b.verify.salesperson@example.com` was removed afte
 
 ## Phase 2C (planning, then local 2C.1)
 
-Architecture for master data and the stock ledger is in `docs/phase-2c-master-data-plan.md`. Section 13 records the Phase 2C.1 schema. Phase 2C.2 has not started. No master-data screen, stock table, or opening-stock function was added.
+Architecture for master data and the stock ledger is in `docs/phase-2c-master-data-plan.md`. Section 13 records the Phase 2C.1 schema. The Phase 2C.2 screens and grants are in the section below. No stock table or opening-stock function was added.
 
 ### Phase 2C.1 development deployment (2026-10-15)
 
 `20261014210000_master_data.sql` is applied on development project `ypkfondrkhkydkgovwup` (`sherlysos`). Point-in-time recovery is off and no physical backup was listed. A logical schema and data dump of `public` and `auth` was saved outside the repository before the push: `C:\Users\Hash\Desktop\Hashdev\sherlyos-recovery\`.
 
-`npx supabase db push --linked` applied only that migration. Remote history now matches local through `20261014210000`. `godown_main` remains the only operating site. The original administrator remains the only Auth user.
+`npx supabase db push --linked` applied only that migration. At the close of Phase 2C.1, remote history matched local through `20261014210000`. `godown_main` remained the only operating site, and the original administrator remained the only Auth user. Phase 2C.2 later added `20261015120000`.
 
 Cloud checks after deployment:
 
@@ -185,7 +185,7 @@ Cloud checks after deployment:
 | `npm test` | Passed. 6 files, 13 tests. |
 | `npm run build` | Passed. |
 
-Phase 2C.2 has not started. No master-data management permission is granted except Admin → `stock.opening.post`.
+At the close of the Phase 2C.1 deployment, the only new grant on the development project was Admin → `stock.opening.post`. The Phase 2C.2 grants below were applied with `20261015120000_master_data_access.sql`.
 
 ### Phase 2C.1 local schema (2026-10-14)
 
@@ -204,4 +204,73 @@ RLS is enabled and forced. Clients can select only when they hold the matching r
 | `npm test` | Passed. 6 files, 13 tests. |
 | `npm run build` | Passed. |
 
-This local record preceded the development deployment above. Phase 2C.2 has not started.
+This local record preceded the development deployment above.
+
+## Phase 2C.2 development deployment (2026-10-15)
+
+Migration: `supabase/migrations/20261015120000_master_data_access.sql`. It is applied on development project `ypkfondrkhkydkgovwup`. No commit was made.
+
+Approved grants:
+
+| Role | New grants |
+| --- | --- |
+| Admin | `products.read`, `products.manage`, `suppliers.read`, `suppliers.manage`, `shops.read`, `shops.manage`, `shops.assign`, `locations.read`, `locations.manage`. `stock.opening.post` is unchanged. |
+| Godown Manager | `products.read`, `products.manage`, `suppliers.read`, `locations.read`, `locations.manage`. `suppliers.read` is only so the product form can list suppliers. |
+| Accounts | `suppliers.read`, `suppliers.manage` |
+| Salesperson | `shops.read`, `shops.manage` |
+| Delivery Person, Store Keeper | No new master-data grants |
+
+`shops.assign` is provisional and granted to Admin only. A Salesperson cannot create a shop or assign or revoke another salesperson until shop ownership and delegated assignment are approved. Zone and crate updates cannot move the parent. `stock.read` was not granted. Opening-stock posting was not built.
+
+Shop and assignment reads are scoped. An Admin with `shops.assign` sees every shop and the full assignment history. A Salesperson sees a shop, and that assignment, only while the assignment is active. Revocation hides the shop's current details from that salesperson.
+
+Screens under Master data: Products, Categories, Suppliers, Shops, and Godown locations. Godowns stay on the existing Operating sites screen. Direct routes use `RequirePermission`.
+
+| Check | Result |
+| --- | --- |
+| `npx supabase db reset --local` | Passed. Applied `20261015120000_master_data_access.sql`. |
+| `npx supabase db lint --local` | Passed. |
+| `npx supabase db advisors --local` | Passed. |
+| `supabase/tests/phase_2c2_master_data_access.sql` | Passed and rolled back. |
+| `supabase/tests/phase_2c1_master_data.sql` | Passed and rolled back after the early unauthorized checks were pointed at a Salesperson and the closing assertion stopped deleting the approved grants. |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed (oxlint). One React Compiler note remains on the product form. |
+| `npm test` | Passed. 7 files, 18 tests. |
+| `npm run build` | Passed. The existing bundle-size warning remains. |
+| Browser, local Vite on port 5174 | Admin created and renamed a product. Accounts created a supplier and was denied Products. Godown Manager created zone `A1` and crate `C01` and saw only the assigned godown. Salesperson edited the assigned shop, did not see the other shop, and had no create or assignment controls. Locations denied that Salesperson. Delivery Person had no master-data navigation and was denied `/masters`. A 390px-wide locations view kept the sidebar collapsed and the controls stacked. |
+
+### Cloud deployment
+
+Before the push, the linked reference was `ypkfondrkhkydkgovwup` and the dry run listed only `20261015120000_master_data_access.sql`. `npx supabase db push --linked` applied that migration. A later read of `supabase_migrations.schema_migrations` shows exactly these versions:
+
+`20261014000000`, `20261014150000`, `20261014180000`, `20261014190000`, `20261014210000`, `20261015120000`.
+
+The grant check on the project confirmed Admin holds `products`, `suppliers`, `shops` (including `shops.assign`), and `locations` read and manage, and still holds `stock.opening.post`. Godown Manager holds product and location management plus `suppliers.read` only. Accounts holds supplier read and manage. Salesperson holds shop read and manage. `shops.assign` is Admin only. `stock.read` is not granted. Delivery Person and Store Keeper have no new master-data grants. No master-table insert, update, or delete policy was added. No stock-balance table, stock-movement table, or posting function was added.
+
+Real sessions against the development database passed for Admin, Godown Manager, Accounts, Salesperson, Delivery Person, Store Keeper, and an inactive disposable Admin. Covered checks: product, category, supplier, shop, zone, and crate management; godown isolation; supplier management denied to the Godown Manager; product and location management denied to Accounts; active-shop visibility and edit; unrelated, guessed, and revoked shop denial; shop creation and assignment denied to a Salesperson; direct product insert denied; role grant denied; and product-creation audit rows. After revocation, the Salesperson saw no shops and the Admin still saw the shop and the inactive assignment.
+
+The app on `http://localhost:5173` uses the development project. Signed-in checks:
+
+- Admin: Products, Categories, Suppliers, Shops, and Godown locations were available, including search, deactivation, assignment, and revocation. Both test godowns appeared in the location selector. At 390px the sidebar stayed collapsed and the location controls stacked.
+- Accounts: Suppliers and New supplier were available. Products, Categories, Shops, and Locations were absent from navigation. `/masters/products` showed access denied.
+- Godown Manager: Products, Categories, Suppliers, and Locations were available. The location selector showed only Main Godown. Suppliers were readable and New supplier was absent. Shops was absent.
+- Salesperson: only the actively assigned shop was listed. Its edit dialog opened. New shop, Assign, and Revoke were absent. The unrelated shop was absent. `/masters/products` showed access denied.
+- Delivery Person: no master-data navigation. `/masters` showed access denied.
+- Store Keeper: no master-data navigation. `/masters/suppliers` showed access denied.
+
+Disposable products, categories, suppliers, shops, assignments, zones, crates, the extra godown, branch grants, role rows, and audit rows for those actors were deleted. The eight disposable Auth users were deleted. The password file for those users was deleted. One Auth user remains, the original administrator. `godown_main` is the only operating site. `shops.assign` and `stock.opening.post` remain Admin only.
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed (oxlint). Warning: `ProductsPage.tsx:294` `react(incompatible-library)` for React Hook Form. |
+| `npm test` | Passed. 7 files, 18 tests. |
+| `npm run build` | Passed. Warning: the JS chunk is about 966 kB, above the 500 kB notice. CSS is about 83 kB. |
+
+Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. The unresolved business decisions in section 14.4 of `docs/phase-2c-master-data-plan.md` remain pending. Phase 2C.3 has not started.
+
+Non-blocking follow-ups:
+
+- oxlint reports `react(incompatible-library)` on the React Hook Form setup in `ProductsPage.tsx`. The lint command still exits successfully.
+- The production JavaScript chunk is about 966 kB, which is above Vite's 500 kB notice. The build still succeeds.
+- `npx supabase migration list --linked` later failed with password authentication for `cli_login_postgres`. Remote history was confirmed through the Management API query of `supabase_migrations.schema_migrations`.

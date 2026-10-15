@@ -5,9 +5,12 @@ import { useAccess } from "@/lib/access/use-access"
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { can, loading } = useAccess()
-  const visible = navigationItems.filter(
-    (item) => !item.permission || (!loading && can(item.permission)),
-  )
+  const visible = navigationItems.filter((item) => {
+    if (item.anyPermissions) {
+      return !loading && item.anyPermissions.some((permission) => can(permission))
+    }
+    return !item.permission || (!loading && can(item.permission))
+  })
 
   return (
     <nav

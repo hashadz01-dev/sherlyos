@@ -4,12 +4,15 @@ import {
   ClipboardCheck,
   LayoutDashboard,
   Library,
+  MapPinned,
   Package,
   PackageOpen,
   RefreshCw,
   ScrollText,
   Settings,
   ShoppingCart,
+  Store,
+  Tags,
   TriangleAlert,
   Truck,
   UserRound,
@@ -91,13 +94,64 @@ export const navigationItems: AppNavItem[] = [
     icon: Package,
   },
   {
+    to: "/masters/products",
+    label: "Products",
+    title: "Products",
+    description: "Product names and SKUs. Quantities are not stored here.",
+    group: "Master data",
+    icon: Package,
+    permission: "products.read",
+  },
+  {
+    to: "/masters/categories",
+    label: "Categories",
+    title: "Categories",
+    description: "Optional product groups. Categories are not hierarchical.",
+    group: "Master data",
+    icon: Tags,
+    permission: "products.read",
+  },
+  {
+    to: "/masters/suppliers",
+    label: "Suppliers",
+    title: "Suppliers",
+    description: "Supplier companies. A product has at most one supplier.",
+    group: "Master data",
+    icon: Store,
+    permission: "suppliers.read",
+  },
+  {
+    to: "/masters/shops",
+    label: "Shops",
+    title: "Shops",
+    description: "Customer shops you are allowed to see.",
+    group: "Master data",
+    icon: ShoppingCart,
+    permission: "shops.read",
+  },
+  {
+    to: "/masters/locations",
+    label: "Locations",
+    title: "Godown locations",
+    description: "Zones and crates inside a godown you can work at.",
+    group: "Master data",
+    icon: MapPinned,
+    permission: "locations.read",
+  },
+  {
     to: "/masters",
     label: "Masters",
-    title: "Masters",
-    description:
-      "Shops, products, and other master data will be maintained here in a later phase.",
-    group: "Stock",
+    title: "Master data",
+    description: "Products, suppliers, shops, and godown locations.",
+    group: "Master data",
     icon: Library,
+    end: true,
+    anyPermissions: [
+      "products.read",
+      "suppliers.read",
+      "shops.read",
+      "locations.read",
+    ],
   },
   {
     to: "/reports",
@@ -158,15 +212,17 @@ export const navigationItems: AppNavItem[] = [
 export const navigationGroups: NavGroup[] = [
   "Operations",
   "Stock",
+  "Master data",
   "Workspace",
   "Administration",
 ]
 
 export function findNavigationItem(pathname: string) {
-  return navigationItems.find((item) => {
+  const matches = navigationItems.filter((item) => {
     if (item.to === "/") {
       return pathname === "/"
     }
     return pathname === item.to || pathname.startsWith(`${item.to}/`)
   })
+  return matches.sort((left, right) => right.to.length - left.to.length)[0]
 }

@@ -1,10 +1,10 @@
 # Phase 2C — Master data and operational foundation
 
-Phase 2C.1 is implemented locally and deployed to development project `ypkfondrkhkydkgovwup` as `20261014210000_master_data.sql`. Real JWT and row-level security checks passed. The seven master-data tables are available. No Phase 2C.2 screen exists. Master-data management permissions remain unapproved, except Admin → `stock.opening.post`. Phase 2C is not complete. Sections 4 through 12 are the earlier planning proposal. Where they disagree with section 13, section 13 is the schema that was built.
+Phase 2C.1 is deployed to development project `ypkfondrkhkydkgovwup` as `20261014210000_master_data.sql`. Phase 2C.2 is deployed to the same project as `20261015120000_master_data_access.sql`. The master-data screens and the approved grants are on that project. Phase 2C is not complete, and Phase 2C.3 has not started. Sections 4 through 12 are the earlier planning proposal. Where they disagree with section 13, section 13 is the schema that was built. Section 14 is the access model and the screens that were deployed.
 
 ## 1. Executive summary
 
-SherlysOS can sign people in, assign six roles, and record operating sites. Phase 2C.1 adds the product, supplier, shop, zone, and crate tables. There is still no screen for those records, and no stock balance. The business-process blueprint requires the later ledger before Orders, Receiving, Daily Stock Verification, Damage, Deliveries, or Stock Refill can post anything truthful.
+SherlysOS can sign people in, assign six roles, and record operating sites. Phase 2C.1 adds the product, supplier, shop, zone, and crate tables. Phase 2C.2 adds the approved management screens and grants. There is still no stock balance. The business-process blueprint requires the later ledger before Orders, Receiving, Daily Stock Verification, Damage, Deliveries, or Stock Refill can post anything truthful.
 
 Phase 2C should add reference data first, then a stock ledger that only a database function can change. Balances stay derived from an append-only movement history. The existing `branches` table remains the godown. BPM “Branch 01” through “Branch 05” stay workflow names and are not new site rows.
 
@@ -581,7 +581,7 @@ Before any Phase 3 operational module, 2C.1 through 2C.6 need to be in place for
 
 Start with **2C.1 — Master data schema and RLS**, after the decisions in section 12 that affect columns and grants. Do not start with screens, and do not open the stock ledger until products and locations exist.
 
-No Phase 2C screen has been created in the application. The Phase 2C.1 tables in section 13 exist locally and on development project `ypkfondrkhkydkgovwup`.
+The Phase 2C.1 tables in section 13 exist locally and on development project `ypkfondrkhkydkgovwup`. Phase 2C.2 implementation is complete. Its screens and grants are recorded in section 14 and are deployed on that project as `20261015120000_master_data_access.sql`.
 
 ## 13. Phase 2C.1 local implementation
 
@@ -676,7 +676,7 @@ The ledger should be append-only. Balance changes belong in the same transaction
 
 The SQL script checked foreign keys, case-insensitive SKU, zone, and crate uniqueness, reuse of the same zone or crate code in a different parent, missing parents, inactive-user denial, direct writes by `authenticated` and `service_role`, hidden rows without a read permission, godown isolation for zones and crates, salesperson eligibility, duplicate active assignments, assignment history, role-removal revocation, the existing role and branch functions, supplier delete protection, and Admin-only `stock.opening.post`. Temporary permission rows used to exercise those rules were deleted inside the same transaction and then rolled back.
 
-Development project `ypkfondrkhkydkgovwup` received `20261014210000_master_data.sql` on 2026-10-15. Before that push, platform point-in-time recovery was off and the physical backup list was empty. A logical dump of the `public` and `auth` schemas and data was written outside the repository. After deployment, real Admin, Salesperson, inactive-user, and godown-isolation JWTs were checked. Disposable rows and the temporary permissions used for those checks were removed. The original administrator and `godown_main` remain. Phase 2C.2 has not started.
+Development project `ypkfondrkhkydkgovwup` received `20261014210000_master_data.sql` on 2026-10-15. Before that push, platform point-in-time recovery was off and the physical backup list was empty. A logical dump of the `public` and `auth` schemas and data was written outside the repository. After deployment, real Admin, Salesperson, inactive-user, and godown-isolation JWTs were checked. Disposable rows and the temporary permissions used for those checks were removed. The original administrator and `godown_main` remain. Phase 2C.2 was deployed afterward and is recorded in section 14.
 
 ### 13.6 Decisions still pending
 
@@ -703,4 +703,72 @@ These were not treated as approved:
 19. An INR approval threshold.
 20. Product price and stock valuation.
 
-Phase 2C.2, the master-data screens, waits for approval. It also needs a decision on item 14 before those screens can be used by anyone other than a role that is later granted the manage permissions.
+Items 14 and 15 above were decided for Phase 2C.2. Section 14 records the grants and the provisional `shops.assign` permission. The other items in this list remain pending.
+
+## 14. Phase 2C.2 access and screens
+
+Migration: `supabase/migrations/20261015120000_master_data_access.sql`. It does not recreate the Phase 2C.1 tables and does not add stock. It is applied on development project `ypkfondrkhkydkgovwup`. Remote `supabase_migrations.schema_migrations` contains that version and the five earlier versions, and no others.
+
+### 14.1 Grants
+
+| Permission | Admin | Godown Manager | Accounts | Salesperson | Delivery Person | Store Keeper |
+| --- | --- | --- | --- | --- | --- | --- |
+| `products.read` / `products.manage` | Yes | Yes |  |  |  |  |
+| `suppliers.read` | Yes | Yes, for the product dropdown | Yes |  |  |  |
+| `suppliers.manage` | Yes |  | Yes |  |  |  |
+| `shops.read` / `shops.manage` | Yes |  |  | Yes, scoped |  |  |
+| `shops.assign` | Yes |  |  |  |  |  |
+| `locations.read` / `locations.manage` | Yes | Yes, assigned godowns |  |  |  |  |
+| `stock.opening.post` | Yes, unchanged |  |  |  |  |  |
+
+`shops.assign` is a provisional Admin-only gate for creating a shop and for assigning or revoking a salesperson. It is not a permanent decision that a Salesperson can never receive delegated assignment authority. `stock.read` is not granted.
+
+### 14.2 Authorization
+
+- Product and category records stay global. There is no product-to-godown owner.
+- Suppliers stay global. There is no supplier-to-godown relationship.
+- `create_shop`, `assign_shop_salesperson`, and `revoke_shop_salesperson` require `shops.assign`.
+- `update_shop` and `set_shop_active` require `shops.manage` and either `shops.assign` or an active assignment for the caller.
+- Shop select policy: `shops.read` plus `shops.assign`, or an active assignment for the caller. Revocation hides the shop from that salesperson. Administrators retain the assignment history.
+- Assignment select policy: `shops.assign`, or the caller's own rows when they have `shops.read`.
+- Zone and crate changes still require `locations.manage` and access to the parent godown. Update functions do not accept a new parent.
+- Mutations write `audit_logs` through the existing audit helper. Authenticated users still have no direct table writes.
+
+### 14.3 Screens
+
+Master data navigation shows Products, Categories, Suppliers, Shops, Godown locations, and a hub. Each screen is behind its read permission. Godown records stay on Operating sites. Forms use React Hook Form and Zod. Category and supplier stay optional on a product. The shop screen explains that creation and assignment delegation are pending. The locations screen lists only godowns the caller can already read.
+
+### 14.4 Still pending
+
+1. Whether category is mandatory on a product.
+2. Whether supplier is mandatory on a product.
+3. Shop-to-godown ownership.
+4. Cross-godown salesperson assignments.
+5. Salesperson authority to assign or revoke other salespersons.
+6. A safe owner for a newly created shop.
+7. Whether a crate may hold several SKUs.
+8. Crate capacity.
+9. Deactivation of a zone or crate that contains stock.
+10. Moving a zone or crate after stock exists.
+11. Informational pieces per carton.
+12. Product pricing and valuation.
+13. Batch, expiry, and serial tracking.
+14. Delivery Person transit-damage authorization.
+15. The exceptional adjustment threshold. 50 remains provisional.
+16. An INR exceptional-adjustment threshold.
+
+### 14.5 Cloud verification (2026-10-15)
+
+`npx supabase db push --linked` applied only `20261015120000_master_data_access.sql`. The remote grant matrix matches section 14.1. `stock.opening.post` remains Admin only. `stock.read` is absent. Shop reads require an active assignment unless the caller has `shops.assign`. Direct table writes remain unavailable to authenticated clients. No stock balance, stock movement, or posting function was added.
+
+Real JWTs for disposable Admin, Godown Manager, Accounts, Salesperson, Delivery Person, Store Keeper, and inactive-user sessions passed the management, isolation, denial, guessed-id, audit, and existing Phase 2A/2B checks. After assignment revocation, the Salesperson no longer received the shop, and the Admin still saw the inactive assignment.
+
+The development-connected app was exercised in the browser for those roles. Accounts could manage suppliers and was denied Products. The Godown Manager saw only Main Godown and could read suppliers without a create action. The Salesperson could open the assigned shop and could not see the other shop or the assignment controls. Delivery Person and Store Keeper had no master-data navigation and were denied the master routes. An Admin session used the product, category, shop, and location screens, including a 390px-wide locations layout.
+
+Disposable rows, grants, audit rows, and the eight Auth users were removed. The original administrator and `godown_main` remain. `shops.assign` and `stock.opening.post` were unchanged by that cleanup.
+
+Application checks after deployment: typecheck passed, oxlint passed with one React Hook Form warning in `ProductsPage.tsx`, 7 test files and 18 tests passed, and the production build passed with the existing chunk-size warning.
+
+Phase 2C.2 implementation is complete. Cloud JWT and row-level security checks passed, and the cloud-connected browser checks passed. The decisions in section 14.4 remain pending. Phase 2C.3 has not started.
+
+Non-blocking follow-ups: the React Hook Form lint notice in `ProductsPage.tsx`, the Vite chunk-size notice on the production build, and a later `supabase migration list --linked` failure for `cli_login_postgres`. Remote migration history was confirmed through the Management API. Details are in `docs/implementation-progress.md`.

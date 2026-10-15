@@ -8,7 +8,12 @@ import { DamagePage } from "@/features/damage/DamagePage"
 import { SettingsPage } from "@/features/administration/SettingsPage"
 import { DeliveriesPage } from "@/features/dispatch/DeliveriesPage"
 import { InventoryPage } from "@/features/inventory/InventoryPage"
+import { CategoriesPage } from "@/features/masters/categories/CategoriesPage"
+import { LocationsPage } from "@/features/masters/locations/LocationsPage"
 import { MastersPage } from "@/features/masters/MastersPage"
+import { ProductsPage } from "@/features/masters/products/ProductsPage"
+import { ShopsPage } from "@/features/masters/shops/ShopsPage"
+import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
 import { OrdersPage } from "@/features/orders/OrdersPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
 import { RefillPage } from "@/features/refill/RefillPage"
@@ -40,6 +45,46 @@ export const appRouteObjects: RouteObject[] = [
           { path: "refill", element: <RefillPage /> },
           { path: "inventory", element: <InventoryPage /> },
           { path: "masters", element: <MastersPage /> },
+          {
+            path: "masters/products",
+            element: (
+              <RequirePermission permission="products.read">
+                <ProductsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/categories",
+            element: (
+              <RequirePermission permission="products.read">
+                <CategoriesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/suppliers",
+            element: (
+              <RequirePermission permission="suppliers.read">
+                <SuppliersPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/shops",
+            element: (
+              <RequirePermission permission="shops.read">
+                <ShopsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/locations",
+            element: (
+              <RequirePermission permission="locations.read">
+                <LocationsPage />
+              </RequirePermission>
+            ),
+          },
           { path: "reports", element: <ReportsPage /> },
           { path: "settings", element: <SettingsPage /> },
           {

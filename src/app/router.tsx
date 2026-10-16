@@ -23,6 +23,9 @@ import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
 import { RefillPage } from "@/features/refill/RefillPage"
 import { ReportsPage } from "@/features/reports/ReportsPage"
+import { AdjustmentDetailPage } from "@/features/stock-adjustments/AdjustmentDetailPage"
+import { AdjustmentsPage } from "@/features/stock-adjustments/AdjustmentsPage"
+import { NewAdjustmentPage } from "@/features/stock-adjustments/NewAdjustmentPage"
 import { StartVerificationPage } from "@/features/stock-verification/StartVerificationPage"
 import { StockVerificationPage } from "@/features/stock-verification/StockVerificationPage"
 import { VerificationDetailPage } from "@/features/stock-verification/VerificationDetailPage"
@@ -101,6 +104,46 @@ export const appRouteObjects: RouteObject[] = [
                 permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
               >
                 <VerificationDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "stock-adjustments",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "stock.adjustment.request",
+                  "stock.adjustment.post",
+                  "stock.adjustment.approve_exceptional",
+                  "operations.monitor",
+                  "stock.read",
+                ]}
+              >
+                <AdjustmentsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "stock-adjustments/new",
+            element: (
+              <RequirePermission permission="stock.adjustment.request">
+                <NewAdjustmentPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "stock-adjustments/:requestId",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "stock.adjustment.request",
+                  "stock.adjustment.post",
+                  "stock.adjustment.approve_exceptional",
+                  "operations.monitor",
+                  "stock.read",
+                ]}
+              >
+                <AdjustmentDetailPage />
               </RequireAnyPermission>
             ),
           },

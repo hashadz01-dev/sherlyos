@@ -28,9 +28,11 @@ Stock balances are **never** updated by direct table writes from the client. Pos
 
 **Routine adjustments:** A Godown Manager with `stock.adjustment.post`, an active profile, and `app_private.can_work_at_branch` for the site may post when the request is approved and the delta is within thresholds.
 
-**Exceptional adjustments:** When `app_configuration.stock.adjustment.exceptional_requires_admin` is `true` and the absolute unit delta exceeds `stock.adjustment.exceptional_absolute_units`, an Admin with `stock.adjustment.approve_exceptional` must approve before posting. The migration seeds a **provisional placeholder** value (`50`) in `app_configuration`; that number is **not** an approved business rule and must be replaced after formal sign-off.
+**Exceptional adjustments:** When `app_configuration.stock.adjustment.exceptional_requires_admin` is `true` and any line's absolute carton quantity is greater than `stock.adjustment.exceptional_absolute_units`, an Admin with `stock.adjustment.approve_exceptional` must approve before posting. Phase 3.3 approves that threshold as **10**. A line of 10 is ordinary. A line of 11 is exceptional. The original access-control migration seeded 50 as a placeholder; the Phase 3.3 migration updates the configuration value and does not rewrite that earlier migration.
 
 **Routine vs exceptional:** `stock.adjustment.post` (Godown Manager) and `stock.adjustment.approve_exceptional` (Admin) are separate permissions. Posting never substitutes for exceptional approval when the configured rules require it.
+
+Phase 3.3 is implemented locally and is not deployed to development or production. Ordinary approval belongs to a different assigned Godown Manager. Admin ordinary approval is the fallback when no other eligible manager exists. Approval and posting are separate steps. A same-line receipt or transfer after verification close makes the adjustment stale and requires a new verification. Reversals are not implemented. A non-null `compensates_request_id` is rejected. Development Supabase was not changed by this phase.
 
 ### BPM terminology
 
@@ -166,7 +168,7 @@ Fails safely if an Admin already exists, if the profile is missing, or if the co
 | Godown Manager owns daily verification                | **Confirmed**                                                                             |
 | Godown Manager posts routine adjustments via workflow | **Confirmed**                                                                             |
 | Admin approves exceptional adjustments                | **Confirmed**                                                                             |
-| Exceptional unit threshold in seed data               | **Provisional placeholder only** — not an approved business rule                          |
+| Exceptional unit threshold                            | **Approved for Phase 3.3 as 10 carton cases per line.** Greater than 10 makes the whole request exceptional. |
 | Value-based exceptional threshold (INR)               | **Deferred** until product valuation exists                                               |
 | Delivery Person + BPM transit damage (DMG-05)         | **Unresolved** — `damage.record` is **not** granted; do not add without explicit approval |
 | Telecalling / enquiry as order channels               | Not roles                                                                                 |

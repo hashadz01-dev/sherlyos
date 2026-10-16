@@ -82,6 +82,22 @@ export const navigationItems: AppNavItem[] = [
     anyPermissions: ["stock.verify", "stock.count_assist", "operations.monitor"],
   },
   {
+    to: "/stock-adjustments",
+    label: "Adjustments",
+    title: "Stock adjustments",
+    description:
+      "Request, approve, and post a reviewed stock discrepancy without editing the ledger.",
+    group: "Operations",
+    icon: ClipboardCheck,
+    anyPermissions: [
+      "stock.adjustment.request",
+      "stock.adjustment.post",
+      "stock.adjustment.approve_exceptional",
+      "operations.monitor",
+      "stock.read",
+    ],
+  },
+  {
     to: "/refill",
     label: "Refill",
     title: "Stock Refill",

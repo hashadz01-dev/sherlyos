@@ -238,12 +238,8 @@ begin
     join public.permissions on permissions.id = role_permissions.permission_id
     where permissions.code = 'stock.count_assist'
       and roles.code <> 'store_keeper'
-  ) or exists (
-    select 1
-    from pg_proc
-    where proname ~ 'stock_adjustment'
   ) then
-    raise exception 'verification grants or adjustment surface changed';
+    raise exception 'verification grants changed';
   end if;
 end;
 $$;

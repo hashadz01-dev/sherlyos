@@ -4,7 +4,9 @@
 
 - Phase 2B — committed and pushed to `origin/main`.
 - Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
-- Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`. Phase 3.2 is IMPLEMENTED LOCALLY — COMMITTED — DEVELOPMENT DEPLOYMENT PENDING. It is not applied to development or production.
+- Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`.
+- Phase 3.2 — COMMITTED, DEVELOPMENT DEPLOYMENT PENDING. `20261015220000_daily_stock_verification.sql` is on `main` at `962de31fe577f397a7784db5d35f3615b028c17a` and is not applied to development or production.
+- Phase 3.3 — IMPLEMENTED LOCALLY — COMMITTED — DEVELOPMENT DEPLOYMENT PENDING. The approved threshold is 10 carton cases per line. Development Supabase was not changed.
 
 The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
@@ -408,3 +410,19 @@ At diagnosis time one `pg_dump` session was idle in a transaction for more than 
 The migration file was not changed. Raising the timeout would only wait longer behind an idle lock. A later approved retry was checked and not started: the same `pg_dump` session was still idle in a transaction, about 28 minutes old, and still held `AccessShareLock` on `storage.objects`. No session was terminated. Remote history, counts, and ledger triggers were unchanged, and the pre-push backup still matches that state. This source commit does not apply the migration. Production deployment has not been performed.
 
 Details are in `docs/phase-3-2-daily-stock-verification-plan.md`.
+
+## Phase 3.3 stock adjustment approval (2026-10-16)
+
+Phase 3.3 is IMPLEMENTED LOCALLY — COMMITTED — DEVELOPMENT DEPLOYMENT PENDING. Migration `supabase/migrations/20261016200000_stock_adjustment_approval.sql` is applied on local Supabase only. Development project `ypkfondrkhkydkgovwup` was not changed. Phase 3.2 remains COMMITTED — DEVELOPMENT DEPLOYMENT PENDING.
+
+The plan keeps verification closure separate from ledger posting. `correction_requested` remains a flag. Decisions A–K are owner-approved. The exceptional threshold is 10 whole carton cases per line. The placeholder 50 remains only in the already deployed access-control migration and is replaced on a local database by `20261016200000`. Phase 3.3 cannot be applied to development until Phase 3.2 is deployed and verified there.
+
+Local verification on 2026-10-16:
+
+- Admin fallback SQL passed and rolled back. A sole assigned manager's ordinary request was approved by Admin, Admin could not post, and the manager posted it. After a second eligible manager was assigned, Admin was denied. An inactive manager and a manager assigned to another godown were denied.
+- Phase 3.3 concurrency passed, including two posts, idempotency, approval against rejection and return, posting against return and rejection, receiving, transfer, product, crate, and zone deactivation, duplicate line claims, and an oversized transfer. Cleanup exit 0.
+- A receipt or transfer of the same crate and product after verification closure makes posting stale. The approved quantity stays unchanged and stock follows only the later movement.
+- Phase 3.3 supports ordinary and exceptional adjustments. Reversal is not available. A non-null `compensates_request_id` is rejected on create, update, submit, approve, and post, including a direct table write. The column stays null for a future approved reversal design. Posted ledger entries stay immutable. Phase 3.2 development deployment remains pending.
+- Compensation security SQL passed and rolled back. A null reference still creates, submits, approves, and posts. A non-null reference is rejected on create, direct update, submit, approve, and post. The original posted transaction and its audit events stay unchanged.
+- Regression: typecheck, lint, 48 unit tests, and build passed. Local database lint and advisors reported no issues. Phase 2C.3, 3.1, 3.2, and 3.3 SQL and their intended concurrency and storage runners passed.
+- Browser checks used local Vite on port 5177 and disposable local users. All six roles were exercised. The 390px list used cards and `scrollWidth` was 390. Fixtures were removed. No console errors were observed on the checked pages.

@@ -4,7 +4,7 @@
 
 - Phase 2B — committed and pushed to `origin/main`.
 - Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
-- Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`. Phase 3.2 has not started.
+- Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`. Phase 3.2 is IMPLEMENTED LOCALLY — COMMITTED — DEVELOPMENT DEPLOYMENT PENDING. It is not applied to development or production.
 
 The sections below are the Phase 2A and Phase 2B records. Some early paragraphs still describe the state before the development database was updated.
 
@@ -322,7 +322,7 @@ Details, the permission matrix, and the remaining decisions are in `docs/phase-2
 
 ## Phase 3.1 stock receiving (development cloud, 2026-10-15)
 
-Phase 2C.3 remains deployed and committed on development Supabase `ypkfondrkhkydkgovwup`. Phase 3.1 migration `20261015200000_stock_receiving.sql` is applied to that same development project and committed to `main`. Phase 3.2 has not started.
+Phase 2C.3 remains deployed and committed on development Supabase `ypkfondrkhkydkgovwup`. Phase 3.1 migration `20261015200000_stock_receiving.sql` is applied to that same development project and committed to `main`. Phase 3.2 is implemented on local Supabase only. It is not applied to development or production, and it is not committed.
 
 Migration: `supabase/migrations/20261015200000_stock_receiving.sql`. It adds `stock_receipts` and `stock_receipt_lines`, extends the existing ledger with `RECEIPT`, and adds the receiving RPCs. Earlier migrations were not edited. Existing role grants were not changed. `receiving.execute` stays Store Keeper only. `receiving.verify` stays Godown Manager only. Admin keeps `operations.monitor` for read-only monitoring and was not granted receiving execute or verify.
 
@@ -366,3 +366,45 @@ Disposable cloud users, roles, assignments, branches, zones, crates, products, t
 | `npm run build` | Passed. JS chunk `index-Bgrnsx9x.js` is 1,005.17 kB. CSS `index-DzDfXFBY.css` is 83.95 kB. |
 
 Details are in `docs/phase-3-1-stock-receiving-plan.md`.
+
+## Phase 3.2 daily stock verification (local only, 2026-10-16)
+
+Phase 3.2 is IMPLEMENTED LOCALLY — COMMITTED — DEVELOPMENT DEPLOYMENT PENDING. Local tests passed. The development migration is not applied. The previous cloud push rolled back after a statement timeout. The current blocker is a conflicting lock on `storage.objects`. Remote history ends at `20261015200000`, and `20261015220000` remains pending. Development JWT, row-level security, and cloud Storage verification remain pending. Production deployment has not been performed. Phase 3.3 has not started.
+
+Migration `supabase/migrations/20261015220000_daily_stock_verification.sql` adds the verification tables, the private `stock-verification-evidence` bucket, and the verification RPCs. It does not post stock, add a stock transaction type, or change earlier migrations or role grants.
+
+A verification freezes expected cases from `stock_balances` and records the ledger ids visible for the selected crates at that moment. Later receiving and crate transfers stay available. Closure compares the physical count with snapshot expected cases plus ledger rows that were not in the snapshot. A remaining variance can be closed after a recount and manager review. `correction_requested` stores a status only.
+
+The product-deactivation race came from read committed isolation. Close read `products.is_active` after locking the verification, but `set_product_active` did not lock that verification, so it could commit the inactive flag before close finished and close would still treat the product as active. The same gap existed for crate and zone deactivation.
+
+`set_product_active`, `set_crate_active`, and `set_zone_active` now lock the open verifications that reference the object, ordered by verification id, before changing `is_active`. Crate and zone deactivation take that lock before the zone lock used by receiving, opening stock, and transfers. Close still locks the verification, then its zones and crates. It does not lock products, so it does not deadlock with receipt posting. A deactivation that commits first is visible to close and requires review. A deactivation that waits until close commits changes the object only after the verification is closed. An unrelated product locks no verification and proceeds during closure.
+
+| Check | Result |
+| --- | --- |
+| `npx supabase db reset --local` | Passed. Applied through `20261015220000_daily_stock_verification.sql`. The linked cloud project was not reset. |
+| `npx supabase db lint --local` | Passed. No schema errors. |
+| `npx supabase db advisors --local` | Passed. No issues. |
+| Phase 2C.1, 2C.2, 2C.3 ledger, 3.1, and 3.2 SQL | Passed and rolled back. |
+| Phase 2C.3 concurrency | Passed, including transfer against crate deactivation. Fixture removed. |
+| Phase 3.1 concurrency | Eleven races passed. Fixture removed. |
+| Phase 3.2 concurrency | Passed, including both deactivation orders, crate and zone deactivation, stale review, unrelated product, receipt and transfer on both sides of the zone lock, zero-balance product movement, and two closures. Cleanup re-enabled the append-only triggers. |
+| Phase 3.2 storage | JPEG, PNG, WebP, size, MIME, spoof, anonymous, cross-godown, admin read, keeper upload, unfinalized upload, closure, and deletion checks passed against local storage. |
+| `npm run typecheck` | Passed. |
+| `npm run lint` | Passed. The three existing React Hook Form warnings remain. |
+| `npm test` | Passed. 10 files, 43 tests. |
+| `npm run build` | Passed. JS chunk `index-oFeLP1Ak.js` is 1,035.27 kB. CSS `index-CVgFnebi.css` is 84.21 kB. |
+| Browser, local Vite on port 5175 | Godown Manager started a verification with 5 expected cases, saved a matching count, and submitted it. Closure stayed blocked on photo evidence. Store Keeper saw the verification and had no start, submit, or close action; `/stock-verification/new` was denied. Admin saw the list and read-only detail, with no start action, and `/stock-verification/new` was denied. Accounts, Salesperson, and Delivery Person had no verification link. The list, start, and detail routes were denied. At 390px the list used a card, `scrollWidth` was 390, and the verification number, date, godown, and status were visible. |
+
+Before the browser fixture was removed, the local ledger had one opening-stock transaction, one ledger row, one balance of 5, no negatives, and no balance mismatches. Verification added no stock transaction. Append-only and verification triggers were enabled. The local cleanup then removed the disposable users, verification, photo objects, godown, product, and that opening-stock row. `supabase/seed.sql` does not create an operating site, and that seed was left as the reset applied it. Development cloud was not modified.
+
+## Development push timeout (2026-10-16)
+
+`npx supabase db push --linked` against `ypkfondrkhkydkgovwup` failed with SQLSTATE 57014, `canceling statement due to statement timeout`. Supabase CLI 2.121.0 reported statement 65. The statement text is `create policy stock_verification_evidence_insert on storage.objects`. Remote history still ends at `20261015200000`. No verification tables, storage bucket, or storage policies remain. Counts are unchanged: 1 branch, 1 user role, 0 assignments, 0 products, 0 suppliers, 0 receipts, 0 transactions, 0 ledger rows, 0 balances, 0 negatives, 0 mismatches, 1 Auth user, 0 storage objects, 0 storage buckets. The three ledger triggers remain enabled.
+
+The query connection, as `postgres`, has `statement_timeout` of 2 minutes from the configuration file, `lock_timeout` 0, and `transaction_timeout` 0. `CREATE POLICY` takes `AccessExclusiveLock`. An unblocked local create finished in about 400 ms. The same statement waited on `AccessShareLock` and on `RowExclusiveLock`, then failed with SQLSTATE 57014 after a 4 second `statement_timeout`. The policy function is not the slow part.
+
+At diagnosis time one `pg_dump` session was idle in a transaction for more than 20 minutes and held `AccessShareLock` on `storage.objects`. That lock conflicts with `AccessExclusiveLock`. It was not terminated. It is newer than the failed push, so it is not proof of the original blocker. It is enough to make another push fail the same way until it ends.
+
+The migration file was not changed. Raising the timeout would only wait longer behind an idle lock. A later approved retry was checked and not started: the same `pg_dump` session was still idle in a transaction, about 28 minutes old, and still held `AccessShareLock` on `storage.objects`. No session was terminated. Remote history, counts, and ledger triggers were unchanged, and the pre-push backup still matches that state. This source commit does not apply the migration. Production deployment has not been performed.
+
+Details are in `docs/phase-3-2-daily-stock-verification-plan.md`.

@@ -75,9 +75,11 @@ export const navigationItems: AppNavItem[] = [
     to: "/stock-verification",
     label: "Verification",
     title: "Daily Stock Verification",
-    description: "Daily stock checks will be completed here in a later phase.",
+    description:
+      "Count selected crates against a frozen stock snapshot and record any difference.",
     group: "Operations",
     icon: ClipboardCheck,
+    anyPermissions: ["stock.verify", "stock.count_assist", "operations.monitor"],
   },
   {
     to: "/refill",

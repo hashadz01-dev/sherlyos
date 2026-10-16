@@ -23,7 +23,9 @@ import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
 import { RefillPage } from "@/features/refill/RefillPage"
 import { ReportsPage } from "@/features/reports/ReportsPage"
+import { StartVerificationPage } from "@/features/stock-verification/StartVerificationPage"
 import { StockVerificationPage } from "@/features/stock-verification/StockVerificationPage"
+import { VerificationDetailPage } from "@/features/stock-verification/VerificationDetailPage"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
 import { RequireAuth } from "@/lib/auth/RequireAuth"
@@ -74,7 +76,34 @@ export const appRouteObjects: RouteObject[] = [
               </RequireAnyPermission>
             ),
           },
-          { path: "stock-verification", element: <StockVerificationPage /> },
+          {
+            path: "stock-verification",
+            element: (
+              <RequireAnyPermission
+                permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
+              >
+                <StockVerificationPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "stock-verification/new",
+            element: (
+              <RequirePermission permission="stock.verify">
+                <StartVerificationPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "stock-verification/:verificationId",
+            element: (
+              <RequireAnyPermission
+                permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
+              >
+                <VerificationDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
           { path: "refill", element: <RefillPage /> },
           {
             path: "inventory",

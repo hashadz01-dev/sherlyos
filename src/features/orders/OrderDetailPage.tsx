@@ -82,6 +82,8 @@ export function OrderDetailPage() {
     isCreator && can("orders.capture") && (order?.status === "draft" || order?.status === "held")
   const canCancelAccounts =
     can("orders.verify") && (order?.status === "submitted" || order?.status === "verified")
+  const canCreateDeliveryNote =
+    can("delivery_notes.issue") && order?.status === "verified"
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["orders"] })
@@ -281,6 +283,12 @@ export function OrderDetailPage() {
           ) : null}
 
           <div className="grid gap-4">
+            {canCreateDeliveryNote ? (
+              <Button asChild className="w-full sm:w-auto">
+                <Link to={`/deliveries/new?orderId=${order.id}`}>Create delivery note</Link>
+              </Button>
+            ) : null}
+
             {canSubmit ? (
               <Button onClick={() => submit.mutate()} disabled={pending}>
                 Submit order

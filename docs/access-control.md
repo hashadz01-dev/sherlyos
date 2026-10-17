@@ -68,6 +68,7 @@ Roles are organization-wide. **Branch scope** comes from `user_branch_assignment
 | orders.capture                       |       | yes      |            | yes   |          |              |
 | orders.verify                        |       | yes      |            |       |          |              |
 | delivery_notes.issue                 |       | yes      |            |       |          |              |
+| delivery_notes.acknowledge           |       |          | yes        |       |          |              |
 | invoices.issue                       |       | yes      |            |       |          |              |
 | refill.request                       |       | yes      |            |       |          |              |
 | picking.execute                      |       |          | yes        |       |          |              |
@@ -87,9 +88,15 @@ Roles are organization-wide. **Branch scope** comes from `user_branch_assignment
 
 Operational permissions are a catalog only. Phase 4.1 adds order storage, capture/edit, submit, hold, verify (Rule A), and cancel through RPCs only. Clients still have select-only table grants. Phase 4.1D local QA and Phase 4.1E cloud JWT verification confirmed no unintended permission expansion on development.
 
+**Phase 4.2A — LOCAL COMPLETE.** Added `delivery_notes.acknowledge` for Godown Manager only. Accounts retain `delivery_notes.issue`. Admin monitors via `operations.monitor` (read-only).
+
+**Phase 4.2B — LOCAL COMPLETE.** Accounts mutates via SECURITY DEFINER RPCs only (`create_delivery_note`, `generate_delivery_note`, `void_delivery_note`). No direct table writes. `cancel_order` refuses while an active DN exists (void first; acknowledged blocks cancel). Company print identity is read through `get_company_print_identity` / `get_delivery_note_print` without fictional defaults.
+
+**Phase 4.2C–4.2E — DEVELOPMENT DEPLOYED AND VERIFIED** on `ypkfondrkhkydkgovwup`. SECURITY DEFINER RPCs: `send_delivery_note` (Accounts, `delivery_notes.issue`, `generated` → `sent`) and `acknowledge_delivery_note` (Godown Manager, `delivery_notes.acknowledge`, assigned fulfilling godown only, `sent` → `acknowledged`). Admin remains monitor-only (no Send/Acknowledge). Idempotency + `expected_version` required. No stock ledger writes. Production catalog unchanged.
+
 ## Phase 4.1A catalog grants
 
-PHASE 4.1A–4.1D — LOCAL READY. PHASE 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on `ypkfondrkhkydkgovwup`. Production was not changed. Git commit/push checkpoint pending user approval.
+PHASE 4.1A–4.1D — LOCAL READY. PHASE 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on `ypkfondrkhkydkgovwup`. Production was not changed. Committed on `main` at `9bcbcbb8eca6c44c9ce4d7f1316e291db4e3c681`.
 
 1. Require `auth.uid()` with an active profile and `stock.adjustment.post`.
 2. Call `app_private.can_work_at_branch(branch_id)` unless the actor has `branches.access_all`.
@@ -117,6 +124,9 @@ All listed tables use RLS **enabled** and **forced**. `anon` has no table access
 | user_branch_assignments | Own rows, `employees.read`, or `branches.access_all`.                                     |
 | app_configuration       | `stock.adjustment.post`, `stock.adjustment.approve_exceptional`, or `operations.monitor`. |
 | audit_logs              | `audit.read` only.                                                                        |
+| delivery_notes          | `operations.monitor`, or (`delivery_notes.issue` / `delivery_notes.acknowledge`) with `can_work_at_branch` on fulfilling godown. Local 4.2A only. |
+| delivery_note_lines     | Same visibility as parent delivery note. Local 4.2A only.                                 |
+| delivery_note_events    | Same visibility as parent delivery note. Local 4.2A only.                                 |
 
 Privileged changes use `SECURITY DEFINER` functions with explicit permission checks. Each rejects self-service on roles, active status, administered profiles, and branch assignments. `app_private.has_permission` and `app_private.can_work_at_branch` do not recurse through RLS on the tables they read.
 

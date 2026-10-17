@@ -6,7 +6,10 @@ import { EmployeesPage } from "@/features/administration/employees/EmployeesPage
 import { UsersRolesPage } from "@/features/administration/users/UsersRolesPage"
 import { DamagePage } from "@/features/damage/DamagePage"
 import { SettingsPage } from "@/features/administration/SettingsPage"
-import { DeliveriesPage } from "@/features/dispatch/DeliveriesPage"
+import { DeliveriesPage } from "@/features/delivery-notes/DeliveriesPage"
+import { DeliveryNoteDetailPage } from "@/features/delivery-notes/DeliveryNoteDetailPage"
+import { DeliveryNotePrintPage } from "@/features/delivery-notes/DeliveryNotePrintPage"
+import { NewDeliveryNotePage } from "@/features/delivery-notes/NewDeliveryNotePage"
 import { HistoryPage } from "@/features/inventory/HistoryPage"
 import { InventoryPage } from "@/features/inventory/InventoryPage"
 import { OpeningStockPage } from "@/features/inventory/OpeningStockPage"
@@ -87,7 +90,56 @@ export const appRouteObjects: RouteObject[] = [
             ),
           },
 
-          { path: "deliveries", element: <DeliveriesPage /> },
+          {
+            path: "deliveries",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "delivery_notes.issue",
+                  "delivery_notes.acknowledge",
+                  "operations.monitor",
+                ]}
+              >
+                <DeliveriesPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "deliveries/new",
+            element: (
+              <RequirePermission permission="delivery_notes.issue">
+                <NewDeliveryNotePage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "deliveries/:noteId/print",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "delivery_notes.issue",
+                  "delivery_notes.acknowledge",
+                  "operations.monitor",
+                ]}
+              >
+                <DeliveryNotePrintPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "deliveries/:noteId",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "delivery_notes.issue",
+                  "delivery_notes.acknowledge",
+                  "operations.monitor",
+                ]}
+              >
+                <DeliveryNoteDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
           { path: "damage", element: <DamagePage /> },
           {
             path: "receiving",

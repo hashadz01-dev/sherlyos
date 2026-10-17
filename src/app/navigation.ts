@@ -48,11 +48,16 @@ export const navigationItems: AppNavItem[] = [
   {
     to: "/deliveries",
     label: "Deliveries",
-    title: "Deliveries",
+    title: "Delivery notes",
     description:
-      "Delivery notes and handover status will be tracked here in a later phase.",
+      "Create draft delivery notes from verified orders, generate printable documents, and void when required.",
     group: "Operations",
     icon: Truck,
+    anyPermissions: [
+      "delivery_notes.issue",
+      "delivery_notes.acknowledge",
+      "operations.monitor",
+    ],
   },
   {
     to: "/damage",

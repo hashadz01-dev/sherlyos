@@ -3,7 +3,12 @@
 ## Current status
 
 - Phase 4.1A–4.1D — LOCAL READY (prior).
-- Phase 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on Supabase `ypkfondrkhkydkgovwup`. Migration `20261017120000_shop_orders.sql` applied via `npx supabase db push --linked` (only that migration). Cloud JWT/RPC, Availability Rule A, order concurrency, and browser smoke against development passed. Production was not deployed. Adjustment-versus-verify inventory race remains an acknowledged unverified gap. Cloud test users and labeled orders were retained. **Git commit/push checkpoint pending user approval.**
+- Phase 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on Supabase `ypkfondrkhkydkgovwup`. Migration `20261017120000_shop_orders.sql` applied and committed on `main` at `9bcbcbb8eca6c44c9ce4d7f1316e291db4e3c681`. Production was not deployed. Adjustment-versus-verify inventory race remains an acknowledged unverified gap. Cloud test users and labeled orders were retained.
+- **Phase 4.2A — LOCAL COMPLETE (verified).** Migration `20261018120000_delivery_notes.sql` (schema/RLS/read RPCs).
+- **Phase 4.2B — LOCAL COMPLETE (verified).** Migration `20261018130000_delivery_note_mutations.sql` (create/generate/void, print identity, cancel_order guard) plus Accounts UI.
+- **Phase 4.2C — LOCAL COMPLETE (verified).** Migration `20261018140000_delivery_note_handover.sql` (send/acknowledge) plus Accounts Send and Godown Manager inbox/acknowledge UI.
+- **Phase 4.2D — LOCAL QA COMPLETE — READY FOR DEVELOPMENT DEPLOYMENT.** Full local regression/security/browser gate passed.
+- **Phase 4.2E — DEVELOPMENT DEPLOYED AND VERIFIED** on Supabase `ypkfondrkhkydkgovwup` (2026-10-17). Migrations `20261018120000`, `20261018130000`, `20261018140000` applied. Production not deployed. No git commit/push for this gate. Plan: `docs/phase-4-2-delivery-note-plan.md`.
 - Phase 2B — committed and pushed to `origin/main`.
 - Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
 - Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`.
@@ -458,4 +463,172 @@ Disposable `phase41e.cloud.*` users and labeled Phase 41E Cloud Shop / product /
 
 ### Git checkpoint
 
-Source and docs are ready for an approved commit/push of Phase 4.1. No commit or push has been made yet.
+Phase 4.1 was committed and pushed on `main` at `9bcbcbb8eca6c44c9ce4d7f1316e291db4e3c681`.
+
+## Phase 4.2A local delivery-note foundation (2026-10-18)
+
+**Phase 4.2A — LOCAL IMPLEMENTATION ONLY.** No commit, push, or cloud `db push`.
+
+### Delivered locally
+
+- Migration `supabase/migrations/20261018120000_delivery_notes.sql`: `delivery_notes`, `delivery_note_lines`, `delivery_note_events`; `delivery_note_seq` / `DN-YYYYMMDD-######`; partial unique open DN; append-only events; immutable lines; forced RLS; `delivery_notes.acknowledge` for Godown Manager only; read RPCs `list_delivery_notes`, `get_delivery_note`, `list_verified_orders_without_dn`.
+- SQL test `supabase/tests/phase_4_2a_delivery_notes.sql` (transaction rollback).
+- Docs updated for five owner-approved decisions (draft mandatory, acknowledge permission, uniqueness, cancel consistency design, company identity contract).
+
+### Explicitly not in 4.2A
+
+- Mutation RPCs (create/generate/send/acknowledge/void).
+- UI / print.
+- Replacement of `cancel_order` (documented as blocking forward-only prerequisite for 4.2B/4.2C).
+- Company identity seed values.
+- Development or production deployment.
+
+## Phase 4.2B local draft / generate / void / print (2026-10-18)
+
+**Phase 4.2B — LOCAL IMPLEMENTATION ONLY (verified).** No commit, push, or cloud `db push`.
+
+### Delivered locally
+
+- Migration `supabase/migrations/20261018130000_delivery_note_mutations.sql`:
+  - `create_delivery_note` → draft with full line snapshot
+  - `generate_delivery_note` draft → generated
+  - `void_delivery_note` for draft/generated/sent (reason required)
+  - `get_company_print_identity` / `get_delivery_note_print` (official print blocked until `company.legal_name` + `company.registered_address`)
+  - Forward-only `cancel_order` guard: void active DN first; acknowledged DN blocks cancel; no auto-void
+- Accounts UI under `/deliveries` (+ order detail “Create delivery note”)
+- SQL: `phase_4_2b_delivery_notes.sql`; concurrency: `phase_4_2b_concurrency.mjs`
+
+### Remaining after 4.2B (superseded by 4.2C)
+
+- Send and Godown Manager acknowledge → **done in 4.2C**
+- Cloud deploy (4.2E)
+- Company identity still not seeded with fictional values
+
+## Phase 4.2C local send & godown acknowledgement (2026-10-17)
+
+**Phase 4.2C — LOCAL IMPLEMENTATION ONLY (verified).** No commit, push, or cloud `db push`.
+
+### Delivered locally
+
+- Migration `supabase/migrations/20261018140000_delivery_note_handover.sql`:
+  - `send_delivery_note(target_note, expected_version, idempotency_key)` — Accounts, `generated` → `sent`
+  - `acknowledge_delivery_note(target_note, expected_version, idempotency_key)` — Godown Manager, assigned godown, `sent` → `acknowledged`
+  - Lock order: source order `FOR UPDATE`, then DN `FOR UPDATE`; idempotent replay safe
+- UI: Accounts Send confirmation; GM `/deliveries` default `sent` filter; Acknowledge confirmation; Admin monitor-only
+- SQL: `phase_4_2c_delivery_notes.sql`; concurrency: `phase_4_2c_concurrency.mjs` (dual send/ack, send|ack vs void/cancel, idempotency, ledger integrity)
+- Authenticated browser QA against local Supabase (create→generate→print→send→ack; voids/cancel guards; unauthorized; cross-godown; 390px)
+
+### Explicitly not in 4.2C
+
+- Inventory reservation, stock deduction, picking, vehicle/delivery-person assignment, invoices
+- Phase 4.2D full QA gate / Phase 4.2E cloud deploy
+- Commit or push
+
+### Verification snapshot
+
+- `npm run typecheck` / `lint` / `test` / `build` — pass
+- `npx supabase db lint --local` / `db advisors --local` — no issues
+- Linked development still at `20261017120000` only (4.2 local-only)
+- Append-only: `stock_ledger_append_only`, `delivery_note_events_append_only`; no negative `stock_balances.quantity`
+
+## Phase 4.2D full local QA & deployment readiness (2026-10-17)
+
+**Verdict: READY FOR DEVELOPMENT DEPLOYMENT.** No commit, push, or cloud `db push` was executed in 4.2D.
+
+### Audit results
+
+- Database: forced RLS on DN tables; SELECT-only for authenticated; anon none; open-order unique; shape checks; immutable lines; append-only events; sequence-backed numbers; no price/tax/invoice/stock columns.
+- Security: all mutation RPCs SECURITY DEFINER + `search_path=""`, permission + branch checks; role matrix covered by SQL suites; no unauthorized catalog expansion beyond `delivery_notes.issue` / `delivery_notes.acknowledge`.
+- Cancellation: void-first for draft/generated/sent; acknowledged blocks cancel and void; no auto-void; concurrent cancel races covered in 4.2B/4.2C concurrency.
+- Inventory: DN create/generate/send/ack leave ledger row count and balances unchanged; append-only triggers remain enabled.
+- Regressions: Phase 2C.1–2C.3, 3.1–3.3, 4.1A–4.1D, 4.2A–4.2C SQL — all exit 0. Concurrency mjs suites including 4.2B/4.2C — all exit 0. Local `db lint` / `advisors` clean.
+- App: typecheck/lint/test/build pass (pre-existing react incompatible-library warnings only).
+- Browser: Accounts create→generate→print (identity ready)→send path; GM ack; void/cancel gates; 390px; unauthorized route. SPA soft-nav lag classified non-blocking.
+
+### Deployment readiness (plan only — not executed)
+
+1. **Backup:** linked schema/data/roles dump of `ypkfondrkhkydkgovwup` before any push.
+2. **Dry-run:** `supabase migration list --linked` confirm remote ends at `20261017120000`; local has three 4.2 files; no edit of applied migrations.
+3. **Order:** push `20261018120000` → `20261018130000` → `20261018140000` only after authorization.
+4. **Post-deploy:** JWT role matrix (Accounts/GM/Admin/Sales); browser happy path; ledger count delta = 0 across DN RPCs; advisors.
+5. **Failure:** stop push; restore from dump; do not edit applied cloud migrations.
+
+### Remaining for 4.2E (requires approval)
+
+- Commit/push of local 4.2 artifacts (if chosen as part of release process)
+- Authorized development cloud migration apply + cloud JWT/browser verification
+- Production remains out of scope
+
+## Phase 4.2E development deployment & cloud verification (2026-10-17)
+
+**Verdict: DEVELOPMENT DEPLOYED AND VERIFIED** on `ypkfondrkhkydkgovwup`. Production unchanged. No git commit or push.
+
+### Preflight
+
+- Branch `main`, HEAD `9bcbcbb8eca6c44c9ce4d7f1316e291db4e3c681` equals `origin/main`.
+- Remote history ended at `20261017120000_shop_orders.sql`; pending exactly the three Phase 4.2 migrations.
+- Phase 4.2D verdict was READY FOR DEVELOPMENT DEPLOYMENT. Dirty local working tree preserved.
+
+### Backup
+
+- Timestamp folder: `C:\Users\Hash\Desktop\Hashdev\sherlyos-recovery\phase-4-2e\` (`20261017-152445-*`).
+- Captured: public schema/data, auth schema/data, roles, migration history, storage schema/data, integrity snapshot, dry-run and push logs.
+- Logical dumps only; restore not drill-tested. Point-in-time recovery not claimed.
+- Deploy start recorded in `BACKUP_META.txt` (`deploy_start=2026-10-17 15:30:19 +05:30`, `push_exit=0`).
+
+### Migration apply
+
+- Dry run listed only: `20261018120000_delivery_notes.sql`, `20261018130000_delivery_note_mutations.sql`, `20261018140000_delivery_note_handover.sql`.
+- `npx supabase db push --linked` applied those three; exit 0.
+- Remote migration list now matches local through `20261018140000`.
+
+### Post-deploy integrity
+
+| Metric | Pre-deploy | Post-verify |
+| --- | --- | --- |
+| `stock_ledger` | 23 | 23 |
+| `stock_balances` | 11 | 11 |
+| Negative balances | 0 | 0 |
+| Ledger/balance mismatches | 0 | 0 |
+| Orders / lines / events | 8 / 8 / 28 | 14 / 14 / 48 (labeled DN workflow fixtures) |
+
+- FORCE RLS on `delivery_notes`, `delivery_note_lines`, `delivery_note_events`; authenticated grants SELECT only.
+- Append-only triggers enabled (`stock_ledger_append_only`, `delivery_note_events_append_only`).
+- `cancel_order` guard references delivery notes.
+
+### Cloud JWT / workflow
+
+Evidence: `sherlyos-recovery/phase-4-2e/jwt-4-2e-live.txt`, `jwt-4-2e-stale-inactive.txt`.
+
+- Accounts: create → generate → send; print_ready=false without company identity; void paths; cancel blocked with active DN / after ack; cancel after void; duplicate open DN denied; idempotent create/send/ack replay.
+- Godown A: acknowledge assigned godown; cross-godown deny; cannot create/send.
+- Admin: monitor list read; no DN mutations.
+- Sales / Store Keeper / Delivery Person: DN mutations denied; direct table insert denied; anon denied.
+- Inactive Sales fixture: list denied (`42501`); profile restored.
+- Stale `expected_version`: denied (`40001 delivery note was changed by someone else`) via SQL JWT claim simulation. REST generate with stale version hit an upstream abort/timeout (same class as one mismatched-send flake); outcome still deny / no mutation.
+- Ledger unchanged across DN RPCs (23).
+
+### Cloud browser (Vite `:5181` → `ypkfondrkhkydkgovwup`)
+
+- Accounts: DN list/detail/timeline; print blocked for missing company identity; 390px no horizontal overflow (sidebar → Open navigation).
+- Godown A: sent inbox shows DN; acknowledge → v4 acknowledged event.
+- Salesperson: `/deliveries` → Access denied.
+- Session hard-nav refresh retained Accounts session.
+- Frontend env uses `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` only (no `VITE_` service-role exposure).
+
+### Company identity / print
+
+- `company.legal_name` / `company.registered_address` not configured on development.
+- `print_ready=false`; official print blocked. Operational follow-up: configure real company identity (do not invent values).
+
+### Fixtures retained
+
+- Labeled Auth users `phase42e.cloud.*@example.com` and related orders/DNs (including voided/ack/draft) retained for audit. No destructive historical cleanup. Disposable inactive toggle restored.
+
+### Outstanding
+
+- Configure development company print identity when ready.
+- Commit/push of Phase 4.2 source artifacts (separate approval).
+- Production deployment out of scope.
+- Phase 4.1 adjustment-versus-verify inventory race remains an acknowledged unverified gap (unchanged).
+- Phase 4.3 not started.

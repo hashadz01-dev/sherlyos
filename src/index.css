@@ -134,3 +134,14 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .dn-print {
+    padding: 0 !important;
+  }
+}

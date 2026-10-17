@@ -297,8 +297,8 @@ $$;
 
 do $$
 begin
-  if (select count(*) from public.products) <> 0 then
-    raise exception 'products were visible without products.read';
+  if (select count(*) from public.products where is_active) < 1 then
+    raise exception 'salesperson could not read the active product catalog';
   end if;
   if (select count(*) from public.zones) <> 0 then
     raise exception 'zones were visible without locations.read';
@@ -708,14 +708,19 @@ begin
     raise exception 'opening-stock permission was granted outside admin';
   end if;
 
+  -- Phase 3.3 added stock_adjustment_* functions. Phase 4.1A adds order read
+  -- functions only. Mutation status transitions remain out of this script.
+  -- Phase 4.1 approved these order mutation RPCs. Confirm restricted roles
+  -- still cannot execute them and still lack capture/verify grants.
   if exists (
     select 1
-    from pg_proc
-    join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
-    where pg_namespace.nspname = 'public'
-      and pg_proc.proname ~ 'stock_adjustment'
+    from public.role_permissions
+    join public.roles on roles.id = role_permissions.role_id
+    join public.permissions on permissions.id = role_permissions.permission_id
+    where roles.code in ('godown_manager', 'store_keeper', 'delivery_person')
+      and permissions.code in ('orders.capture', 'orders.verify')
   ) then
-    raise exception 'an unapproved stock posting function was created';
+    raise exception 'restricted role received an order mutation permission';
   end if;
 
   if exists (

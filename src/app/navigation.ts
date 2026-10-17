@@ -39,10 +39,12 @@ export const navigationItems: AppNavItem[] = [
     label: "Orders",
     title: "Orders",
     description:
-      "Shop orders will be listed and progressed here in a later phase.",
+      "Capture shop requests and review their status. Verification does not change inventory.",
     group: "Operations",
     icon: ShoppingCart,
+    anyPermissions: ["orders.capture", "orders.verify", "operations.monitor"],
   },
+
   {
     to: "/deliveries",
     label: "Deliveries",

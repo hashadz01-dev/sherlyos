@@ -85,11 +85,11 @@ Roles are organization-wide. **Branch scope** comes from `user_branch_assignment
 | loading.assist                       |       |          |            |       |          | yes          |
 | stock.count_assist                   |       |          |            |       |          | yes          |
 
-Operational permissions are a catalog only. No order, ledger, or verification tables exist in Phase 2A.
+Operational permissions are a catalog only. Phase 4.1 adds order storage, capture/edit, submit, hold, verify (Rule A), and cancel through RPCs only. Clients still have select-only table grants. Phase 4.1D local QA and Phase 4.1E cloud JWT verification confirmed no unintended permission expansion on development.
 
-## Future stock adjustment contract
+## Phase 4.1A catalog grants
 
-The future function (name to be chosen in the inventory phase) must:
+PHASE 4.1A–4.1D — LOCAL READY. PHASE 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on `ypkfondrkhkydkgovwup`. Production was not changed. Git commit/push checkpoint pending user approval.
 
 1. Require `auth.uid()` with an active profile and `stock.adjustment.post`.
 2. Call `app_private.can_work_at_branch(branch_id)` unless the actor has `branches.access_all`.
@@ -171,7 +171,7 @@ Fails safely if an Admin already exists, if the profile is missing, or if the co
 | Exceptional unit threshold                            | **Approved for Phase 3.3 as 10 carton cases per line.** Greater than 10 makes the whole request exceptional. |
 | Value-based exceptional threshold (INR)               | **Deferred** until product valuation exists                                               |
 | Delivery Person + BPM transit damage (DMG-05)         | **Unresolved** — `damage.record` is **not** granted; do not add without explicit approval |
-| Telecalling / enquiry as order channels               | Not roles                                                                                 |
+| Telecalling / enquiry as order channels               | **Approved for Phase 4.1** as order source values, not roles.             |
 | Auth email on profile                                 | Stays in Auth only                                                                        |
 
 ## Review and apply (remote)

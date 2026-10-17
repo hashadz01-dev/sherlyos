@@ -17,6 +17,8 @@ import { MastersPage } from "@/features/masters/MastersPage"
 import { ProductsPage } from "@/features/masters/products/ProductsPage"
 import { ShopsPage } from "@/features/masters/shops/ShopsPage"
 import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
+import { EditOrderPage, NewOrderPage } from "@/features/orders/OrderEditorPage"
+import { OrderDetailPage } from "@/features/orders/OrderDetailPage"
 import { OrdersPage } from "@/features/orders/OrdersPage"
 import { ReceiptDetailPage } from "@/features/receiving/ReceiptDetailPage"
 import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
@@ -48,7 +50,43 @@ export const appRouteObjects: RouteObject[] = [
         element: <AppShell />,
         children: [
           { index: true, element: <DashboardPage /> },
-          { path: "orders", element: <OrdersPage /> },
+          {
+            path: "orders",
+            element: (
+              <RequireAnyPermission
+                permissions={["orders.capture", "orders.verify", "operations.monitor"]}
+              >
+                <OrdersPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "orders/new",
+            element: (
+              <RequirePermission permission="orders.capture">
+                <NewOrderPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "orders/:orderId/edit",
+            element: (
+              <RequirePermission permission="orders.capture">
+                <EditOrderPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "orders/:orderId",
+            element: (
+              <RequireAnyPermission
+                permissions={["orders.capture", "orders.verify", "operations.monitor"]}
+              >
+                <OrderDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+
           { path: "deliveries", element: <DeliveriesPage /> },
           { path: "damage", element: <DamagePage /> },
           {

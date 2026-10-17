@@ -2,6 +2,8 @@
 
 ## Current status
 
+- Phase 4.1A–4.1D — LOCAL READY (prior).
+- Phase 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on Supabase `ypkfondrkhkydkgovwup`. Migration `20261017120000_shop_orders.sql` applied via `npx supabase db push --linked` (only that migration). Cloud JWT/RPC, Availability Rule A, order concurrency, and browser smoke against development passed. Production was not deployed. Adjustment-versus-verify inventory race remains an acknowledged unverified gap. Cloud test users and labeled orders were retained. **Git commit/push checkpoint pending user approval.**
 - Phase 2B — committed and pushed to `origin/main`.
 - Phase 2C — architecture is in `docs/phase-2c-master-data-plan.md`. Phase 2C.1 and Phase 2C.2 are applied to development Supabase `ypkfondrkhkydkgovwup`. Phase 2C.2 is committed as `01907d8aa94bbba6dc290fdf3effff6fba430731`. Phase 2C.3 development-cloud deployment is complete on development Supabase `ypkfondrkhkydkgovwup` and is committed to `main`. Phase 2C is not complete.
 - Phase 3.1 — stock receiving is applied to development Supabase `ypkfondrkhkydkgovwup` through `20261015200000_stock_receiving.sql` and is committed to `main`.
@@ -426,3 +428,34 @@ Local verification on 2026-10-16:
 - Compensation security SQL passed and rolled back. A null reference still creates, submits, approves, and posts. A non-null reference is rejected on create, direct update, submit, approve, and post. The original posted transaction and its audit events stay unchanged.
 - Regression: typecheck, lint, 48 unit tests, and build passed. Local database lint and advisors reported no issues. Phase 2C.3, 3.1, 3.2, and 3.3 SQL and their intended concurrency and storage runners passed.
 - Browser checks used local Vite on port 5177 and disposable local users. All six roles were exercised. The 390px list used cards and `scrollWidth` was 390. Fixtures were removed. No console errors were observed on the checked pages.
+
+## Phase 4.1E development deployment and cloud verification (2026-10-17)
+
+Phase 4.1E — DEVELOPMENT DEPLOYED AND VERIFIED on development Supabase `ypkfondrkhkydkgovwup` (sherlysos, ap-northeast-2). Production was not touched. No git commit or push has been made for this gate yet.
+
+### Deploy
+
+- Git: `main` at `af754f9a9ec463e4f343cbb85994be968c7b851e`.
+- Backup: `C:\Users\Hash\Desktop\Hashdev\sherlyos-recovery\phase-4-1e\` (pre-deploy dumps + RESTORE.md).
+- `npx supabase db push --linked` applied only `20261017120000_shop_orders.sql`. CLI finished with that single migration. Evidence: `20261017-db-push-output.txt`.
+- Remote migration history now includes `20261017120000`.
+
+### Cloud checks (summary)
+
+| Area | Result |
+| --- | --- |
+| Schema / forced RLS on `orders`, `order_lines`, `order_events` | Pass |
+| Direct client writes / unauthorized RPCs (godown, keeper, delivery, admin create) | Denied (403) |
+| Sales / Accounts JWT workflow (create, edit, submit, hold with `hold_note`, correct, resubmit, verify, cancel) | Pass (hold-path retest after initial `hold_reason` client mismatch) |
+| Availability Rule A | Pass — insufficient stock rejects verify; order stays `submitted`; version unchanged; shortage details returned; no auto-hold |
+| Order concurrency (duplicate submit, dual verify) | Pass |
+| Inventory adjustment-versus-verify race | Skipped / acknowledged gap (no disruptive shared-ledger race) |
+| Ledger integrity after tests | Negative balances 0; ledger rows 23 (22 baseline + 1 labeled opening-stock fixture); no duplicate order/event idempotency keys |
+| Browser smoke (local Vite against development) | Pass — list/create/edit/submit/hold/verify/cancel, shortage UI, audit timeline, session refresh, 390px, godown `/orders` access denied |
+| Production | Not deployed |
+
+Disposable `phase41e.cloud.*` users and labeled Phase 41E Cloud Shop / product / opening stock / orders were retained as development verification records (not destructively cleaned).
+
+### Git checkpoint
+
+Source and docs are ready for an approved commit/push of Phase 4.1. No commit or push has been made yet.

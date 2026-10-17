@@ -380,7 +380,7 @@ begin
   exception
     when sqlstate '42501' then null;
     when sqlstate '23514' then null;
-    when sqlstate '40001' then null;
+    when sqlstate 'PT409' then null;
   end;
 end;
 $$;

@@ -581,7 +581,7 @@ begin
     perform public.cancel_order(current_setting('sherlyos.short')::uuid, 99, 'nope', 'p41c-bad-cancel');
     raise exception 'stale/unauthorized cancel should fail';
   exception
-    when sqlstate '40001' then null;
+    when sqlstate 'PT409' then null;
     when sqlstate '42501' then null;
     when sqlstate '23514' then null;
   end;
@@ -664,7 +664,7 @@ begin
     perform public.hold_order(current_setting('sherlyos.deny_order')::uuid, 1, 'stale', 'p41c-hold-stale');
     raise exception 'stale hold should fail';
   exception
-    when sqlstate '40001' then null;
+    when sqlstate 'PT409' then null;
   end;
 end;
 $$;

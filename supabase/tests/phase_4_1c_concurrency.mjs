@@ -105,7 +105,7 @@ try {
         );
         raise exception 'second verify was accepted';
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;
@@ -176,7 +176,7 @@ try {
         );
         raise exception 'verify won against held lock unexpectedly without conflict';
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;
@@ -253,7 +253,7 @@ try {
         );
         raise exception 'cancel won without conflict';
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;

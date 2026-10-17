@@ -310,7 +310,7 @@ begin
     );
     raise exception 'stale version should fail';
   exception
-    when sqlstate '40001' then
+    when sqlstate 'PT409' then
       null;
   end;
 end;

@@ -82,7 +82,7 @@ try {
         );
         raise exception 'second send was accepted';
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;
@@ -134,7 +134,7 @@ try {
         );
         raise exception 'second acknowledge was accepted';
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
         when sqlstate '42501' then null;
       end;
@@ -187,7 +187,7 @@ try {
           'p42c-race-sv-void'
         );
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;
@@ -234,7 +234,7 @@ try {
           'p42c-race-av-void'
         );
       exception
-        when sqlstate '40001' then null;
+        when sqlstate 'PT409' then null;
         when sqlstate '23514' then null;
       end;
       $$;
@@ -295,7 +295,7 @@ try {
           );
         exception
           when sqlstate '23514' then null;
-          when sqlstate '40001' then null;
+          when sqlstate 'PT409' then null;
         end;
       end;
       $$;
@@ -352,7 +352,7 @@ try {
           );
         exception
           when sqlstate '23514' then null;
-          when sqlstate '40001' then null;
+          when sqlstate 'PT409' then null;
         end;
       end;
       $$;

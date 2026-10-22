@@ -167,7 +167,25 @@ describe("lot reconciliation rules", () => {
     })
     expect(approved.cancel).toBe(false)
     expect(approved.saveCount).toBe(false)
+    expect(approved.apply).toBe(true)
     expect(approved.immutable).toBe(true)
+
+    const applied = lotReconciliationActions({
+      status: "applied",
+      isSubmitter: false,
+      canPhysical: true,
+      canAdmin: true,
+    })
+    expect(applied.apply).toBe(false)
+    expect(applied.immutable).toBe(true)
+
+    const godownApproved = lotReconciliationActions({
+      status: "approved",
+      isSubmitter: true,
+      canPhysical: true,
+      canAdmin: false,
+    })
+    expect(godownApproved.apply).toBe(false)
 
     const rejected = lotReconciliationActions({
       status: "rejected",
@@ -195,8 +213,13 @@ describe("lot reconciliation rules", () => {
 
   it("labels events from backend types", () => {
     expect(eventLabel("expected_refreshed")).toBe("Expected stock refreshed")
+    expect(eventLabel("applied")).toBe("Legacy lots attributed")
     expect(actorLabel("aaaaaaaa-bbbb", "aaaaaaaa-bbbb")).toBe("You")
     expect(sessionListAction({ status: "draft", canPhysical: true, canAdmin: false })).toBe("Count")
+    expect(sessionListAction({ status: "approved", canPhysical: true, canAdmin: true })).toBe(
+      "Attribute",
+    )
+    expect(sessionListAction({ status: "approved", canPhysical: true, canAdmin: false })).toBe("View")
   })
 
   it("registers a permission-aware lot reconciliation nav item", () => {

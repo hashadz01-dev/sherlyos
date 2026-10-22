@@ -34,7 +34,7 @@ function releaseQaHolds() {
       from public.branches b
       where b.id = s.godown_id
         and b.code like 'm1s2qa_%'
-        and s.status in ('draft', 'rejected', 'submitted');
+        and s.status in ('draft', 'rejected', 'submitted', 'approved');
     end;
     $$;
   `
@@ -67,6 +67,79 @@ function productArticle(page: Page, sku: string) {
   return page.locator("article").filter({
     has: page.getByRole("heading", { name: new RegExp(`^${sku}\\b`) }),
   })
+}
+
+function runLocalSql(sql: string, label: string) {
+  const result = spawnSync(
+    "docker",
+    [
+      "exec",
+      "-i",
+      "supabase_db_sherlyos",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+    ],
+    { input: sql, encoding: "utf8" },
+  )
+  if (result.status !== 0) {
+    throw new Error(result.stderr || result.stdout || `${label} failed`)
+  }
+  return result.stdout
+}
+
+function wipeLocalLotsIfSafe() {
+  runLocalSql(
+    `
+    do $$
+    begin
+      if exists (
+        select 1 from public.app_configuration
+        where key = 'stock.lots.dual_write_enabled' and value = 'true'::jsonb
+      ) then
+        raise exception 'refusing lot wipe while dual-write is enabled';
+      end if;
+      if exists (select 1 from public.stock_ledger where lot_id is not null) then
+        raise exception 'refusing lot wipe while lot-attributed ledger exists';
+      end if;
+      perform set_config('app.lot_reconciliation_write', 'on', true);
+      perform app_private.begin_lot_balance_write('seed');
+      delete from public.stock_lot_reconciliation_attributions;
+      delete from public.stock_lot_attribution_baselines;
+      delete from public.stock_lot_balances;
+      delete from public.stock_legacy_lot_seeds;
+      delete from public.stock_lots;
+      perform app_private.end_lot_balance_write();
+      update public.app_configuration
+      set value = 'false'::jsonb
+      where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+    end;
+    $$;
+  `,
+    "local lot wipe",
+  )
+}
+
+function seedLegacyLotsAsAdmin() {
+  runLocalSql(
+    `
+    begin;
+    select set_config(
+      'request.jwt.claims',
+      (select json_build_object('sub', id, 'role', 'authenticated')::text
+       from auth.users where email = 'admin.m1s2qa@example.com'),
+      true
+    );
+    set local role authenticated;
+    select public.seed_legacy_stock_lots();
+    commit;
+  `,
+    "local legacy seed",
+  )
 }
 
 function assertLocalSupabaseUrl(raw: string) {
@@ -198,7 +271,7 @@ test("stale version shows PT409 instead of replaying the edit", async ({ page, c
   await expect(
     page2.getByRole("alert").filter({
       hasText: "This session was changed by someone else. Review the latest counts before saving again.",
-    }),
+    }).first(),
   ).toBeVisible({ timeout: 20_000 })
   await page2.close()
 
@@ -303,4 +376,52 @@ test("admin and godown manager complete a matched physical reconciliation", asyn
   await expect(page.getByText(/Submitted by/).first()).toBeVisible()
   await expect(page.getByText(/Approved by/).first()).toBeVisible()
   await expect(page.getByRole("button", { name: "Cancel session" })).toHaveCount(0)
+})
+
+test("admin applies approved attribution after local legacy seed", async ({ page }) => {
+  test.setTimeout(180_000)
+  wipeLocalLotsIfSafe()
+
+  await signIn(page, "admin.m1s2qa@example.com")
+  await createSession(page, crateA1)
+  const sessionUrl = page.url()
+
+  await signOut(page)
+  await signIn(page, "godown.m1s2qa@example.com")
+  await page.goto(sessionUrl)
+  await expect(page.getByRole("heading", { name: "m1s2qa-soap QA Soap" })).toBeVisible({
+    timeout: 20_000,
+  })
+  await saveMatchedCount(page, "m1s2qa-soap", 6)
+  await saveKnownLot(page, "m1s2qa-soap", "SOAP-UI", 6, "2028-01-01")
+  await saveMatchedCount(page, "m1s2qa-oil", 4)
+  await saveUnknownLot(page, "m1s2qa-oil")
+  await page.getByRole("button", { name: "Submit counts" }).click()
+  await expect(page.getByText("submitted", { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole("heading", { name: "Legacy lot attribution" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Apply attribution" })).toHaveCount(0)
+
+  await signOut(page)
+  await signIn(page, "admin2.m1s2qa@example.com")
+  await page.goto(sessionUrl)
+  await page.getByRole("button", { name: "Approve" }).click()
+  await expect(page.getByText("approved", { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole("heading", { name: "Legacy lot attribution" })).toBeVisible()
+  await expect(page.getByText(/Attribution is not eligible yet/)).toBeVisible()
+  await expect(page.getByRole("button", { name: "Apply attribution" })).toBeDisabled()
+
+  seedLegacyLotsAsAdmin()
+  await page.reload()
+  await expect(page.getByText(/Attribution is eligible/)).toBeVisible({ timeout: 20_000 })
+  await page.getByRole("button", { name: "Apply attribution" }).click()
+  await expect(page.getByRole("dialog")).toContainText("cannot be undone from the application")
+  try {
+    await page.getByRole("dialog").getByRole("button", { name: "Apply attribution" }).click()
+    await expect(page.getByText("applied", { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/from this approved evidence/).first()).toBeVisible()
+    await expect(page.getByText(/Legacy lots attributed by/).first()).toBeVisible()
+    await expect(page.getByRole("button", { name: "Apply attribution" })).toHaveCount(0)
+  } finally {
+    wipeLocalLotsIfSafe()
+  }
 })

@@ -27,6 +27,8 @@ const api = vi.hoisted(() => ({
   rejectLotReconciliation: vi.fn(),
   reopenLotReconciliation: vi.fn(),
   cancelLotReconciliation: vi.fn(),
+  getLotAttributionReadiness: vi.fn(),
+  applyLegacyLotAttribution: vi.fn(),
 }))
 
 const access = vi.hoisted(() => ({
@@ -139,6 +141,8 @@ function detail(overrides: Partial<LotReconciliationDetail> = {}): LotReconcilia
     cancelled_by: null,
     cancelled_at: null,
     cancellation_reason: null,
+    applied_by: null,
+    applied_at: null,
     expected_frozen_at: "2026-10-22T10:00:00Z",
     created_at: "2026-10-22T10:00:00Z",
     updated_at: "2026-10-22T10:05:00Z",
@@ -175,6 +179,7 @@ function detail(overrides: Partial<LotReconciliationDetail> = {}): LotReconcilia
         lots: [],
       },
     ],
+    attributions: [],
     events: [
       {
         id: "event-1",
@@ -210,6 +215,17 @@ beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset()
   api.getLotReconciliation.mockResolvedValue(detail())
   api.listLotReconciliations.mockResolvedValue([listRow()])
+  api.getLotAttributionReadiness.mockResolvedValue({
+    session_id: "session-1",
+    status: "approved",
+    already_applied: false,
+    eligible: false,
+    blockers: ["Legacy lot seed must complete before attribution."],
+    known_quantity: 0,
+    unknown_quantity: 0,
+    dual_write_enabled: false,
+    aggregate_only_blocked: false,
+  })
 })
 
 describe("lot reconciliation pages", () => {
@@ -571,5 +587,55 @@ describe("lot reconciliation pages", () => {
     expect(screen.queryByRole("button", { name: "Refresh expected stock" })).not.toBeInTheDocument()
     expect(screen.getByText("Audit history")).toBeInTheDocument()
     expect(screen.getByText(/Approved by/)).toBeInTheDocument()
+    expect(await screen.findByText(/Attribution is not eligible yet/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Apply attribution" })).toBeDisabled()
+  })
+
+  it("lets an Admin apply only when backend readiness is eligible", async () => {
+    const user = userEvent.setup()
+    api.getLotReconciliation.mockResolvedValue(detail({ status: "approved" }))
+    api.getLotAttributionReadiness.mockResolvedValue({
+      session_id: "session-1",
+      status: "approved",
+      already_applied: false,
+      eligible: true,
+      blockers: [],
+      known_quantity: 4,
+      unknown_quantity: 2,
+      dual_write_enabled: false,
+      aggregate_only_blocked: true,
+    })
+    api.applyLegacyLotAttribution.mockResolvedValue(
+      detail({
+        status: "applied",
+        applied_by: "admin-1",
+        applied_at: "2026-10-22T14:00:00Z",
+        attributions: [
+          {
+            crate_id: "crate-1",
+            product_id: "product-1",
+            source_lot_id: "lot-1",
+            remaining_unattributed: 2,
+            attributed_quantity: 4,
+            unknown_quantity: 2,
+          },
+        ],
+      }),
+    )
+    renderPage("/stock-lot-reconciliation/:sessionId", <LotReconciliationDetailPage />)
+    expect(await screen.findByText(/Known physical lots 4/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Apply attribution" }))
+    expect(screen.getByText(/cannot be undone from the application/)).toBeInTheDocument()
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Apply attribution" }))
+    await waitFor(() => expect(api.applyLegacyLotAttribution).toHaveBeenCalledTimes(1))
+  })
+
+  it("hides attribution controls from Godown Manager", async () => {
+    access.permissions = ["stock.lots.physical_reconcile"]
+    api.getLotReconciliation.mockResolvedValue(detail({ status: "approved" }))
+    renderPage("/stock-lot-reconciliation/:sessionId", <LotReconciliationDetailPage />)
+    expect(await screen.findByText(/approved and locked/)).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Legacy lot attribution" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Apply attribution" })).not.toBeInTheDocument()
   })
 })

@@ -85,6 +85,22 @@ Re-run on `supabase_db_sherlyos` / `http://127.0.0.1:54321`. Development cloud `
 
 Pending migration `20261022210000_lot_physical_reconciliation.sql` is additive: new tables, RPCs, SELECT-only grants, RLS. No `DROP`/`TRUNCATE` of live stock, no seed, no flag flip, no stock mutation. Applying it does not require an inventory posting pause. After deploy, submit/approve/refresh share advisory `(88104301, 1)` with posting.
 
+## M1-S2.5 development deployment (2026-10-22 17:41 +05:30)
+
+Applied to development project `ypkfondrkhkydkgovwup` (`sherlysos`, `ap-northeast-2`) from Git `bbe20a213820c81b0a209d2c731f7a0a2716d341`.
+
+```text
+npx --yes supabase@2.121.0 db push --linked --skip-vault
+```
+
+Exit 0. Applied only `20261022210000_lot_physical_reconciliation.sql`. Cloud tip is now `20261022210000` (25 applied, none pending).
+
+Post-apply catalog: five reconciliation tables exist with forced RLS and SELECT-only `authenticated` grants; twelve RPCs are `SECURITY DEFINER` with empty `search_path` and `EXECUTE` for `authenticated` only. `apply_legacy_lot_attribution` is absent. `stock.lots.physical_reconcile` is on Admin and Godown Manager; Store Keeper is not granted it. `stock.lots.legacy.reconcile` remains Admin. Events use `stock_lot_reconciliation_events_guard`. No development-cloud reconciliation sessions were created (`stock_lot_reconciliations` count 0).
+
+Inventory before/after (unchanged): 11 balance rows / 73 cartons; 23 ledger rows / 73 net; 0 negatives; 0 grain mismatches; 0 lots; 0 lot balances; 0 seeds; 0 lot-attributed ledger rows. Flags `false` / `false`.
+
+Pre-apply backup: `C:\Users\Hash\Desktop\Hashdev\sherlyos-backups\dev-ypkfondrkhkydkgovwup\20261022T120455Z` (schema/data/roles SHA-256 verified). Logical dump is not a proven Auth/Storage restore; roles dump is stubs; data-only dump warned on circular FKs (`stock_transactions` / `stock_adjustment_requests`).
+
 ## Known limitations
 
 - Photo evidence is not part of this workflow.

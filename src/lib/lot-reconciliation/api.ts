@@ -81,6 +81,27 @@ export type LotReconciliationEvent = {
   created_at: string
 }
 
+export type LotReconciliationAttribution = {
+  crate_id: string
+  product_id: string
+  source_lot_id: string
+  remaining_unattributed: number
+  attributed_quantity: number
+  unknown_quantity: number
+}
+
+export type LotAttributionReadiness = {
+  session_id: string
+  status: LotReconciliationStatus
+  already_applied: boolean
+  eligible: boolean
+  blockers: string[]
+  known_quantity: number
+  unknown_quantity: number
+  dual_write_enabled: boolean
+  aggregate_only_blocked: boolean
+}
+
 export type LotReconciliationDiscrepancy = {
   uncounted_lines: number
   unmatched_lines: number
@@ -106,18 +127,22 @@ export type LotReconciliationDetail = {
   cancelled_by: string | null
   cancelled_at: string | null
   cancellation_reason: string | null
+  applied_by: string | null
+  applied_at: string | null
   expected_frozen_at: string | null
   created_at: string
   updated_at: string
   discrepancy: LotReconciliationDiscrepancy
   crates: LotReconciliationCrate[]
   lines: LotReconciliationLine[]
+  attributions: LotReconciliationAttribution[]
   events: LotReconciliationEvent[]
 }
 
 export const lotReconciliationKeys = {
   list: ["lot-reconciliations"] as const,
   detail: (id: string) => ["lot-reconciliation", id] as const,
+  attribution: (id: string) => ["lot-reconciliation", id, "attribution"] as const,
 }
 
 /**
@@ -146,7 +171,10 @@ function asDetail(data: unknown): LotReconciliationDetail {
     ...payload,
     crates: payload.crates ?? [],
     lines: (payload.lines ?? []).map((line) => ({ ...line, lots: line.lots ?? [] })),
+    attributions: payload.attributions ?? [],
     events: payload.events ?? [],
+    applied_by: payload.applied_by ?? null,
+    applied_at: payload.applied_at ?? null,
     discrepancy: payload.discrepancy ?? {
       uncounted_lines: 0,
       unmatched_lines: 0,
@@ -376,6 +404,39 @@ export async function cancelLotReconciliation(input: {
       target_session: input.target_session,
       expected_version: input.expected_version,
       cancel_reason: input.cancel_reason,
+      idempotency_key: input.idempotency_key,
+    }),
+  )
+}
+
+/**
+ * Admin-only cutover eligibility. The Apply control must stay disabled unless
+ * this payload says `eligible`; the RPC still re-checks under lock.
+ */
+export async function getLotAttributionReadiness(target_session: string) {
+  const payload = await reconRpc<LotAttributionReadiness>("get_lot_attribution_readiness", {
+    target_session,
+  })
+  return {
+    ...payload,
+    blockers: Array.isArray(payload.blockers) ? payload.blockers : [],
+    known_quantity: payload.known_quantity ?? 0,
+    unknown_quantity: payload.unknown_quantity ?? 0,
+    eligible: Boolean(payload.eligible),
+    already_applied: Boolean(payload.already_applied),
+  }
+}
+
+/** Splits seeded legacy lots from approved physical evidence. Irreversible. */
+export async function applyLegacyLotAttribution(input: {
+  target_session: string
+  expected_version: number
+  idempotency_key: string
+}) {
+  return asDetail(
+    await reconRpc<unknown>("apply_legacy_lot_attribution", {
+      target_session: input.target_session,
+      expected_version: input.expected_version,
       idempotency_key: input.idempotency_key,
     }),
   )

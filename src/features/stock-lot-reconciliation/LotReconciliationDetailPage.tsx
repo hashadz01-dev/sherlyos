@@ -13,8 +13,10 @@ import { useAuth } from "@/hooks/use-auth"
 import { useAccess } from "@/lib/access/use-access"
 import {
   addLotReconciliationFoundProduct,
+  applyLegacyLotAttribution,
   approveLotReconciliation,
   cancelLotReconciliation,
+  getLotAttributionReadiness,
   getLotReconciliation,
   lotReconciliationKeys,
   refreshLotReconciliationExpected,
@@ -60,6 +62,9 @@ const refreshWarning =
 const cancelWarning =
   "Cancelling this session releases the reserved crate scope. Another reconciliation may then use these crates."
 
+const applyWarning =
+  "This splits eligible legacy-unattributed stock into verified physical lots. Aggregate carton quantities and historical ledger rows are not changed. Unknown identity stays unattributed. This cannot be undone from the application."
+
 export function LotReconciliationDetailPage() {
   const { sessionId = "" } = useParams()
   const { can } = useAccess()
@@ -78,6 +83,7 @@ export function LotReconciliationDetailPage() {
   async function refresh(nextStale = false) {
     setStale(nextStale)
     await queryClient.invalidateQueries({ queryKey: lotReconciliationKeys.detail(sessionId) })
+    await queryClient.invalidateQueries({ queryKey: lotReconciliationKeys.attribution(sessionId) })
     await queryClient.invalidateQueries({ queryKey: lotReconciliationKeys.list })
   }
 
@@ -153,6 +159,13 @@ export function LotReconciliationDetailPage() {
             onSaved={() => refresh(false)}
             onMutationError={onMutationError}
           />
+          <AttributionPanel
+            detail={header}
+            actions={actions}
+            canAdmin={can("stock.lots.legacy.reconcile")}
+            onSaved={() => refresh(false)}
+            onMutationError={onMutationError}
+          />
           <ReopenCancel
             detail={header}
             actions={actions}
@@ -196,6 +209,11 @@ function Summary({
       {header.cancellation_reason ? (
         <p className="md:col-span-2">Cancellation {header.cancellation_reason}</p>
       ) : null}
+      {header.applied_at ? (
+        <p className="md:col-span-2">
+          Attributed by {actorLabel(header.applied_by, currentUserId)} at {formatTimestamp(header.applied_at)}
+        </p>
+      ) : null}
       <p>Uncounted {discrepancy.uncounted_lines}</p>
       <p>Unmatched {discrepancy.unmatched_lines}</p>
       <p>Unexpected products {discrepancy.found_product_lines}</p>
@@ -208,7 +226,13 @@ function Summary({
       ) : null}
       {header.status === "approved" ? (
         <p className="md:col-span-2 rounded-xl bg-emerald-50 px-3 py-2 text-emerald-950">
-          This session is approved and locked. Attribution is a later Admin process and is not available here.
+          This session is approved and locked. Physical counts cannot change. Admin attribution is a separate
+          cutover step.
+        </p>
+      ) : null}
+      {header.status === "applied" ? (
+        <p className="md:col-span-2 rounded-xl bg-emerald-50 px-3 py-2 text-emerald-950">
+          Legacy lots were attributed from this approved evidence. Aggregate stock was not changed.
         </p>
       ) : null}
     </div>
@@ -965,6 +989,133 @@ function AdminReview({
           {reconciliationErrorMessage(reject.error)}
         </p>
       ) : null}
+    </section>
+  )
+}
+
+function AttributionPanel({
+  detail,
+  actions,
+  canAdmin,
+  onSaved,
+  onMutationError,
+}: {
+  detail: LotReconciliationDetail
+  actions: ReturnType<typeof lotReconciliationActions>
+  canAdmin: boolean
+  onSaved: () => Promise<void>
+  onMutationError: (error: unknown) => void
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const applyKey = useRef<string | null>(null)
+  const showPanel =
+    canAdmin && (detail.status === "approved" || detail.status === "applied")
+  const readiness = useQuery({
+    queryKey: lotReconciliationKeys.attribution(detail.id),
+    enabled: showPanel && detail.status === "approved",
+    queryFn: () => getLotAttributionReadiness(detail.id),
+  })
+  const apply = useMutation({
+    mutationFn: () => {
+      if (!applyKey.current) applyKey.current = newIdempotencyKey("lr-apply")
+      return applyLegacyLotAttribution({
+        target_session: detail.id,
+        expected_version: detail.version,
+        idempotency_key: applyKey.current,
+      })
+    },
+    onSuccess: async () => {
+      applyKey.current = null
+      setConfirmOpen(false)
+      notify.success("Legacy lots were attributed. Aggregate stock was not changed.")
+      await onSaved()
+    },
+    onError: (error) => {
+      if (isStaleVersionError(error)) applyKey.current = null
+      onMutationError(error)
+    },
+  })
+
+  if (!showPanel) return null
+
+  const eligible = Boolean(actions.apply && readiness.data?.eligible)
+  const blockers = readiness.data?.blockers ?? []
+
+  return (
+    <section className="grid gap-3 rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-200">
+      <h2 className="font-medium">Legacy lot attribution</h2>
+      {detail.status === "applied" ? (
+        <>
+          <p>This approved session has been applied. Physical evidence stays immutable.</p>
+          {detail.attributions.length > 0 ? (
+            <ul className="grid gap-1">
+              {detail.attributions.map((row) => (
+                <li key={`${row.crate_id}-${row.product_id}`}>
+                  Attributed {row.attributed_quantity} · unknown {row.unknown_quantity} · remaining
+                  unattributed {row.remaining_unattributed}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {readiness.isLoading ? <p>Checking attribution eligibility.</p> : null}
+          {readiness.error ? (
+            <p role="alert" className="text-destructive">
+              {reconciliationErrorMessage(readiness.error)}
+            </p>
+          ) : null}
+          {readiness.data ? (
+            <>
+              <p>
+                Known physical lots {readiness.data.known_quantity}. Unknown / unattributed remainder{" "}
+                {readiness.data.unknown_quantity}.
+              </p>
+              {eligible ? (
+                <p>Attribution is eligible. Aggregate stock and historical ledger rows will not change.</p>
+              ) : (
+                <div>
+                  <p>Attribution is not eligible yet.</p>
+                  <ul>
+                    {blockers.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : null}
+          <Button
+            type="button"
+            disabled={!eligible || apply.isPending || readiness.isFetching}
+            onClick={() => setConfirmOpen(true)}
+          >
+            Apply attribution
+          </Button>
+        </>
+      )}
+      {apply.error ? (
+        <p role="alert" className="text-destructive">
+          {reconciliationErrorMessage(apply.error)}
+        </p>
+      ) : null}
+      <AppModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Apply legacy lot attribution?"
+        description={applyWarning}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+              Keep approved session
+            </Button>
+            <Button type="button" disabled={apply.isPending || !eligible} onClick={() => apply.mutate()}>
+              {apply.isPending ? "Applying" : "Apply attribution"}
+            </Button>
+          </>
+        }
+      />
     </section>
   )
 }

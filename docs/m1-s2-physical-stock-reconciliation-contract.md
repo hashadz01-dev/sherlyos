@@ -578,7 +578,7 @@ Local SQL + vitest + lint + build + browser verification of the six panels. No c
 
 ### M1-S2.5 — Development deploy
 
-One authorized migration apply to `ypkfondrkhkydkgovwup` after backup, flags off, no seed, no attribution on cloud. Separate authorization.
+Applied 2026-10-22 17:41 +05:30 to `ypkfondrkhkydkgovwup` from `bbe20a2` via `npx --yes supabase@2.121.0 db push --linked --skip-vault`. Cloud tip `20261022210000`. Inventory and cutover flags unchanged. Attribution not implemented. Production was not touched.
 
 ---
 
@@ -672,11 +672,7 @@ Get-Content supabase/tests/phase_m1_s1_cutover_flag_safety.sql | docker exec -i 
 
 ### M1-S2.5 — Development deployment
 
-**Deliverables:** current-schema backup; `db push --linked` of **only** `20261022210000`; post-deploy verify tables/RPCs/RLS; flags false; inventory 11/73 baseline unchanged; no seed; no attribution.
-
-**Dependencies:** S2.4 passed; explicit owner authorization naming `ypkfondrkhkydkgovwup`.
-
-**Stop if:** extra pending migrations, flags not false, backup failed, or inventory mismatch.
+**Closed 2026-10-22 17:41 +05:30.** Backup `20261022T120455Z`; `npx --yes supabase@2.121.0 db push --linked --skip-vault` applied only `20261022210000` to `ypkfondrkhkydkgovwup`. Tables/RPCs/RLS verified. Flags false. Inventory 11/73 unchanged. No seed. No attribution.
 
 ---
 

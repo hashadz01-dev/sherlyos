@@ -1,12 +1,13 @@
 import { parseCaseCount } from "@/lib/verification/rules"
 
-/** Session statuses returned by M1-S2.2. There is no applied state in this stage. */
+/** Session statuses returned by M1-S2/S3, including post-attribution `applied`. */
 export const lotReconciliationStatuses = [
   "draft",
   "submitted",
   "approved",
   "rejected",
   "cancelled",
+  "applied",
 ] as const
 
 export type LotReconciliationStatus = (typeof lotReconciliationStatuses)[number]
@@ -234,8 +235,14 @@ export function lotReconciliationActions(input: {
     reject: input.canAdmin && submitted,
     reopen: input.canPhysical && rejected,
     cancel: input.canAdmin && (draft || rejected),
-    /** Approved stays locked until M1-S3; cancelled is terminal. */
-    immutable: input.status === "approved" || input.status === "cancelled" || submitted,
+    /** Apply is Admin-only; the backend still enforces cutover eligibility. */
+    apply: input.canAdmin && input.status === "approved",
+    /** Approved stays physically locked; applied is terminal for this workflow. */
+    immutable:
+      input.status === "approved" ||
+      input.status === "applied" ||
+      input.status === "cancelled" ||
+      submitted,
   }
 }
 
@@ -269,6 +276,7 @@ export function eventLabel(eventType: string) {
     rejected: "Rejected",
     reopened: "Reopened",
     cancelled: "Cancelled",
+    applied: "Legacy lots attributed",
   }
   return labels[eventType] ?? eventType.replaceAll("_", " ")
 }
@@ -331,6 +339,7 @@ export function sessionListAction(input: {
   if (input.status === "draft" && input.canPhysical) return "Count"
   if (input.status === "submitted" && input.canAdmin) return "Review"
   if (input.status === "rejected" && input.canPhysical) return "Reopen"
+  if (input.status === "approved" && input.canAdmin) return "Attribute"
   return "View"
 }
 
@@ -341,6 +350,7 @@ export const statusTone: Record<
   draft: "neutral",
   submitted: "info",
   approved: "success",
+  applied: "success",
   rejected: "danger",
   cancelled: "warning",
 }

@@ -6,7 +6,7 @@ This file documents the operational sequence. It is not a script. Database trigg
 
 ## Preconditions
 
-1. Migration tip includes `20261022200000_lot_cutover_flag_safety` (flag guards) and `20261022190000` (operational posting).
+1. Migration tip includes `20261022220000_legacy_lot_attribution` (M1-S3 apply RPC), `20261022210000` (physical recon), `20261022200000_lot_cutover_flag_safety` (flag guards), and `20261022190000` (operational posting).
 2. Both flags are `false` / `false` before any cutover work.
 3. A fresh logical backup exists and inventory totals are recorded (balance rows, carton sum, ledger rows, ledger net).
 4. Disposable SQL `supabase/tests/phase_m1_s1_cutover_flag_safety.sql` has passed locally (rolled back).
@@ -71,7 +71,7 @@ Abort if backup is missing or stale. Restoring later is a separate authorized pr
 
 Use the M1-S2 session workflow (Admin `create_lot_reconciliation` for selected crates, Godown Manager count/lot entry/submit, Admin approve). Approval does **not** change `stock_balances` or seed lots.
 
-Resolve every scoped grain so counted carton cases equal frozen expected quantity, with lot entries summing to the count. Unexpected physical stock is found-product evidence only — post it later through the existing adjustment path, then start a new session. Do not invent manufacturer codes or expiry dates; unknown identity stays explicit. Classify every in-scope product before approve. Attribution of approved lots is M1-S3 (`apply_legacy_lot_attribution` is not in M1-S2).
+Resolve every scoped grain so counted carton cases equal frozen expected quantity, with lot entries summing to the count. Unexpected physical stock is found-product evidence only — post it later through the existing adjustment path, then start a new session. Do not invent manufacturer codes or expiry dates; unknown identity stays explicit. Classify every in-scope product before approve. Do not apply attribution until seed has completed (Phase 3–3b).
 
 ## Phase 3 — Legacy lot seed (Admin)
 
@@ -82,6 +82,44 @@ select public.seed_legacy_stock_lots();
 Expect `aggregate_only_blocked = true`, `dual_write_enabled = false`, one `legacy_unattributed` lot per positive aggregate grain, **no** ledger rewrite.
 
 Policy cannot be changed after this step for seeded products. Classify first (see above).
+
+Do **not** re-run seed after attribution. The unchanged seed RPC fail-closes when marker quantity no longer equals aggregate.
+
+## Phase 3b — Apply approved attribution (Admin, M1-S3)
+
+Requires:
+
+- Authenticated Admin with `stock.lots.legacy.reconcile`
+- Eligible `approved` session (matched, classified, no found-product lines)
+- Seed completed (`aggregate_only_blocked = true`)
+- Dual-write still off
+- Live aggregate still equal to the approved counted/expected qty
+- Exclusive advisory lock `(88104301, 1)` first, then session, crates, balances, lots
+
+```sql
+select public.get_lot_attribution_readiness('<session_id>');
+-- eligible true, blockers empty
+
+select public.apply_legacy_lot_attribution(
+  '<session_id>',
+  <expected_version>,
+  '<idempotency_key>'
+);
+```
+
+Behaviour:
+
+- Known physical lots become `legacy_reconciliation` stock lots (`available` / `quarantined` / `expired_blocked`).
+- Unknown identity and expiry-controlled unknown expiry stay on the original `legacy_unattributed` lot.
+- Aggregate `stock_balances` and historical `stock_ledger` are **not** rewritten.
+- Seed marker quantity is reduced to the remaining unattributed qty (may be 0; the marker row is kept).
+- Session becomes `applied` and crate holds are released.
+- Same idempotency key, or a second call on an already-applied session, is a no-op.
+- Failed apply rolls back; session stays `approved`.
+
+UI: Lot reconciliation detail, Admin only. Apply stays disabled until readiness is eligible. Godown Manager and Store Keeper never see the control.
+
+Do **not** enable dual-write until every intended approved session has been applied (or explicitly left unattributed).
 
 ## Phase 4 — Aggregate / lot grain validation
 
@@ -101,10 +139,11 @@ Orphan non-zero lot grains (lot qty with no matching positive aggregate) must al
 
 ## Phase 5 — Flag transition order
 
-Preferred sequential order after seed:
+Preferred sequential order after seed **and attribution**:
 
 1. Confirm `aggregate_only_blocked = true` (seed already set this).
-2. Enable dual-write:
+2. Confirm intended sessions are `applied` and grain conservation still holds.
+3. Enable dual-write:
 
 ```sql
 update public.app_configuration
@@ -150,6 +189,9 @@ Resume normal posting only after smoke checks and owner sign-off.
 | Failure | Action |
 |---|---|
 | Seed fails mid-transaction | Transaction rolls back; flags unchanged; investigate balances |
+| Attribution fails mid-transaction | Function rolls back; session stays `approved`; lots unsplit; retry after fixing blockers |
+| Attribution before seed | Rejected; run Phase 3 first |
+| Re-seed after attribution | Rejected by existing seed reconciliation check; do not bypass |
 | Dual-write enable rejected (`55000`) | Fix grain mismatch or unclassified positive-stock products; do not toggle flags into unsafe combinations |
 | Migration apply fails on cloud | Forward-fix migration; do not `db reset` production/development without owner plan |
 | Post-cutover inventory drift | Standard adjustment workflow; do not disable dual-write while lot-attributed ledger rows exist |
@@ -163,8 +205,16 @@ Resume normal posting only after smoke checks and owner sign-off.
 - **Do not** use `session_replication_role = replica` or `DISABLE TRIGGER` to force flags.
 - Restoring from backup is a separate authorized procedure; partial logical restore is insufficient for full Auth parity.
 
+## M2 prerequisites
+
+- Dual-write enabled only after attribution of intended crates
+- Attributed lots carry conservation baselines (`stock_lot_attribution_baselines`) so later lot-id ledger can pick without rewriting historical aggregate ledger
+- Remaining `legacy_unattributed` qty is explicit unknown stock; FEFO/FIFO must not treat it as dated available
+- `received_on` is still null on legacy lots; FIFO chronology is a later posting concern
+
 ## Out of scope
 
 - FEFO / order availability cutover
 - Cross-godown lot moves
 - Automatic cloud deploy
+- Development-cloud seed, attribution, or flag activation from this milestone

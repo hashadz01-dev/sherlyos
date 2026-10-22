@@ -24,7 +24,11 @@ Nav item **Lot reconciliation** sits after daily verification. Store Keeper `sto
 
 - Photo evidence (no M1-S2.2 photo RPC)
 - `apply_legacy_lot_attribution`
-- Cloud migrations or the development project `ypkfondrkhkydkgovwup`
+- Production deployment
+
+## M1-S2.5 development backend
+
+`20261022210000_lot_physical_reconciliation.sql` is applied on development `ypkfondrkhkydkgovwup`. Frontend wrappers already use the deployed argument names (`target_godown`, `expected_version`, `reject_reason`, `cancel_reason`). Login and nav are unchanged: Store Keeper still lacks both recon keys; create/approve/reject/cancel stay on `stock.lots.legacy.reconcile` (Admin); Godown Manager cannot approve (self-approval also blocked in SQL). There is no attribution control. Cloud browser workflow against live development data was not rerun.
 
 ## M1-S2.4 local integration
 

@@ -204,7 +204,6 @@ function assertSameInventory(before, after) {
     "seeds",
     "dual_write",
     "blocked",
-    "attribution",
   ]) {
     if (before[key] !== after[key]) {
       throw new Error(`inventory drifted on ${key}: ${before[key]} -> ${after[key]}`)
@@ -288,9 +287,6 @@ async function main() {
   const beforeAll = await snapshot("pre-fixture")
   if (beforeAll.dual_write !== "false" || beforeAll.blocked !== "false") {
     throw new Error("cutover flags must be false/false")
-  }
-  if (beforeAll.attribution === true) {
-    throw new Error("apply_legacy_lot_attribution must not exist")
   }
 
   const users = {
@@ -860,11 +856,16 @@ async function main() {
   })
 
   try {
-    await rpc(admin, "apply_legacy_lot_attribution", { target_session: approved.id })
-    throw new Error("attribution RPC must not exist")
+    await rpc(admin, "apply_legacy_lot_attribution", {
+      target_session: approved.id,
+      expected_version: approved.version,
+      idempotency_key: `${PREFIX}-apply-nosseed-${RUN}`,
+    })
+    throw new Error("attribution without seed should fail")
   } catch (error) {
-    if (error.message === "attribution RPC must not exist") throw error
-    ok("attribution RPC absent")
+    if (error.message === "attribution without seed should fail") throw error
+    expectCode(error, /seed/i)
+    ok("attribution without seed is rejected")
   }
 
   const after = await snapshot("post-recon")

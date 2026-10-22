@@ -142,8 +142,10 @@ begin
   )
   returning id into orphan_lot;
 
+  perform app_private.begin_lot_balance_write('helper');
   insert into public.stock_lot_balances (lot_id, crate_id, quantity)
   values (orphan_lot, crate, 0);
+  perform app_private.end_lot_balance_write();
 end $$;
 
 select set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
@@ -170,8 +172,10 @@ end $$;
 reset role;
 
 -- Remove orphan and seed successfully
+select app_private.begin_lot_balance_write('helper');
 delete from public.stock_lot_balances
 where crate_id = current_setting('sherlyos.crate')::uuid;
+select app_private.end_lot_balance_write();
 delete from public.stock_lots
 where product_id = current_setting('sherlyos.product')::uuid
   and origin = 'opening';

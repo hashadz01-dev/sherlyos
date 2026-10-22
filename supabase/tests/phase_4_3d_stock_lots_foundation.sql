@@ -330,6 +330,7 @@ begin
     raise exception 'distinct receipt-style lots must not share ids';
   end if;
 
+  perform app_private.begin_lot_balance_write('helper');
   insert into public.stock_lot_balances (lot_id, crate_id, quantity)
   values (lot_a, crate, 5);
 
@@ -348,6 +349,7 @@ begin
   exception
     when check_violation then null;
   end;
+  perform app_private.end_lot_balance_write();
 
   begin
     insert into public.stock_lots (

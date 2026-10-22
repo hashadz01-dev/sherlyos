@@ -304,8 +304,10 @@ begin
   returning id into lot_a_zero;
 
   -- Legitimate zero-stock lot: balance row exists with quantity 0
+  perform app_private.begin_lot_balance_write('helper');
   insert into public.stock_lot_balances (lot_id, crate_id, quantity)
   values (lot_a_zero, crate_a, 0);
+  perform app_private.end_lot_balance_write();
 
   perform set_config('sherlyos.lot_a_empty', lot_a_empty::text, true);
   perform set_config('sherlyos.lot_b_empty', lot_b_empty::text, true);

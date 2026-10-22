@@ -456,10 +456,12 @@ begin
   where crate_id = marker_crate
     and product_id = marker_product;
 
+  perform app_private.begin_lot_balance_write('helper');
   update public.stock_lot_balances
   set quantity = quantity + 1
   where lot_id = target_lot
     and crate_id = marker_crate;
+  perform app_private.end_lot_balance_write();
 end $$;
 
 select set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);

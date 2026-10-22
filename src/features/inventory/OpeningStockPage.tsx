@@ -1,6 +1,6 @@
-import { useState, type SelectHTMLAttributes } from "react"
+import { useEffect, useState, type SelectHTMLAttributes } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { AppModal } from "@/components/shared/AppModal"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
-import { postOpeningStock } from "@/lib/inventory/api"
+import { getStockLotCutoverState, postOpeningStock } from "@/lib/inventory/api"
 import { notify } from "@/lib/utilities/notify"
 import {
   openingStockSchema,
@@ -23,12 +23,21 @@ const emptyValues: OpeningStockValues = {
   productId: "",
   quantity: "",
   notes: "",
+  manufacturerLotCode: "",
+  manufacturedOn: "",
+  expiryDate: "",
+  dualWriteEnabled: false,
+  expiryPolicy: null,
 }
 
 export function OpeningStockPage() {
   useDocumentTitle("Opening stock")
   const queryClient = useQueryClient()
   const locations = useStockLocations()
+  const cutover = useQuery({
+    queryKey: ["stock-lot-cutover"],
+    queryFn: getStockLotCutoverState,
+  })
   const [confirming, setConfirming] = useState<OpeningStockValues | null>(null)
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const form = useForm<OpeningStockValues>({
@@ -37,6 +46,8 @@ export function OpeningStockPage() {
   })
   const branchId = form.watch("branchId")
   const zoneId = form.watch("zoneId")
+  const productId = form.watch("productId")
+  const dualWriteEnabled = cutover.data?.dual_write_enabled ?? false
   const zones = (locations.zones.data ?? []).filter(
     (zone) => zone.is_active && zone.branch_id === branchId,
   )
@@ -45,6 +56,15 @@ export function OpeningStockPage() {
   )
   const products = (locations.products.data ?? []).filter((product) => product.is_active)
   const branches = (locations.branches.data ?? []).filter((branch) => branch.is_active)
+  const selectedProduct = products.find((product) => product.id === productId)
+
+  useEffect(() => {
+    form.setValue("dualWriteEnabled", dualWriteEnabled)
+  }, [dualWriteEnabled, form])
+
+  useEffect(() => {
+    form.setValue("expiryPolicy", selectedProduct?.expiry_policy ?? null)
+  }, [selectedProduct?.expiry_policy, form])
 
   const post = useMutation({
     mutationFn: (values: OpeningStockValues) =>
@@ -54,14 +74,18 @@ export function OpeningStockPage() {
         carton_quantity: Number(values.quantity),
         idempotency_key: idempotencyKey,
         posting_notes: values.notes.trim() || null,
+        manufacturer_lot_code: values.manufacturerLotCode.trim() || null,
+        manufactured_on: values.manufacturedOn.trim() || null,
+        expiry_date: values.expiryDate.trim() || null,
       }),
     onSuccess: async (posted) => {
       setConfirming(null)
-      form.reset(emptyValues)
+      form.reset({ ...emptyValues, dualWriteEnabled })
       setIdempotencyKey(crypto.randomUUID())
       notify.success(`Opening stock posted as ${posted.reference_number}`)
       await queryClient.invalidateQueries({ queryKey: ["stock-balances"] })
       await queryClient.invalidateQueries({ queryKey: ["stock-transactions"] })
+      await queryClient.invalidateQueries({ queryKey: ["stock-lot-balances"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
@@ -125,6 +149,7 @@ export function OpeningStockPage() {
           {products.map((product) => (
             <option key={product.id} value={product.id}>
               {product.name} ({product.sku})
+              {product.expiry_policy ? ` · ${product.expiry_policy}` : " · unclassified"}
             </option>
           ))}
         </SelectField>
@@ -134,6 +159,35 @@ export function OpeningStockPage() {
           error={form.formState.errors.quantity?.message}
           {...form.register("quantity")}
         />
+        {dualWriteEnabled ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Lot-aware opening is active. Received-on is set by the server. Expiry is required only for
+              expiry-controlled products.
+            </p>
+            <TextField
+              label="Manufacturer lot code (optional)"
+              error={form.formState.errors.manufacturerLotCode?.message}
+              {...form.register("manufacturerLotCode")}
+            />
+            <TextField
+              label="Manufactured on (optional)"
+              type="date"
+              error={form.formState.errors.manufacturedOn?.message}
+              {...form.register("manufacturedOn")}
+            />
+            <TextField
+              label={
+                selectedProduct?.expiry_policy === "expiry_controlled"
+                  ? "Expiry date"
+                  : "Expiry date (leave blank for non-expiring)"
+              }
+              type="date"
+              error={form.formState.errors.expiryDate?.message}
+              {...form.register("expiryDate")}
+            />
+          </>
+        ) : null}
         <TextField label="Notes" error={form.formState.errors.notes?.message} {...form.register("notes")} />
         <Button type="submit" className="h-10 w-fit">
           Review opening stock

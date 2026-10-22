@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useParams } from "react-router"
 import { EmptyState } from "@/components/shared/EmptyState"
@@ -15,9 +15,13 @@ import {
   postStockAdjustment,
   rejectStockAdjustment,
   returnStockAdjustment,
+  setStockAdjustmentLineLotAllocations,
   submitStockAdjustment,
+  type AdjustmentDetail,
 } from "@/lib/adjustment/api"
 import { adjustmentActions, type AdjustmentStatus } from "@/lib/adjustment/rules"
+import { getStockLotCutoverState, listStockLotBalances } from "@/lib/inventory/api"
+import { notify } from "@/lib/utilities/notify"
 
 const tone: Record<AdjustmentStatus, StatusTone> = {
   draft: "neutral",
@@ -36,6 +40,11 @@ export function AdjustmentDetailPage() {
   const queryClient = useQueryClient()
   const [note, setNote] = useState("")
   const [confirmPost, setConfirmPost] = useState(false)
+  const cutover = useQuery({
+    queryKey: ["stock-lot-cutover"],
+    queryFn: getStockLotCutoverState,
+  })
+  const dualWriteEnabled = cutover.data?.dual_write_enabled ?? false
   const detail = useQuery({
     queryKey: ["stock-adjustment", requestId],
     queryFn: () => getStockAdjustment(requestId),
@@ -44,6 +53,7 @@ export function AdjustmentDetailPage() {
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["stock-adjustment", requestId] })
     await queryClient.invalidateQueries({ queryKey: ["stock-adjustments"] })
+    await queryClient.invalidateQueries({ queryKey: ["stock-lot-balances"] })
   }
   const request = detail.data
   const actions = request
@@ -57,6 +67,13 @@ export function AdjustmentDetailPage() {
         otherManagerExists: request.other_manager_exists,
       })
     : null
+  const allocationsReady = useMemo(() => {
+    if (!dualWriteEnabled || !request) return true
+    return request.lines.every((line) => {
+      const total = (line.lot_allocations ?? []).reduce((sum, row) => sum + row.quantity, 0)
+      return total === line.requested_cases
+    })
+  }, [dualWriteEnabled, request])
   const act = useMutation({
     mutationFn: async (kind: "submit" | "approve" | "return" | "reject" | "post") => {
       if (!request) return
@@ -66,7 +83,11 @@ export function AdjustmentDetailPage() {
       if (kind === "reject") return rejectStockAdjustment(request.id, request.version, note)
       return postStockAdjustment(request.id, request.version, `post-${crypto.randomUUID()}`)
     },
-    onSuccess: refresh,
+    onSuccess: async () => {
+      notify.success("Adjustment updated")
+      await refresh()
+    },
+    onError: (error: Error) => notify.error(error.message),
   })
 
   return (
@@ -101,6 +122,17 @@ export function AdjustmentDetailPage() {
                 <p className="mt-2 text-sm">Approved correction: {line.requested_cases} cases</p>
                 <p className="text-sm">Current book quantity: {line.current_cases ?? 0} cases</p>
                 <p className="text-sm">Posting impact: book quantity becomes {(line.current_cases ?? 0) + line.requested_cases} if no later movement has made this request stale.</p>
+                {dualWriteEnabled ? (
+                  <AdjustmentLotAllocator
+                    request={request}
+                    line={line}
+                    canEdit={
+                      (request.status === "draft" || request.status === "returned") &&
+                      can("stock.adjustment.request")
+                    }
+                    onSaved={refresh}
+                  />
+                ) : null}
               </article>
             ))}
           </div>
@@ -109,7 +141,14 @@ export function AdjustmentDetailPage() {
               This request is approved and inventory has not changed. Posting checks movements after the verification and refuses the request if the discrepancy is no longer provable.
             </p>
           ) : null}
-          {actions.submit ? <Button onClick={() => act.mutate("submit")}>Submit</Button> : null}
+          {actions.submit ? (
+            <Button
+              onClick={() => act.mutate("submit")}
+              disabled={dualWriteEnabled && !allocationsReady}
+            >
+              Submit
+            </Button>
+          ) : null}
           {actions.approve || actions.return || actions.reject ? (
             <label className="grid gap-1 text-sm">
               Decision note
@@ -127,7 +166,17 @@ export function AdjustmentDetailPage() {
                 <input type="checkbox" checked={confirmPost} onChange={(event) => setConfirmPost(event.target.checked)} />
                 I understand posting will change inventory by the approved quantities and cannot be undone by editing the ledger.
               </label>
-              <Button onClick={() => act.mutate("post")} disabled={!confirmPost}>Post adjustment</Button>
+              <Button
+                onClick={() => act.mutate("post")}
+                disabled={!confirmPost || (dualWriteEnabled && !allocationsReady)}
+              >
+                Post adjustment
+              </Button>
+              {dualWriteEnabled && !allocationsReady ? (
+                <p role="alert" className="text-sm text-destructive">
+                  Lot allocations must equal each line quantity before post.
+                </p>
+              ) : null}
             </div>
           ) : null}
           {act.error ? <p role="alert" className="text-sm text-destructive">{act.error.message}</p> : null}
@@ -147,5 +196,96 @@ export function AdjustmentDetailPage() {
         </div>
       ) : null}
     </section>
+  )
+}
+
+function AdjustmentLotAllocator({
+  request,
+  line,
+  canEdit,
+  onSaved,
+}: {
+  request: AdjustmentDetail
+  line: AdjustmentDetail["lines"][number]
+  canEdit: boolean
+  onSaved: () => Promise<void>
+}) {
+  const lots = useQuery({
+    queryKey: ["stock-lot-balances", request.godown_id, line.crate_id, line.product_id],
+    queryFn: () =>
+      listStockLotBalances({
+        filter_branch: request.godown_id,
+        filter_crate: line.crate_id,
+        filter_product: line.product_id,
+      }),
+  })
+  const [quantities, setQuantities] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    for (const alloc of line.lot_allocations ?? []) {
+      initial[alloc.lot_id] = String(Math.abs(alloc.quantity))
+    }
+    return initial
+  })
+  const sign = line.requested_cases >= 0 ? 1 : -1
+  const save = useMutation({
+    mutationFn: () => {
+      const allocations = Object.entries(quantities)
+        .filter(([, value]) => Number(value) > 0)
+        .map(([lotId, value]) => ({
+          lot_id: lotId,
+          quantity: sign * Number(value),
+        }))
+      return setStockAdjustmentLineLotAllocations(line.id, allocations)
+    },
+    onSuccess: async () => {
+      notify.success(`Lot allocations saved for ${line.sku}`)
+      await onSaved()
+    },
+    onError: (error: Error) => notify.error(error.message),
+  })
+  const total = Object.values(quantities).reduce((sum, value) => sum + (Number(value) || 0), 0)
+
+  return (
+    <div className="mt-3 grid gap-2 border-t border-border pt-3">
+      <p className="text-sm font-medium">Lot allocations (explicit)</p>
+      <p className="text-xs text-muted-foreground">
+        Enter absolute quantities; sign follows the line ({line.requested_cases}). Attributed magnitude:{" "}
+        {total} / {Math.abs(line.requested_cases)}
+      </p>
+      {lots.isLoading ? <p className="text-sm text-muted-foreground">Loading lots…</p> : null}
+      {(lots.data ?? []).map((lot) => (
+        <label key={lot.lot_id} className="grid gap-1 text-sm">
+          <span>
+            {lot.manufacturer_lot_code ?? "No manufacturer code"} · on-hand {lot.quantity}
+            {lot.expiry_date ? ` · exp ${lot.expiry_date}` : ""}
+          </span>
+          <input
+            className="h-10 rounded-xl border bg-card px-3"
+            inputMode="numeric"
+            disabled={!canEdit}
+            value={quantities[lot.lot_id] ?? ""}
+            onChange={(event) =>
+              setQuantities({ ...quantities, [lot.lot_id]: event.target.value })
+            }
+          />
+        </label>
+      ))}
+      {(lots.data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">No lots available for this crate/product.</p>
+      ) : null}
+      {canEdit ? (
+        <Button type="button" className="w-fit" disabled={save.isPending} onClick={() => save.mutate()}>
+          Save lot allocations
+        </Button>
+      ) : (
+        <ul className="text-sm text-muted-foreground">
+          {(line.lot_allocations ?? []).map((alloc) => (
+            <li key={alloc.lot_id}>
+              {alloc.lot_id.slice(0, 8)}… · {alloc.quantity}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

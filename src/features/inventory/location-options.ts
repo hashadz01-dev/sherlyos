@@ -16,7 +16,13 @@ export type CrateOption = {
   name: string | null
   is_active: boolean
 }
-export type ProductOption = { id: string; sku: string; name: string; is_active: boolean }
+export type ProductOption = {
+  id: string
+  sku: string
+  name: string
+  is_active: boolean
+  expiry_policy: "expiry_controlled" | "non_expiring" | null
+}
 
 export function useStockLocations() {
   const branches = useQuery({
@@ -35,7 +41,12 @@ export function useStockLocations() {
   })
   const products = useQuery({
     queryKey: ["products"],
-    queryFn: () => loadRows<ProductOption>("products", "id, sku, name, is_active", "name"),
+    queryFn: () =>
+      loadRows<ProductOption>(
+        "products",
+        "id, sku, name, is_active, expiry_policy",
+        "name",
+      ),
   })
 
   return { branches, zones, crates, products }

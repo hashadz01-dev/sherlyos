@@ -3,9 +3,23 @@ import { callRpc } from "@/lib/masters/api"
 export type ReceivingOptions = {
   godowns: { id: string; code: string; name: string }[]
   suppliers: { id: string; name: string }[]
-  products: { id: string; sku: string; name: string }[]
+  products: {
+    id: string
+    sku: string
+    name: string
+    expiry_policy: "expiry_controlled" | "non_expiring" | null
+  }[]
   zones: { id: string; branch_id: string; code: string; name: string }[]
   crates: { id: string; zone_id: string; code: string; name: string | null }[]
+}
+
+export type ReceiptLotAttribution = {
+  id: string
+  carton_quantity: number
+  manufacturer_lot_code: string | null
+  manufactured_on: string | null
+  expiry_date: string | null
+  sort_order: number
 }
 
 export type ReceiptLine = {
@@ -13,6 +27,7 @@ export type ReceiptLine = {
   product_id: string
   product_sku: string
   product_name: string
+  expiry_policy: "expiry_controlled" | "non_expiring" | null
   zone_id: string
   zone_code: string
   destination_crate_id: string
@@ -21,6 +36,7 @@ export type ReceiptLine = {
   counted_cases: number
   damaged_cases: number
   accepted_cases: number
+  lot_attributions: ReceiptLotAttribution[]
 }
 
 export type ReceiptAudit = {
@@ -152,5 +168,22 @@ export function verifyStockReceipt(targetReceipt: string, idempotencyKey: string
   return callRpc<StockReceipt>("verify_stock_receipt", {
     target_receipt: targetReceipt,
     idempotency_key: idempotencyKey,
+  })
+}
+
+export type ReceiptLotAttributionInput = {
+  carton_quantity: number
+  manufacturer_lot_code?: string | null
+  manufactured_on?: string | null
+  expiry_date?: string | null
+}
+
+export function setStockReceiptLineLotAttributions(
+  targetReceiptLine: string,
+  attributions: ReceiptLotAttributionInput[],
+) {
+  return callRpc<ReceiptLotAttribution[]>("set_stock_receipt_line_lot_attributions", {
+    target_receipt_line: targetReceiptLine,
+    attributions,
   })
 }

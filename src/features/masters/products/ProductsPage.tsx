@@ -33,6 +33,7 @@ type Product = {
   category_id: string | null
   supplier_id: string | null
   is_active: boolean
+  expiry_policy: "expiry_controlled" | "non_expiring" | null
 }
 
 type Named = { id: string; name: string; is_active: boolean }
@@ -54,13 +55,18 @@ export function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [statusTarget, setStatusTarget] = useState<Product | null>(null)
+  const [expiryTarget, setExpiryTarget] = useState<Product | null>(null)
+  const [expiryPolicy, setExpiryPolicy] = useState<"expiry_controlled" | "non_expiring">(
+    "expiry_controlled",
+  )
+  const canClassifyExpiry = can("products.expiry_policy.manage")
 
   const products = useQuery({
     queryKey: ["products"],
     queryFn: () =>
       loadRows<Product>(
         "products",
-        "id, sku, name, category_id, supplier_id, is_active",
+        "id, sku, name, category_id, supplier_id, is_active, expiry_policy",
         "name",
       ),
   })
@@ -108,6 +114,22 @@ export function ProductsPage() {
     onSuccess: async () => {
       setStatusTarget(null)
       notify.success("Product status updated")
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
+    },
+    onError: (error: Error) => notify.error(error.message),
+  })
+
+  const classify = useMutation({
+    mutationFn: async () => {
+      if (!expiryTarget) return
+      await callRpc("set_product_expiry_policy", {
+        target_product: expiryTarget.id,
+        new_policy: expiryPolicy,
+      })
+    },
+    onSuccess: async () => {
+      setExpiryTarget(null)
+      notify.success("Expiry policy updated")
       await queryClient.invalidateQueries({ queryKey: ["products"] })
     },
     onError: (error: Error) => notify.error(error.message),
@@ -179,12 +201,24 @@ export function ProductsPage() {
                   {product.sku}
                   {product.category_id ? ` · ${categoryName.get(product.category_id) ?? "Category"}` : ""}
                   {product.supplier_id ? ` · ${supplierName.get(product.supplier_id) ?? "Supplier"}` : ""}
+                  {` · ${product.expiry_policy ?? "unclassified"}`}
                 </span>
               </button>
               <span className="flex items-center gap-2">
                 <StatusBadge tone={product.is_active ? "success" : "neutral"}>
                   {product.is_active ? "Active" : "Inactive"}
                 </StatusBadge>
+                {canClassifyExpiry ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setExpiryTarget(product)
+                      setExpiryPolicy(product.expiry_policy ?? "expiry_controlled")
+                    }}
+                  >
+                    Classify expiry
+                  </Button>
+                ) : null}
                 {can("products.manage") ? (
                   <Button variant="outline" onClick={() => setStatusTarget(product)}>
                     {product.is_active ? "Deactivate" : "Activate"}
@@ -220,6 +254,38 @@ export function ProductsPage() {
           if (statusTarget) toggle.mutate(statusTarget)
         }}
       />
+      <AppModal
+        open={Boolean(expiryTarget)}
+        onOpenChange={(open) => {
+          if (!open) setExpiryTarget(null)
+        }}
+        title="Classify expiry policy"
+        description="Admin-only. Godown Managers cannot classify. Policy cannot change after lots exist for the product."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setExpiryTarget(null)}>
+              Cancel
+            </Button>
+            <Button disabled={classify.isPending || !expiryTarget} onClick={() => classify.mutate()}>
+              Save policy
+            </Button>
+          </>
+        }
+      >
+        <label className="grid gap-2 text-sm font-medium">
+          Expiry policy
+          <select
+            className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
+            value={expiryPolicy}
+            onChange={(event) =>
+              setExpiryPolicy(event.target.value as "expiry_controlled" | "non_expiring")
+            }
+          >
+            <option value="expiry_controlled">Expiry controlled</option>
+            <option value="non_expiring">Non-expiring</option>
+          </select>
+        </label>
+      </AppModal>
     </section>
   )
 }

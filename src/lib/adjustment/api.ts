@@ -36,6 +36,7 @@ export type AdjustmentCandidate = {
 export type AdjustmentDetail = {
   id: string
   request_number: string
+  godown_id: string
   godown_name: string
   verification_id: string
   verification_number: string
@@ -53,11 +54,14 @@ export type AdjustmentDetail = {
   other_manager_exists: boolean
   lines: {
     id: string
+    crate_id: string
+    product_id: string
     crate_code: string
     sku: string
     product_name: string
     requested_cases: number
     current_cases: number | null
+    lot_allocations: { lot_id: string; quantity: number }[]
   }[]
   events: {
     event_type: string
@@ -136,4 +140,17 @@ export function postStockAdjustment(requestId: string, version: number, idempote
     expected_version: version,
     idempotency_key: idempotencyKey,
   })
+}
+
+export function setStockAdjustmentLineLotAllocations(
+  targetAdjustmentLine: string,
+  allocations: { lot_id: string; quantity: number }[],
+) {
+  return callRpc<{ lot_id: string; quantity: number }[]>(
+    "set_stock_adjustment_line_lot_allocations",
+    {
+      target_adjustment_line: targetAdjustmentLine,
+      allocations,
+    },
+  )
 }

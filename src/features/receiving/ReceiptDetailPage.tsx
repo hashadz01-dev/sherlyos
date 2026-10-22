@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router"
 import { AppModal } from "@/components/shared/AppModal"
@@ -12,15 +12,18 @@ import type { ReceiptDraft } from "@/features/receiving/receipt-draft"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import { getStockLotCutoverState } from "@/lib/inventory/api"
 import {
   cancelStockReceipt,
   getStockReceipt,
   holdStockReceipt,
   listReceivingOptions,
   releaseStockReceipt,
+  setStockReceiptLineLotAttributions,
   submitStockReceipt,
   updateStockReceipt,
   verifyStockReceipt,
+  type ReceiptLine,
   type StockReceipt,
 } from "@/lib/receiving/api"
 import { receiptActions, receiptTotals, type ReceiptStatus } from "@/lib/receiving/rules"
@@ -82,6 +85,11 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
     queryFn: listReceivingOptions,
     enabled: actions.canEdit,
   })
+  const cutover = useQuery({
+    queryKey: ["stock-lot-cutover"],
+    queryFn: getStockLotCutoverState,
+  })
+  const dualWriteEnabled = cutover.data?.dual_write_enabled ?? false
   const [holdOpen, setHoldOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [verifyOpen, setVerifyOpen] = useState(false)
@@ -94,6 +102,23 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
       damagedCases: line.damaged_cases,
     })),
   )
+  const canEditAttributions =
+    dualWriteEnabled &&
+    (receipt.status === "draft" ||
+      receipt.status === "submitted" ||
+      receipt.status === "held") &&
+    (can("receiving.execute") || can("receiving.verify"))
+  const attributionsReady = useMemo(() => {
+    if (!dualWriteEnabled) return true
+    return receipt.lines.every((line) => {
+      if (line.accepted_cases === 0) return (line.lot_attributions ?? []).length === 0
+      const attributed = (line.lot_attributions ?? []).reduce(
+        (sum, row) => sum + row.carton_quantity,
+        0,
+      )
+      return attributed === line.accepted_cases
+    })
+  }, [dualWriteEnabled, receipt.lines])
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["stock-receipt", receipt.id] })
@@ -228,6 +253,13 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
       ) : (
         <ReceiptLines receipt={receipt} />
       )}
+      {dualWriteEnabled ? (
+        <ReceiptLotAttributionPanel
+          receipt={receipt}
+          canEdit={canEditAttributions}
+          onSaved={refresh}
+        />
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
         {actions.canSubmit ? (
           <Button disabled={submit.isPending} onClick={() => submit.mutate()}>
@@ -245,7 +277,12 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
           </Button>
         ) : null}
         {actions.canVerify ? (
-          <Button onClick={() => setVerifyOpen(true)}>Verify and post</Button>
+          <Button
+            onClick={() => setVerifyOpen(true)}
+            disabled={dualWriteEnabled && !attributionsReady}
+          >
+            Verify and post
+          </Button>
         ) : null}
         {actions.canCancelOwn || actions.canCancelAsManager ? (
           <Button variant="destructive" onClick={() => setCancelOpen(true)}>
@@ -334,7 +371,10 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
             <Button variant="outline" onClick={() => setVerifyOpen(false)}>
               Close
             </Button>
-            <Button disabled={verify.isPending} onClick={() => verify.mutate()}>
+            <Button
+              disabled={verify.isPending || (dualWriteEnabled && !attributionsReady)}
+              onClick={() => verify.mutate()}
+            >
               Verify and post
             </Button>
           </>
@@ -346,8 +386,179 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
           <Fact label="Damaged cases" value={String(totals.damagedCases)} />
           <Fact label="Accepted cases" value={String(totals.acceptedCases)} />
         </dl>
+        {dualWriteEnabled && !attributionsReady ? (
+          <p role="alert" className="mt-3 text-sm text-destructive">
+            Complete lot attributions for every accepted line before verify.
+          </p>
+        ) : null}
       </AppModal>
     </>
+  )
+}
+
+type AttributionDraft = {
+  cartonQuantity: string
+  manufacturerLotCode: string
+  manufacturedOn: string
+  expiryDate: string
+}
+
+function emptyAttribution(): AttributionDraft {
+  return {
+    cartonQuantity: "",
+    manufacturerLotCode: "",
+    manufacturedOn: "",
+    expiryDate: "",
+  }
+}
+
+function ReceiptLotAttributionPanel({
+  receipt,
+  canEdit,
+  onSaved,
+}: {
+  receipt: StockReceipt
+  canEdit: boolean
+  onSaved: () => Promise<void>
+}) {
+  return (
+    <section className="mt-8 grid gap-4">
+      <h2 className="text-sm font-semibold">Lot attributions</h2>
+      <p className="text-sm text-muted-foreground">
+        When dual-write is active, accepted quantities must be attributed across one or more lots
+        before verification.
+      </p>
+      {receipt.lines.map((line) => (
+        <LineAttributionEditor
+          key={line.id}
+          line={line}
+          canEdit={canEdit}
+          onSaved={onSaved}
+        />
+      ))}
+    </section>
+  )
+}
+
+function LineAttributionEditor({
+  line,
+  canEdit,
+  onSaved,
+}: {
+  line: ReceiptLine
+  canEdit: boolean
+  onSaved: () => Promise<void>
+}) {
+  const existing = (line.lot_attributions ?? []).map((row) => ({
+    cartonQuantity: String(row.carton_quantity),
+    manufacturerLotCode: row.manufacturer_lot_code ?? "",
+    manufacturedOn: row.manufactured_on ?? "",
+    expiryDate: row.expiry_date ?? "",
+  }))
+  const [rows, setRows] = useState<AttributionDraft[]>(
+    existing.length > 0 ? existing : line.accepted_cases > 0 ? [emptyAttribution()] : [],
+  )
+  const save = useMutation({
+    mutationFn: () =>
+      setStockReceiptLineLotAttributions(
+        line.id,
+        rows
+          .filter((row) => Number(row.cartonQuantity) > 0)
+          .map((row) => ({
+            carton_quantity: Number(row.cartonQuantity),
+            manufacturer_lot_code: row.manufacturerLotCode.trim() || null,
+            manufactured_on: row.manufacturedOn.trim() || null,
+            expiry_date: row.expiryDate.trim() || null,
+          })),
+      ),
+    onSuccess: async () => {
+      notify.success(`Lot attributions saved for ${line.product_sku}`)
+      await onSaved()
+    },
+    onError: (error: Error) => notify.error(error.message),
+  })
+  const attributed = rows.reduce((sum, row) => sum + (Number(row.cartonQuantity) || 0), 0)
+
+  return (
+    <article className="grid gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+      <div className="text-sm">
+        <p className="font-medium">
+          {line.product_name} ({line.product_sku})
+        </p>
+        <p className="text-muted-foreground">
+          Accepted {line.accepted_cases} · Policy {line.expiry_policy ?? "unclassified"} · Attributed{" "}
+          {attributed}
+        </p>
+      </div>
+      {line.accepted_cases === 0 ? (
+        <p className="text-sm text-muted-foreground">Zero-accepted lines cannot carry lots.</p>
+      ) : (
+        <>
+          {rows.map((row, index) => (
+            <div key={index} className="grid gap-2 md:grid-cols-4">
+              <TextField
+                label="Quantity"
+                inputMode="numeric"
+                value={row.cartonQuantity}
+                disabled={!canEdit}
+                onChange={(event) => {
+                  const next = [...rows]
+                  next[index] = { ...row, cartonQuantity: event.target.value }
+                  setRows(next)
+                }}
+              />
+              <TextField
+                label="Manufacturer lot"
+                value={row.manufacturerLotCode}
+                disabled={!canEdit}
+                onChange={(event) => {
+                  const next = [...rows]
+                  next[index] = { ...row, manufacturerLotCode: event.target.value }
+                  setRows(next)
+                }}
+              />
+              <TextField
+                label="Manufactured on"
+                type="date"
+                value={row.manufacturedOn}
+                disabled={!canEdit}
+                onChange={(event) => {
+                  const next = [...rows]
+                  next[index] = { ...row, manufacturedOn: event.target.value }
+                  setRows(next)
+                }}
+              />
+              <TextField
+                label="Expiry date"
+                type="date"
+                value={row.expiryDate}
+                disabled={!canEdit || line.expiry_policy === "non_expiring"}
+                onChange={(event) => {
+                  const next = [...rows]
+                  next[index] = { ...row, expiryDate: event.target.value }
+                  setRows(next)
+                }}
+              />
+            </div>
+          ))}
+          {canEdit ? (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => setRows([...rows, emptyAttribution()])}>
+                Add lot
+              </Button>
+              {rows.length > 1 ? (
+                <Button type="button" variant="outline" onClick={() => setRows(rows.slice(0, -1))}>
+                  Remove last
+                </Button>
+              ) : null}
+              <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+                Save attributions
+              </Button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </article>
   )
 }
 

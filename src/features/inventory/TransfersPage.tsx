@@ -1,4 +1,4 @@
-import { useState, type SelectHTMLAttributes } from "react"
+import { useEffect, useState, type SelectHTMLAttributes } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
@@ -9,7 +9,12 @@ import { Button } from "@/components/ui/button"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
-import { listStockBalances, postCrateTransfer } from "@/lib/inventory/api"
+import {
+  getStockLotCutoverState,
+  listStockBalances,
+  listStockLotBalances,
+  postCrateTransfer,
+} from "@/lib/inventory/api"
 import { notify } from "@/lib/utilities/notify"
 import {
   transferStockSchema,
@@ -25,12 +30,18 @@ const emptyValues: TransferStockValues = {
   productId: "",
   quantity: "",
   notes: "",
+  dualWriteEnabled: false,
+  lotMoves: [],
 }
 
 export function TransfersPage() {
   useDocumentTitle("Stock transfers")
   const queryClient = useQueryClient()
   const locations = useStockLocations()
+  const cutover = useQuery({
+    queryKey: ["stock-lot-cutover"],
+    queryFn: getStockLotCutoverState,
+  })
   const balances = useQuery({
     queryKey: ["stock-balances"],
     queryFn: listStockBalances,
@@ -46,6 +57,8 @@ export function TransfersPage() {
   const sourceCrateId = form.watch("sourceCrateId")
   const destinationZoneId = form.watch("destinationZoneId")
   const productId = form.watch("productId")
+  const lotMoves = form.watch("lotMoves")
+  const dualWriteEnabled = cutover.data?.dual_write_enabled ?? false
   const zones = (locations.zones.data ?? []).filter(
     (zone) => zone.is_active && zone.branch_id === branchId,
   )
@@ -64,6 +77,25 @@ export function TransfersPage() {
     balances.data?.find(
       (row) => row.crate_id === sourceCrateId && row.product_id === productId,
     )?.quantity ?? 0
+  const lotBalances = useQuery({
+    queryKey: ["stock-lot-balances", branchId, sourceCrateId, productId],
+    queryFn: () =>
+      listStockLotBalances({
+        filter_branch: branchId || null,
+        filter_crate: sourceCrateId || null,
+        filter_product: productId || null,
+      }),
+    enabled: dualWriteEnabled && Boolean(sourceCrateId && productId),
+  })
+  const availableLots = (lotBalances.data ?? []).filter((row) => row.quantity > 0)
+
+  useEffect(() => {
+    form.setValue("dualWriteEnabled", dualWriteEnabled)
+  }, [dualWriteEnabled, form])
+
+  useEffect(() => {
+    form.setValue("lotMoves", [])
+  }, [sourceCrateId, productId, form])
 
   const post = useMutation({
     mutationFn: (values: TransferStockValues) =>
@@ -74,17 +106,32 @@ export function TransfersPage() {
         carton_quantity: Number(values.quantity),
         idempotency_key: idempotencyKey,
         posting_notes: values.notes.trim() || null,
+        lot_moves: dualWriteEnabled
+          ? values.lotMoves.map((move) => ({
+              lot_id: move.lotId,
+              quantity: Number(move.quantity),
+            }))
+          : null,
       }),
     onSuccess: async (posted) => {
       setConfirming(null)
-      form.reset(emptyValues)
+      form.reset({ ...emptyValues, dualWriteEnabled })
       setIdempotencyKey(crypto.randomUUID())
       notify.success(`Transfer posted as ${posted.reference_number}`)
       await queryClient.invalidateQueries({ queryKey: ["stock-balances"] })
       await queryClient.invalidateQueries({ queryKey: ["stock-transactions"] })
+      await queryClient.invalidateQueries({ queryKey: ["stock-lot-balances"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
+
+  function setLotQuantity(lotId: string, quantity: string) {
+    const next = lotMoves.filter((move) => move.lotId !== lotId)
+    if (quantity.trim() !== "" && Number(quantity) > 0) {
+      next.push({ lotId, quantity })
+    }
+    form.setValue("lotMoves", next, { shouldValidate: true })
+  }
 
   return (
     <section>
@@ -161,6 +208,41 @@ export function TransfersPage() {
           ))}
         </SelectField>
         <p className="text-sm text-muted-foreground">Source balance: {sourceBalance} carton cases</p>
+        {dualWriteEnabled ? (
+          <div className="grid gap-3 rounded-xl border border-input p-3">
+            <p className="text-sm font-medium">Lot quantities (explicit selection, no FEFO)</p>
+            {lotBalances.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading lot balances…</p>
+            ) : availableLots.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No lot balances at this source crate.</p>
+            ) : (
+              availableLots.map((lot) => {
+                const current =
+                  lotMoves.find((move) => move.lotId === lot.lot_id)?.quantity ?? ""
+                return (
+                  <div key={lot.lot_id} className="grid gap-1 text-sm">
+                    <span>
+                      {lot.manufacturer_lot_code ?? "No manufacturer code"} · qty {lot.quantity}
+                      {lot.expiry_date ? ` · exp ${lot.expiry_date}` : ""}
+                    </span>
+                    <input
+                      className="h-10 rounded-lg border border-input bg-transparent px-2.5"
+                      inputMode="numeric"
+                      placeholder="Move quantity"
+                      value={current}
+                      onChange={(event) => setLotQuantity(lot.lot_id, event.target.value)}
+                    />
+                  </div>
+                )
+              })
+            )}
+            {form.formState.errors.lotMoves?.message ? (
+              <p role="alert" className="text-sm text-destructive">
+                {form.formState.errors.lotMoves.message}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <SelectField
           label="Destination zone"
           error={form.formState.errors.destinationZoneId?.message}

@@ -1,5 +1,11 @@
 -- M1 disposable parallel-posting fixture. Commits. Cleanup script removes it.
 -- Enables dual-write only for this fixture and must be cleaned up afterward.
+--
+-- M1-S1.1: do not run against the working local database. Dual-write enable now
+-- requires aggregate_only_blocked, grain reconciliation, and classified
+-- positive-stock products. Meeting those guards here would seed working
+-- inventory and leave cutover flags changed. Use an isolated database, or the
+-- rollback-only proofs in phase_m1_s1_concurrency.mjs.
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,

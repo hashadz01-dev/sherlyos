@@ -70,23 +70,25 @@ join public.roles on roles.code = 'godown_manager'
 where fixture.name = 'godown'
 on conflict do nothing;
 
--- M1 implements dual-write, so enabling the flag is no longer rejected.
--- This suite keeps the flag false for the rest of the fixture.
+-- M1-S1: dual-write enable is fail-closed until aggregate_only_blocked and
+-- grain reconciliation hold. This suite keeps both flags false.
 do $$
 begin
-  update public.app_configuration
-  set value = 'true'::jsonb
-  where key = 'stock.lots.dual_write_enabled';
+  begin
+    update public.app_configuration
+    set value = 'true'::jsonb
+    where key = 'stock.lots.dual_write_enabled';
+    raise exception 'premature dual_write_enabled must be rejected';
+  exception
+    when sqlstate '55000' then
+      null;
+  end;
 
   if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-    is distinct from 'true'::jsonb
+    is distinct from 'false'::jsonb
   then
-    raise exception 'dual_write_enabled should be settable after M1';
+    raise exception 'dual_write_enabled must remain false after rejected enable';
   end if;
-
-  update public.app_configuration
-  set value = 'false'::jsonb
-  where key = 'stock.lots.dual_write_enabled';
 end $$;
 
 select set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);

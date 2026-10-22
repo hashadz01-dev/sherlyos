@@ -198,11 +198,20 @@ begin
   perform set_config('sherlyos.legacy_baseline', baseline::text, true);
 end $$;
 
--- Unfreeze aggregate-only for remaining tests in this rolled-back transaction
+-- M1-S1: unfreezing aggregate-only after lots exist is rejected.
 reset role;
-update public.app_configuration
-set value = 'false'::jsonb
-where key = 'stock.lots.aggregate_only_blocked';
+do $$
+begin
+  begin
+    update public.app_configuration
+    set value = 'false'::jsonb
+    where key = 'stock.lots.aggregate_only_blocked';
+    raise exception 'unfreeze after seed must be rejected';
+  exception
+    when sqlstate '55000' then
+      null;
+  end;
+end $$;
 
 -- Lots for helper / spoof tests (table-owner fixture inserts)
 do $$
@@ -550,13 +559,12 @@ begin
   set constraints all deferred;
 end $$;
 
--- 12. Aggregate-only posting compatibility (NULL-lot opening path)
+-- 12. After seed, aggregate-only posting stays blocked (M1-S1)
 do $$
 declare
   admin_id uuid := current_setting('sherlyos.admin')::uuid;
   crate uuid := current_setting('sherlyos.crate_a')::uuid;
   product uuid;
-  posted jsonb;
 begin
   perform set_config('request.jwt.claim.sub', admin_id::text, true);
   perform set_config(
@@ -567,25 +575,20 @@ begin
   set local role authenticated;
   product := public.create_product('p43e2b2-agg', 'Phase 4.3E.2B.2 Aggregate Product', null, null);
 
-  posted := public.post_opening_stock(
-    product,
-    crate,
-    4,
-    'p43e2b2-agg-open-' || substr(gen_random_uuid()::text, 1, 8),
-    null
-  );
+  begin
+    perform public.post_opening_stock(
+      product,
+      crate,
+      4,
+      'p43e2b2-agg-open-' || substr(gen_random_uuid()::text, 1, 8),
+      null
+    );
+    raise exception 'aggregate opening must stay blocked after seed';
+  exception
+    when sqlstate '55000' then
+      null;
+  end;
   reset role;
-
-  if posted ->> 'id' is null then
-    raise exception 'aggregate-only opening failed';
-  end if;
-  if exists (
-    select 1 from public.stock_ledger
-    where stock_ledger.transaction_id = (posted ->> 'id')::uuid
-      and stock_ledger.lot_id is not null
-  ) then
-    raise exception 'aggregate-only opening must remain NULL-lot';
-  end if;
 end $$;
 
 -- 8. Wrong product/lot mapping (last: leaves orphan lot_id ledger; outer rollback discards)

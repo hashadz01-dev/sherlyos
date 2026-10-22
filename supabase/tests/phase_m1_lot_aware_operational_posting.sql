@@ -221,6 +221,46 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Enable dual-write inside this rolled-back transaction only
 -- ---------------------------------------------------------------------------
+-- Classify every positive-stock product before seed; policy cannot change after
+-- lots exist. product_agg had aggregate opening while unclassified.
+select set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
+select set_config(
+  'request.jwt.claims',
+  jsonb_build_object('sub', (select id from fixture where name = 'admin'), 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+do $$
+declare
+  rec record;
+begin
+  for rec in
+    select distinct stock_balances.product_id
+    from public.stock_balances
+    join public.products on products.id = stock_balances.product_id
+    where stock_balances.quantity > 0
+      and products.expiry_policy is null
+  loop
+    perform public.set_product_expiry_policy(rec.product_id, 'non_expiring');
+  end loop;
+end $$;
+
+reset role;
+update public.app_configuration
+set value = 'true'::jsonb
+where key = 'stock.lots.aggregate_only_blocked';
+
+select set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
+select set_config(
+  'request.jwt.claims',
+  jsonb_build_object('sub', (select id from fixture where name = 'admin'), 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+select public.seed_legacy_stock_lots();
+
 reset role;
 update public.app_configuration
 set value = 'true'::jsonb
@@ -234,12 +274,18 @@ select set_config(
   true
 );
 
--- Unclassified product blocked for lot-aware opening
+-- Unclassified product (zero stock, never seeded) blocked for lot-aware opening
+select set_config(
+  'sherlyos.product_unclass',
+  public.create_product('m1-unclass', 'M1 Unclassified After Cutover', null, null)::text,
+  true
+);
+
 do $$
 begin
   begin
     perform public.post_opening_stock(
-      current_setting('sherlyos.product_agg')::uuid,
+      current_setting('sherlyos.product_unclass')::uuid,
       current_setting('sherlyos.crate_b')::uuid,
       1,
       'm1-unclassified-open',
@@ -748,24 +794,10 @@ begin
   end;
 end $$;
 
--- Ensure working-DB flags are restored before rollback visibility (still in txn)
-reset role;
-update public.app_configuration
-set value = 'false'::jsonb
-where key = 'stock.lots.dual_write_enabled';
-
+-- Cutover flags may remain elevated inside this transaction; ROLLBACK restores working DB.
 do $$
 begin
-  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-    is distinct from 'false'::jsonb
-  then
-    raise exception 'dual_write must be false before rollback';
-  end if;
-  if (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
-    is distinct from 'false'::jsonb
-  then
-    raise exception 'aggregate_only_blocked must stay false';
-  end if;
+  raise notice 'PASS phase_m1_lot_aware_operational_posting';
 end $$;
 
 rollback;

@@ -168,7 +168,23 @@ begin
   end if;
 end $$;
 
--- Legacy seed compatibility BEFORE any operational lot balances exist (M1)
+-- Dual-write enable (later) requires classified positive-stock products.
+do $$
+declare
+  rec record;
+begin
+  for rec in
+    select distinct stock_balances.product_id
+    from public.stock_balances
+    join public.products on products.id = stock_balances.product_id
+    where stock_balances.quantity > 0
+      and products.expiry_policy is null
+  loop
+    perform public.set_product_expiry_policy(rec.product_id, 'non_expiring');
+  end loop;
+end $$;
+
+-- Legacy seed while grains still match historical aggregate opening
 do $$
 declare
   result jsonb;
@@ -202,10 +218,23 @@ end $$;
 
 reset role;
 
--- Unfreeze for remaining helper tests in this rolled-back transaction.
+do $$
+begin
+  begin
+    update public.app_configuration
+    set value = 'false'::jsonb
+    where key = 'stock.lots.aggregate_only_blocked';
+    raise exception 'unfreeze after seed must be rejected';
+  exception
+    when sqlstate '55000' then
+      null;
+  end;
+end $$;
+
+-- Remaining posting in this file uses lot-aware verify; enable dual-write now.
 update public.app_configuration
-set value = 'false'::jsonb
-where key = 'stock.lots.aggregate_only_blocked';
+set value = 'true'::jsonb
+where key = 'stock.lots.dual_write_enabled';
 
 -- Lots for helper tests
 do $$
@@ -899,14 +928,5 @@ begin
   end;
 end $$;
 
--- Flags: dual_write remains false (blocked was reset for helper tests; whole txn rolls back)
-do $$
-begin
-  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-    is distinct from 'false'::jsonb
-  then
-    raise exception 'dual_write must stay false';
-  end if;
-end $$;
-
+-- Transaction rolls back; working-DB flags stay false.
 rollback;

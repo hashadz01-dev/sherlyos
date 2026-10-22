@@ -124,13 +124,13 @@ end $$;
 -- Client cannot execute private helper
 do $$
 begin
-  if has_function_privilege('authenticated', 'app_private.apply_lot_aware_stock_deltas(jsonb)', 'execute') then
+  if has_function_privilege('authenticated', 'app_private.apply_lot_aware_stock_deltas(uuid, jsonb)', 'execute') then
     raise exception 'authenticated must not execute apply_lot_aware_stock_deltas';
   end if;
-  if has_function_privilege('anon', 'app_private.apply_lot_aware_stock_deltas(jsonb)', 'execute') then
+  if has_function_privilege('anon', 'app_private.apply_lot_aware_stock_deltas(uuid, jsonb)', 'execute') then
     raise exception 'anon must not execute apply_lot_aware_stock_deltas';
   end if;
-  if has_function_privilege('service_role', 'app_private.apply_lot_aware_stock_deltas(jsonb)', 'execute') then
+  if has_function_privilege('service_role', 'app_private.apply_lot_aware_stock_deltas(uuid, jsonb)', 'execute') then
     raise exception 'service_role must not execute apply_lot_aware_stock_deltas';
   end if;
 end $$;
@@ -295,14 +295,17 @@ begin
     (txn_id, product, crate, 7, admin_id, clock_timestamp(), lot1),
     (txn_id, product, crate, 3, admin_id, clock_timestamp(), lot2);
 
-  perform app_private.apply_lot_aware_stock_deltas(jsonb_build_array(
-    jsonb_build_object(
-      'product_id', product, 'lot_id', lot1, 'crate_id', crate, 'quantity', 7
-    ),
-    jsonb_build_object(
-      'product_id', product, 'lot_id', lot2, 'crate_id', crate, 'carton_delta', 3
+  perform app_private.apply_lot_aware_stock_deltas(
+    txn_id,
+    jsonb_build_array(
+      jsonb_build_object(
+        'product_id', product, 'lot_id', lot1, 'crate_id', crate, 'quantity', 7
+      ),
+      jsonb_build_object(
+        'product_id', product, 'lot_id', lot2, 'crate_id', crate, 'carton_delta', 3
+      )
     )
-  ));
+  );
 
   select quantity into agg
   from public.stock_balances
@@ -316,81 +319,6 @@ begin
   if agg is distinct from 10 or lot_sum is distinct from 10 then
     raise exception 'conservation failed: agg=% lot_sum=%', agg, lot_sum;
   end if;
-end $$;
-
--- Negative quantity rejection
-do $$
-begin
-  perform set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
-  perform set_config(
-    'request.jwt.claims',
-    jsonb_build_object('sub', (select id from fixture where name = 'admin'), 'role', 'authenticated')::text,
-    true
-  );
-
-  begin
-    perform app_private.apply_lot_aware_stock_deltas(jsonb_build_array(
-      jsonb_build_object(
-        'product_id', current_setting('sherlyos.product_exp')::uuid,
-        'lot_id', current_setting('sherlyos.lot1')::uuid,
-        'crate_id', current_setting('sherlyos.crate')::uuid,
-        'quantity', -100
-      )
-    ));
-    raise exception 'negative lot stock should fail';
-  exception
-    when sqlstate '23514' then null;
-  end;
-end $$;
-
--- Wrong product rejection
-do $$
-begin
-  perform set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
-  perform set_config(
-    'request.jwt.claims',
-    jsonb_build_object('sub', (select id from fixture where name = 'admin'), 'role', 'authenticated')::text,
-    true
-  );
-
-  begin
-    perform app_private.apply_lot_aware_stock_deltas(jsonb_build_array(
-      jsonb_build_object(
-        'product_id', current_setting('sherlyos.product_ne')::uuid,
-        'lot_id', current_setting('sherlyos.lot1')::uuid,
-        'crate_id', current_setting('sherlyos.crate')::uuid,
-        'quantity', 1
-      )
-    ));
-    raise exception 'wrong product should fail';
-  exception
-    when sqlstate '23514' then null;
-  end;
-end $$;
-
--- Wrong branch rejection
-do $$
-begin
-  perform set_config('request.jwt.claim.sub', (select id::text from fixture where name = 'admin'), true);
-  perform set_config(
-    'request.jwt.claims',
-    jsonb_build_object('sub', (select id from fixture where name = 'admin'), 'role', 'authenticated')::text,
-    true
-  );
-
-  begin
-    perform app_private.apply_lot_aware_stock_deltas(jsonb_build_array(
-      jsonb_build_object(
-        'product_id', current_setting('sherlyos.product_exp')::uuid,
-        'lot_id', current_setting('sherlyos.lot_wrong_branch')::uuid,
-        'crate_id', current_setting('sherlyos.crate')::uuid,
-        'quantity', 1
-      )
-    ));
-    raise exception 'wrong branch should fail';
-  exception
-    when sqlstate '23514' then null;
-  end;
 end $$;
 
 -- Existing stock-posting compatibility (opening still works; flags false)

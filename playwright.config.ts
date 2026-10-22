@@ -10,7 +10,9 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 4173 --strictPort",
+    // --mode m1s2 loads gitignored .env.m1s2.local (127.0.0.1:54321).
+    // .env and .env.local stay pointed at the development cloud.
+    command: "npm run dev -- --mode m1s2 --host 127.0.0.1 --port 4173 --strictPort",
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

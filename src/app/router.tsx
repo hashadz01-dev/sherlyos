@@ -31,6 +31,9 @@ import { ReportsPage } from "@/features/reports/ReportsPage"
 import { AdjustmentDetailPage } from "@/features/stock-adjustments/AdjustmentDetailPage"
 import { AdjustmentsPage } from "@/features/stock-adjustments/AdjustmentsPage"
 import { NewAdjustmentPage } from "@/features/stock-adjustments/NewAdjustmentPage"
+import { LotReconciliationDetailPage } from "@/features/stock-lot-reconciliation/LotReconciliationDetailPage"
+import { LotReconciliationPage } from "@/features/stock-lot-reconciliation/LotReconciliationPage"
+import { NewLotReconciliationPage } from "@/features/stock-lot-reconciliation/NewLotReconciliationPage"
 import { StartVerificationPage } from "@/features/stock-verification/StartVerificationPage"
 import { StockVerificationPage } from "@/features/stock-verification/StockVerificationPage"
 import { VerificationDetailPage } from "@/features/stock-verification/VerificationDetailPage"
@@ -194,6 +197,42 @@ export const appRouteObjects: RouteObject[] = [
                 permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
               >
                 <VerificationDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "stock-lot-reconciliation",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "stock.lots.physical_reconcile",
+                  "stock.lots.legacy.reconcile",
+                  "operations.monitor",
+                ]}
+              >
+                <LotReconciliationPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "stock-lot-reconciliation/new",
+            element: (
+              <RequirePermission permission="stock.lots.legacy.reconcile">
+                <NewLotReconciliationPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "stock-lot-reconciliation/:sessionId",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "stock.lots.physical_reconcile",
+                  "stock.lots.legacy.reconcile",
+                  "operations.monitor",
+                ]}
+              >
+                <LotReconciliationDetailPage />
               </RequireAnyPermission>
             ),
           },

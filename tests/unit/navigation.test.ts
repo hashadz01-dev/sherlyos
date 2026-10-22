@@ -8,6 +8,7 @@ const requiredPaths = [
   "/damage",
   "/receiving",
   "/stock-verification",
+  "/stock-lot-reconciliation",
   "/refill",
   "/inventory",
   "/masters",

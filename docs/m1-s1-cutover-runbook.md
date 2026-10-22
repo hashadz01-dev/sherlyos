@@ -69,7 +69,9 @@ Abort if backup is missing or stale. Restoring later is a separate authorized pr
 
 ## Phase 2 — Physical reconciliation
 
-Reconcile floor counts to system aggregate `(crate_id, product_id)` grains. Resolve discrepancies **before** seeding lots. Do not invent expiry or lot codes during seed.
+Use the M1-S2 session workflow (Admin `create_lot_reconciliation` for selected crates, Godown Manager count/lot entry/submit, Admin approve). Approval does **not** change `stock_balances` or seed lots.
+
+Resolve every scoped grain so counted carton cases equal frozen expected quantity, with lot entries summing to the count. Unexpected physical stock is found-product evidence only — post it later through the existing adjustment path, then start a new session. Do not invent manufacturer codes or expiry dates; unknown identity stays explicit. Classify every in-scope product before approve. Attribution of approved lots is M1-S3 (`apply_legacy_lot_attribution` is not in M1-S2).
 
 ## Phase 3 — Legacy lot seed (Admin)
 

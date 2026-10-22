@@ -89,6 +89,20 @@ export const navigationItems: AppNavItem[] = [
     anyPermissions: ["stock.verify", "stock.count_assist", "operations.monitor"],
   },
   {
+    to: "/stock-lot-reconciliation",
+    label: "Lot reconciliation",
+    title: "Physical lot reconciliation",
+    description:
+      "Count selected crates and record physical lot evidence. Approval does not change inventory.",
+    group: "Operations",
+    icon: ClipboardCheck,
+    anyPermissions: [
+      "stock.lots.physical_reconcile",
+      "stock.lots.legacy.reconcile",
+      "operations.monitor",
+    ],
+  },
+  {
     to: "/stock-adjustments",
     label: "Adjustments",
     title: "Stock adjustments",

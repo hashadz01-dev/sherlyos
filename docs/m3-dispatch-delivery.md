@@ -32,6 +32,24 @@ Verified order
 
 `app_private.assert_picking_handoff_for_dispatch(order_id)` is called from `confirm_dispatch` and `prepare_dispatch`. EXECUTE remains revoked from `public`, `anon`, `authenticated`, and `service_role`.
 
+## Trusted stock-writer lock order
+
+Lot-aware writers take the same row-lock sequence:
+
+1. `acquire_stock_cutover_shared_lock`
+2. product rows by id
+3. `prepare_stock_locations` (zones, then crates by id)
+4. `stock_lots` by id
+5. `stock_lot_balances` by `(crate_id, lot_id)`
+6. `stock_balances` by `(crate_id, product_id)`
+
+`confirm_dispatch` and the M3 replacement of `post_stock_adjustment` already followed that order. `post_crate_transfer` (applied M1 `20261022190000`) still locked `stock_balances` before lots, then `apply_lot_aware_stock_deltas` wanted products → lots → lot_balances. Under dual-write that inverted dispatch and adjustment:
+
+- dispatch holds products/lots/lot_balances and waits on `stock_balances`
+- transfer holds `stock_balances` and waits on products/lots/lot_balances
+
+M3 replaces `post_crate_transfer` in this pending migration so dual-write transfers use the trusted order. Reservation guards stay enabled; transferring reserved quantity still fails. Regression: `phase_m3_transfer_lock_concurrency.mjs` races `confirm_dispatch(4)` against an unreserved `post_crate_transfer(2)` and requires both commits with no `40P01`.
+
 ## Dispatch lifecycle
 
 `preparing → dispatched → in_transit → delivered`
@@ -139,6 +157,8 @@ Local Docker / Vite `--mode m1s2` only. Development cloud was not migrated, seed
 |---|---|
 | `phase_m3_dispatch_delivery.sql` | Passed (rollback). Handoff, fail-closed dual-write, DN-without-picking, keeper/cross-branch/anon denial, prepare without ledger, confirm consume, idempotent replay, conservation, reservation `consumed`, POD vs DN paperwork, failed delivery without restock, injected ledger `P0001` rolls back consume/txn/consumed flag, cancel-before-consume, DML denial, private helper revoke. |
 | `phase_m3_concurrency.mjs` | Passed. Three-way confirm/confirm/transfer: one `DISPATCH`, remaining qty 2 of 6, reserved grain not oversubscribed. Replay after success. Versus order cancel, picking cancel, and cutover exclusive lock. Replica cleanup restored flags. |
+| `phase_m3_adjustment_concurrency.mjs` | Passed. Adjustment lock-order matches trusted writers. Confirm versus reducing adjustment; reserved grain not oversubscribed. |
+| `phase_m3_transfer_lock_concurrency.mjs` | Transfer lock-order regression: unreserved remainder (dispatch 4 + transfer 2 of 6) both commit, no deadlock, source 0 / dest 2. |
 | `phase_m3_http_integration.mjs` | Passed (9). Store Keeper denied; queue/preview/prepare; PostgREST `confirm_dispatch` consumes once; idempotent replay; assign / in-transit / POD. Opening seeded over `psql` because PostgREST loads `safeupdate`. |
 | Playwright (`auth` + `dispatch` + `lot-reconciliation` + `picking`) | Passed (21). Dispatch confirm, assignment, failed delivery without restock, driver POD, cutover-disabled alert. |
 | `npm run typecheck` / `lint` / `test` / `build` | Passed (85 unit tests). Lint warnings only in unrelated inventory/product pages. |

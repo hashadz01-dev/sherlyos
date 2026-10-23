@@ -1,56 +1,61 @@
 import { createBrowserRouter, type RouteObject } from "react-router"
 import { AppShell } from "@/app/layouts/AppShell"
-import { AuditPage } from "@/features/administration/audit/AuditPage"
-import { BranchesPage } from "@/features/administration/branches/BranchesPage"
-import { EmployeesPage } from "@/features/administration/employees/EmployeesPage"
-import { UsersRolesPage } from "@/features/administration/users/UsersRolesPage"
-import { DamagePage } from "@/features/damage/DamagePage"
-import { SettingsPage } from "@/features/administration/SettingsPage"
-import { DeliveriesPage } from "@/features/delivery-notes/DeliveriesPage"
-import { DeliveryNoteDetailPage } from "@/features/delivery-notes/DeliveryNoteDetailPage"
-import { DeliveryNotePrintPage } from "@/features/delivery-notes/DeliveryNotePrintPage"
-import { NewDeliveryNotePage } from "@/features/delivery-notes/NewDeliveryNotePage"
-import { HistoryPage } from "@/features/inventory/HistoryPage"
-import { InventoryPage } from "@/features/inventory/InventoryPage"
-import { OpeningStockPage } from "@/features/inventory/OpeningStockPage"
-import { TransfersPage } from "@/features/inventory/TransfersPage"
-import { CategoriesPage } from "@/features/masters/categories/CategoriesPage"
-import { LocationsPage } from "@/features/masters/locations/LocationsPage"
-import { MastersPage } from "@/features/masters/MastersPage"
-import { ProductsPage } from "@/features/masters/products/ProductsPage"
-import { ShopsPage } from "@/features/masters/shops/ShopsPage"
-import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
-import { EditOrderPage, NewOrderPage } from "@/features/orders/OrderEditorPage"
-import { OrderDetailPage } from "@/features/orders/OrderDetailPage"
-import { OrdersPage } from "@/features/orders/OrdersPage"
-import { DeliveryRunsPage } from "@/features/dispatch/DeliveryRunsPage"
-import { DispatchDetailPage } from "@/features/dispatch/DispatchDetailPage"
-import { DispatchPage } from "@/features/dispatch/DispatchPage"
-import { DispatchPreparePage } from "@/features/dispatch/DispatchPreparePage"
-import { PickingAllocatePage } from "@/features/picking/PickingAllocatePage"
-import { PickingDetailPage } from "@/features/picking/PickingDetailPage"
-import { PickingExceptionsPage } from "@/features/picking/PickingExceptionsPage"
-import { PickingPage } from "@/features/picking/PickingPage"
-import { ReceiptDetailPage } from "@/features/receiving/ReceiptDetailPage"
-import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
-import { ReceivingPage } from "@/features/receiving/ReceivingPage"
-import { RefillPage } from "@/features/refill/RefillPage"
-import { DispatchReportPage } from "@/features/reports/DispatchReportPage"
-import { ExceptionsReportPage } from "@/features/reports/ExceptionsReportPage"
-import { InventoryReportPage } from "@/features/reports/InventoryReportPage"
-import { LotStockReportPage } from "@/features/reports/LotStockReportPage"
-import { MovementReportPage } from "@/features/reports/MovementReportPage"
-import { OrderPickingReportPage } from "@/features/reports/OrderPickingReportPage"
-import { ReportsPage } from "@/features/reports/ReportsPage"
-import { AdjustmentDetailPage } from "@/features/stock-adjustments/AdjustmentDetailPage"
-import { AdjustmentsPage } from "@/features/stock-adjustments/AdjustmentsPage"
-import { NewAdjustmentPage } from "@/features/stock-adjustments/NewAdjustmentPage"
-import { LotReconciliationDetailPage } from "@/features/stock-lot-reconciliation/LotReconciliationDetailPage"
-import { LotReconciliationPage } from "@/features/stock-lot-reconciliation/LotReconciliationPage"
-import { NewLotReconciliationPage } from "@/features/stock-lot-reconciliation/NewLotReconciliationPage"
-import { StartVerificationPage } from "@/features/stock-verification/StartVerificationPage"
-import { StockVerificationPage } from "@/features/stock-verification/StockVerificationPage"
-import { VerificationDetailPage } from "@/features/stock-verification/VerificationDetailPage"
+import {
+  AdjustmentDetailPage,
+  AdjustmentsPage,
+  AuditPage,
+  BranchesPage,
+  CategoriesPage,
+  DamagePage,
+  DeliveriesPage,
+  DeliveryNoteDetailPage,
+  DeliveryNotePrintPage,
+  DeliveryRunsPage,
+  DispatchDetailPage,
+  DispatchPage,
+  DispatchPreparePage,
+  DispatchReportPage,
+  DashboardPage,
+  EditOrderPage,
+  EmployeesPage,
+  ExceptionsReportPage,
+  HistoryPage,
+  InventoryPage,
+  InventoryReportPage,
+  LocationsPage,
+  LotReconciliationDetailPage,
+  LotReconciliationPage,
+  LotStockReportPage,
+  MastersPage,
+  MovementReportPage,
+  NewAdjustmentPage,
+  NewDeliveryNotePage,
+  NewLotReconciliationPage,
+  NewOrderPage,
+  NotFoundPage,
+  OpeningStockPage,
+  OrderDetailPage,
+  OrderPickingReportPage,
+  OrdersPage,
+  PickingAllocatePage,
+  PickingDetailPage,
+  PickingExceptionsPage,
+  PickingPage,
+  ProductsPage,
+  ReceiptDetailPage,
+  ReceiptEditorPage,
+  ReceivingPage,
+  RefillPage,
+  ReportsPage,
+  SettingsPage,
+  ShopsPage,
+  StartVerificationPage,
+  StockVerificationPage,
+  SuppliersPage,
+  TransfersPage,
+  UsersRolesPage,
+  VerificationDetailPage,
+} from "@/app/lazy-pages"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
 import {
@@ -61,8 +66,6 @@ import {
 } from "@/lib/reports/access"
 import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
-import { DashboardPage } from "@/pages/dashboard/DashboardPage"
-import { NotFoundPage } from "@/pages/errors/NotFoundPage"
 
 export const appRouteObjects: RouteObject[] = [
   {
@@ -424,7 +427,16 @@ export const appRouteObjects: RouteObject[] = [
               </RequirePermission>
             ),
           },
-          { path: "masters", element: <MastersPage /> },
+          {
+            path: "masters",
+            element: (
+              <RequireAnyPermission
+                permissions={["products.read", "suppliers.read", "shops.read", "locations.read"]}
+              >
+                <MastersPage />
+              </RequireAnyPermission>
+            ),
+          },
           {
             path: "masters/products",
             element: (

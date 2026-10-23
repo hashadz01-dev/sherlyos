@@ -407,6 +407,26 @@ test("godown manager confirms dispatch and assigns delivery", async ({ page }) =
   await expect(page.getByRole("heading", { name: /^DS-/ })).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText("Stock consumed").first()).toBeVisible()
 
+  const ledger = lastLine(
+    runLocalSql(
+      `
+      select concat_ws('|',
+        (select count(*)::text from public.stock_transactions st
+          join public.products p on p.id = st.product_id
+          where st.transaction_type = 'DISPATCH' and p.sku = '${PREFIX}'),
+        (select coalesce(sum(st.quantity), 0)::text from public.stock_transactions st
+          join public.products p on p.id = st.product_id
+          where st.transaction_type = 'DISPATCH' and p.sku = '${PREFIX}'),
+        (select count(*)::text from public.stock_reservations r
+          join public.products p on p.id = r.product_id
+          where r.status = 'consumed' and p.sku = '${PREFIX}')
+      );
+      `,
+      "m3e2e dispatch ledger",
+    ),
+  )
+  expect(ledger).toBe("2|3|2")
+
   await expect(
     page.locator(`select[aria-label="Delivery assignee"] option[value="${fixture.driverId}"]`),
   ).toBeAttached({ timeout: 20_000 })
@@ -425,6 +445,22 @@ test("godown manager records a failed delivery without restocking", async ({ pag
   await page.getByRole("button", { name: "Record exception" }).click()
   await expect(page.getByText("Delivery exception").first()).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText("Pending verification (stock not restored)")).toBeVisible()
+  const afterFail = lastLine(
+    runLocalSql(
+      `
+      select concat_ws('|',
+        (select count(*)::text from public.stock_transactions st
+          join public.products p on p.id = st.product_id
+          where st.transaction_type = 'DISPATCH' and p.sku = '${PREFIX}'),
+        (select count(*)::text from public.stock_transactions st
+          join public.products p on p.id = st.product_id
+          where st.transaction_type = 'RECEIPT' and p.sku = '${PREFIX}')
+      );
+      `,
+      "m3e2e fail delivery ledger",
+    ),
+  )
+  expect(afterFail).toBe("2|0")
   await signOut(page)
 })
 

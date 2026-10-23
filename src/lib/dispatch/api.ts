@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import type { DispatchRequestStatus } from "@/lib/dispatch/rules"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 
 export class DispatchRpcError extends Error {
   readonly code: string
@@ -164,7 +165,7 @@ async function dispatchRpc<T>(name: string, args: Record<string, unknown> = {}) 
   }
   const result = await supabase.rpc(name, args)
   if (result.error) {
-    throw new DispatchRpcError(result.error.message, result.error.code)
+    throw new DispatchRpcError(toUserRpcMessage(result.error), result.error.code)
   }
   return result.data as T
 }

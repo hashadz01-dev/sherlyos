@@ -2,6 +2,8 @@ export function stockTransactionLabel(transactionType: string) {
   if (transactionType === "OPENING_STOCK") return "Opening stock"
   if (transactionType === "CRATE_TRANSFER") return "Transfer"
   if (transactionType === "RECEIPT") return "Receipt"
+  if (transactionType === "DISPATCH") return "Dispatch"
+  if (transactionType === "ADJUSTMENT") return "Adjustment"
   return transactionType
 }
 

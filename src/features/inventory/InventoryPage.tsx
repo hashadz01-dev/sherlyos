@@ -43,7 +43,7 @@ export function InventoryPage() {
     <section>
       <PageHeader
         title="Inventory"
-        description="Whole carton cases by crate. A balance changes only when a transaction is posted. You see godowns you are already allowed to work at."
+        description="On-hand carton cases by crate. These balances are not available-to-pick while operational lot cutover is inactive. Lot identities, when they exist, are on the lot stock report. You see godowns you are already allowed to work at."
       />
       <InventoryLinks />
       {balances.isLoading ? <LoadingBlock label="Loading inventory" /> : null}
@@ -86,7 +86,7 @@ export function InventoryPage() {
                     <th className="px-4 py-3 font-medium">Crate</th>
                     <th className="px-4 py-3 font-medium">Product</th>
                     <th className="px-4 py-3 font-medium">SKU</th>
-                    <th className="px-4 py-3 text-right font-medium">Cases</th>
+                    <th className="px-4 py-3 text-right font-medium">On-hand cases</th>
                   </tr>
                 </thead>
                 <tbody>

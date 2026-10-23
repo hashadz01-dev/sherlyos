@@ -153,6 +153,7 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   await expect(page.getByText("Available to pick")).toBeVisible()
   await expect(page.getByText(/Lot-aware allocation is inactive/i)).toBeVisible()
   await expect(page.getByText(/Operational lot cutover is inactive/i)).toBeVisible()
+  await expect(page.getByText(/Inactive godowns are not selectable/i)).toBeVisible()
 
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible()
@@ -161,6 +162,7 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   await expect(page.getByRole("heading", { name: "Inventory report" })).toBeVisible()
   await expect(page.getByText("M4E2E soap")).toBeVisible()
   await expect(page.getByText("7").first()).toBeVisible()
+  await expect(page.getByText(/Inactive godowns stay in the historical group/i)).toBeVisible()
 
   const downloadPromise = page.waitForEvent("download")
   await page.getByRole("button", { name: "Export CSV" }).click()

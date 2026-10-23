@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { notify } from "@/lib/utilities/notify"
 
@@ -33,7 +34,7 @@ export function BranchesPage() {
         ?.from("branches")
         .select("id, code, name, is_active")
         .order("name")
-      if (result?.error) throw new Error(result.error.message)
+      if (result?.error) throw new Error(toUserRpcMessage(result.error))
       return (result?.data ?? []) as Branch[]
     },
   })
@@ -45,7 +46,7 @@ export function BranchesPage() {
         branch_code: code,
         branch_name: name,
       })
-      if (result?.error) throw new Error(result.error.message)
+      if (result?.error) throw new Error(toUserRpcMessage(result.error))
     },
     onSuccess: async () => {
       setCode("")
@@ -63,7 +64,7 @@ export function BranchesPage() {
         target_branch: branch.id,
         active: !branch.is_active,
       })
-      if (result?.error) throw new Error(result.error.message)
+      if (result?.error) throw new Error(toUserRpcMessage(result.error))
     },
     onSuccess: async () => {
       notify.success("Site status updated")

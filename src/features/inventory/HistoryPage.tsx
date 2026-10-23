@@ -34,7 +34,7 @@ export function HistoryPage() {
     <section>
       <PageHeader
         title="Stock history"
-        description="Posted opening stock, same-godown transfers, and verified receipts. This list is read only."
+        description="Posted opening stock, same-godown transfers, verified receipts, adjustments, and dispatch consumption. This list is read only. Dispatch is the stock-consuming boundary."
       />
       <InventoryLinks />
       {history.isLoading ? <LoadingBlock label="Loading history" /> : null}

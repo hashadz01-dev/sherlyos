@@ -12,6 +12,7 @@ import {
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
+import { BranchFilterNote } from "@/features/reports/BranchFilterNote"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -114,6 +115,9 @@ function DashboardBody({
             : " Lot-aware dual-write is on."}
         </p>
       </div>
+      <div className="mb-6">
+        <BranchFilterNote operationalDropdown />
+      </div>
 
       {data.inventory.visible ? (
         <DashboardGroup title="Inventory">
@@ -151,15 +155,21 @@ function DashboardBody({
             <h2 className="text-base font-semibold">Stock by godown</h2>
           </div>
           <ul className="divide-y divide-slate-100">
-            {data.inventory.stock_by_godown?.map((row) => (
-              <li key={row.branch_id} className="flex items-center justify-between px-5 py-3 text-sm">
-                <span>
-                  {row.branch_name}
-                  <span className="ml-2 text-muted-foreground">{row.branch_code}</span>
-                </span>
-                <span className="font-medium">{row.cartons}</span>
-              </li>
-            ))}
+            {data.inventory.stock_by_godown?.map((row) => {
+              const operational = data.authorized_branches.some((branch) => branch.id === row.branch_id)
+              return (
+                <li key={row.branch_id} className="flex items-center justify-between px-5 py-3 text-sm">
+                  <span>
+                    {row.branch_name}
+                    <span className="ml-2 text-muted-foreground">{row.branch_code}</span>
+                    {operational ? null : (
+                      <span className="ml-2 text-muted-foreground">Inactive (historical)</span>
+                    )}
+                  </span>
+                  <span className="font-medium">{row.cartons}</span>
+                </li>
+              )
+            })}
           </ul>
         </section>
       ) : null}

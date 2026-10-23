@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { findNavigationItem, navigationItems } from "@/app/navigation"
+import { stockTransactionLabel } from "@/lib/inventory/labels"
 import { openingStockSchema, transferStockSchema } from "@/lib/validations/inventory"
+
+describe("inventory labels", () => {
+  it("names dispatch as the stock-consuming movement", () => {
+    expect(stockTransactionLabel("DISPATCH")).toBe("Dispatch")
+    expect(stockTransactionLabel("OPENING_STOCK")).toBe("Opening stock")
+  })
+})
 
 describe("inventory navigation", () => {
   it("gates stock screens on the approved permissions", () => {

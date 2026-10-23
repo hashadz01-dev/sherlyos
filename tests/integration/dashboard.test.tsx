@@ -89,7 +89,10 @@ describe("dashboard", () => {
         visible: true,
         total_cartons_on_hand: 10,
         products_with_positive_stock: 1,
-        stock_by_godown: [{ branch_id: "b1", branch_code: "G1", branch_name: "Main", cartons: 10 }],
+        stock_by_godown: [
+          { branch_id: "b1", branch_code: "G1", branch_name: "Main", cartons: 8 },
+          { branch_id: "b0", branch_code: "G0", branch_name: "Closed godown", cartons: 2 },
+        ],
         lot_attributed_cartons: 0,
         legacy_unattributed_cartons: 0,
         active_reserved_cartons: 0,
@@ -113,6 +116,9 @@ describe("dashboard", () => {
     expect(
       screen.getByText(/Lot-aware allocation is inactive/i),
     ).toBeInTheDocument()
+    expect(screen.getByText(/Inactive godowns are not selectable/i)).toBeInTheDocument()
+    expect(screen.getByText("Closed godown")).toBeInTheDocument()
+    expect(screen.getByText("Inactive (historical)")).toBeInTheDocument()
     expect(screen.queryByText("Orders Today")).not.toBeInTheDocument()
   })
 })

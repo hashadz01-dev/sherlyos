@@ -1,4 +1,5 @@
 import { loadRows } from "@/lib/masters/api"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import type {
   ExpiryPolicy,
@@ -156,7 +157,7 @@ async function reconRpc<T>(name: string, args: Record<string, unknown>) {
   }
   const result = await supabase.rpc(name, args)
   if (result.error) {
-    throw new LotReconciliationRpcError(result.error.message, result.error.code)
+    throw new LotReconciliationRpcError(toUserRpcMessage(result.error), result.error.code)
   }
   return result.data as T
 }

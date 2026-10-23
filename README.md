@@ -16,7 +16,7 @@ Internal operations workspace for Sherlys. Phase 1 is the Vite + React foundatio
 3. Keep `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN` in `.env` for server tools only. Do not prefix them with `VITE_` and do not commit either file.
 4. Start the app with `npm run dev`.
 
-Supabase MCP is configured in `.cursor/mcp.json` for project `ypkfondrkhkydkgovwup`. In Cursor, open Settings → Tools & MCP, enable the Supabase server, and sign in when asked.
+MCP servers are configured in `.cursor/mcp.json`. In Cursor, open Settings → Tools & MCP, enable **supabase** (project `ypkfondrkhkydkgovwup`) and **context7**, then sign in when asked. Context7 supplies current library docs (Playwright, Vitest, Supabase, React) to the agent; it does not replace `npm test` or `npm run test:e2e`.
 
 Without those two variables the login page stays on a configuration notice and does not create a session. Accounts are created in Supabase by an administrator. This phase does not include self-service signup.
 

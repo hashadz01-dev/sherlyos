@@ -1,8 +1,10 @@
+import { Suspense } from "react"
 import { Outlet, useLocation } from "react-router"
 import { BrandMark } from "@/components/layout/BrandMark"
 import { MobileNav } from "@/components/layout/MobileNav"
 import { SidebarNav } from "@/components/layout/SidebarNav"
 import { TopBar } from "@/components/layout/TopBar"
+import { LoadingBlock } from "@/components/shared/LoadingState"
 
 export function AppShell() {
   const { pathname } = useLocation()
@@ -20,7 +22,9 @@ export function AppShell() {
           <TopBar pathname={pathname} />
         </div>
         <main className="flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10 print:px-0 print:pt-0 print:pb-0">
-          <Outlet />
+          <Suspense fallback={<LoadingBlock label="Loading page" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
       <div className="print:hidden">

@@ -1,3 +1,4 @@
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 function client() {
@@ -11,7 +12,7 @@ function client() {
 export async function callRpc<T>(name: string, args: Record<string, unknown>) {
   const result = await client().rpc(name, args)
   if (result.error) {
-    throw new Error(result.error.message)
+    throw new Error(toUserRpcMessage(result.error))
   }
   return result.data as T
 }
@@ -19,7 +20,7 @@ export async function callRpc<T>(name: string, args: Record<string, unknown>) {
 export async function loadRows<T>(table: string, columns: string, orderBy: string) {
   const result = await client().from(table).select(columns).order(orderBy)
   if (result.error) {
-    throw new Error(result.error.message)
+    throw new Error(toUserRpcMessage(result.error))
   }
   return (result.data ?? []) as T[]
 }

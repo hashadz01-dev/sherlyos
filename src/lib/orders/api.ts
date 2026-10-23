@@ -1,4 +1,5 @@
 import { callRpc, loadRows } from "@/lib/masters/api"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export type OrderStatus = "draft" | "submitted" | "held" | "verified" | "cancelled"
@@ -118,7 +119,7 @@ async function callOrderRpc<T>(name: string, args: Record<string, unknown>) {
       }
       throw new InsufficientStockError(shortages)
     }
-    throw new Error(result.error.message)
+    throw new Error(toUserRpcMessage(result.error))
   }
   return result.data as T
 }

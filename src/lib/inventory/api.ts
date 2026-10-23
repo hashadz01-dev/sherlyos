@@ -38,7 +38,7 @@ export type StockLotBalance = {
 export type StockTransaction = {
   transaction_id: string
   reference_number: string
-  transaction_type: "OPENING_STOCK" | "CRATE_TRANSFER" | "RECEIPT"
+  transaction_type: string
   product_id: string
   product_sku: string
   product_name: string

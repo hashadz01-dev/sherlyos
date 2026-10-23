@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
+import { assertLocalPlaywrightTarget } from "./tests/e2e/assert-local-target.ts"
+
+assertLocalPlaywrightTarget()
 
 export default defineConfig({
   testDir: "./tests/e2e",

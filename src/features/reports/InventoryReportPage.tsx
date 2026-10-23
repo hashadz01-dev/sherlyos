@@ -4,6 +4,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
 import { ReportLinks } from "@/features/reports/ReportLinks"
+import { BranchFilterNote } from "@/features/reports/BranchFilterNote"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { ReportTable } from "@/features/reports/ReportTable"
 import { useAuth } from "@/hooks/use-auth"
@@ -66,12 +67,30 @@ export function InventoryReportPage() {
           }}
         >
           <option value="">All authorized branches</option>
-          {(locations.branches.data ?? []).map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
+          <optgroup label="Active operational branches">
+            {(locations.branches.data ?? [])
+              .filter((branch) => branch.is_active)
+              .map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+          </optgroup>
+          {(locations.branches.data ?? []).some((branch) => !branch.is_active) ? (
+            <optgroup label="Inactive (historical reporting)">
+              {(locations.branches.data ?? [])
+                .filter((branch) => !branch.is_active)
+                .map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name} (inactive)
+                  </option>
+                ))}
+            </optgroup>
+          ) : null}
         </ReportSelect>
+      </div>
+      <div className="mb-4">
+        <BranchFilterNote operationalDropdown={false} />
       </div>
       {report.data ? (
         <ReportTable

@@ -1,4 +1,5 @@
 import { callRpc } from "@/lib/masters/api"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export type DeliveryNoteStatus =
@@ -120,7 +121,7 @@ function client() {
 async function callDnRpc<T>(name: string, args: Record<string, unknown> = {}) {
   const result = await client().rpc(name, args)
   if (result.error) {
-    throw new Error(result.error.message)
+    throw new Error(toUserRpcMessage(result.error))
   }
   return result.data as T
 }

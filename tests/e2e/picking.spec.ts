@@ -329,6 +329,29 @@ test("godown manager allocates, store keeper picks, handoff is ready", async ({ 
   await page.getByRole("link", { name: "Open" }).click()
   await page.getByRole("button", { name: "Ready for dispatch" }).click()
   await expect(page.getByText("Ready for dispatch").first()).toBeVisible({ timeout: 20_000 })
+
+  const ledger = lastLine(
+    runLocalSql(
+      `
+      select concat_ws('|',
+        (select count(*)::text from public.stock_transactions st
+          join public.products p on p.id = st.product_id
+          where st.transaction_type = 'DISPATCH' and p.sku = '${PREFIX}'),
+        (select count(*)::text from public.stock_reservations r
+          join public.products p on p.id = r.product_id
+          where r.status = 'active' and p.sku = '${PREFIX}'),
+        (select count(*)::text from public.stock_reservations r
+          join public.products p on p.id = r.product_id
+          where r.status = 'consumed' and p.sku = '${PREFIX}')
+      );
+      `,
+      "m2e2e handoff ledger",
+    ),
+  )
+  const [dispatchCount, activeCount, consumedCount] = ledger.split("|")
+  expect(dispatchCount).toBe("0")
+  expect(Number(activeCount)).toBeGreaterThan(0)
+  expect(consumedCount).toBe("0")
 })
 
 test("insufficient leftover stock blocks a second allocation", async ({ page }) => {

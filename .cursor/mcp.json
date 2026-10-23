@@ -2,6 +2,9 @@
   "mcpServers": {
     "supabase": {
       "url": "https://mcp.supabase.com/mcp?project_ref=ypkfondrkhkydkgovwup"
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp/oauth"
     }
   }
 }

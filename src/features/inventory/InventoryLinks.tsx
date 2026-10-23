@@ -5,6 +5,7 @@ import { useAccess } from "@/lib/access/use-access"
 const links = [
   { to: "/inventory", label: "Balances", permission: "stock.read", end: true },
   { to: "/inventory/history", label: "History", permission: "stock.read", end: false },
+  { to: "/reports/lots", label: "Lot stock", permission: "stock.read", end: false },
   { to: "/inventory/opening", label: "Opening stock", permission: "stock.opening.post", end: false },
   { to: "/inventory/transfers", label: "Transfers", permission: "stock.transfer.post", end: false },
 ]

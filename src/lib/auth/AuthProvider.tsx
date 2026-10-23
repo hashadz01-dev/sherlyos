@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { AuthContext, type SignInResult } from "@/lib/auth/auth-context"
+import { setQueryScopeUserId } from "@/lib/query/session-scope"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 const unconfiguredMessage =
@@ -11,6 +12,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const configured = supabase !== null
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(configured)
+  // Hash query cache by identity before children render so a new user cannot
+  // read the previous user's entries even before QueryCacheIsolation clears.
+  setQueryScopeUserId(session?.user.id ?? null)
 
   useEffect(() => {
     if (!supabase) {

@@ -1,0 +1,19 @@
+---
+description: Use Context7 MCP for official library documentation
+alwaysApply: true
+---
+
+# Context7 library docs
+
+Use Context7 MCP for library APIs, setup, and code examples from external packages. Do not rely on training data for library-specific syntax.
+
+Call `resolve-library-id`, then `query-docs`. Prefer these IDs when the library is already known:
+
+- Playwright: `/microsoft/playwright`
+- Vitest: `/vitest-dev/vitest`
+- Supabase: `/supabase/supabase`
+- React: `/reactjs/react.dev`
+
+SherlysOS already has Playwright (`@playwright/test`, `playwright.config.ts`, `npm run test:e2e`). Do not run `npm init playwright@latest`. Install Chromium with `npx playwright install chromium` when browsers are missing.
+
+Example: Playwright Vite `webServer` + Chromium → `query-docs` on `/microsoft/playwright` for Test config `webServer` and `devices["Desktop Chrome"]`.

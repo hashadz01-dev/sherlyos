@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import type { PickingRequestStatus } from "@/lib/picking/rules"
+import { toUserRpcMessage } from "@/lib/rpc/user-error"
 
 export class PickingRpcError extends Error {
   readonly code: string
@@ -159,7 +160,7 @@ async function pickingRpc<T>(name: string, args: Record<string, unknown> = {}) {
   }
   const result = await supabase.rpc(name, args)
   if (result.error) {
-    throw new PickingRpcError(result.error.message, result.error.code)
+    throw new PickingRpcError(toUserRpcMessage(result.error), result.error.code)
   }
   return result.data as T
 }

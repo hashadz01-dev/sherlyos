@@ -35,6 +35,12 @@ import { ReceiptDetailPage } from "@/features/receiving/ReceiptDetailPage"
 import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
 import { RefillPage } from "@/features/refill/RefillPage"
+import { DispatchReportPage } from "@/features/reports/DispatchReportPage"
+import { ExceptionsReportPage } from "@/features/reports/ExceptionsReportPage"
+import { InventoryReportPage } from "@/features/reports/InventoryReportPage"
+import { LotStockReportPage } from "@/features/reports/LotStockReportPage"
+import { MovementReportPage } from "@/features/reports/MovementReportPage"
+import { OrderPickingReportPage } from "@/features/reports/OrderPickingReportPage"
 import { ReportsPage } from "@/features/reports/ReportsPage"
 import { AdjustmentDetailPage } from "@/features/stock-adjustments/AdjustmentDetailPage"
 import { AdjustmentsPage } from "@/features/stock-adjustments/AdjustmentsPage"
@@ -47,6 +53,12 @@ import { StockVerificationPage } from "@/features/stock-verification/StockVerifi
 import { VerificationDetailPage } from "@/features/stock-verification/VerificationDetailPage"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
+import {
+  dispatchReportPermissions,
+  inventoryReportPermissions,
+  operationsReportPermissions,
+  orderReportPermissions,
+} from "@/lib/reports/access"
 import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
 import { DashboardPage } from "@/pages/dashboard/DashboardPage"
@@ -453,7 +465,62 @@ export const appRouteObjects: RouteObject[] = [
               </RequirePermission>
             ),
           },
-          { path: "reports", element: <ReportsPage /> },
+          {
+            path: "reports",
+            element: (
+              <RequireAnyPermission permissions={operationsReportPermissions}>
+                <ReportsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/inventory",
+            element: (
+              <RequireAnyPermission permissions={inventoryReportPermissions}>
+                <InventoryReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/lots",
+            element: (
+              <RequireAnyPermission permissions={inventoryReportPermissions}>
+                <LotStockReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/movements",
+            element: (
+              <RequireAnyPermission permissions={inventoryReportPermissions}>
+                <MovementReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/orders-picking",
+            element: (
+              <RequireAnyPermission permissions={orderReportPermissions}>
+                <OrderPickingReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/dispatch",
+            element: (
+              <RequireAnyPermission permissions={dispatchReportPermissions}>
+                <DispatchReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/exceptions",
+            element: (
+              <RequireAnyPermission permissions={operationsReportPermissions}>
+                <ExceptionsReportPage />
+              </RequireAnyPermission>
+            ),
+          },
           { path: "settings", element: <SettingsPage /> },
           {
             path: "employees",

@@ -23,6 +23,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react"
+import { operationsReportPermissions } from "@/lib/reports/access"
 import type { AppNavItem, NavGroup } from "@/types/navigation"
 
 export const navigationItems: AppNavItem[] = [
@@ -31,7 +32,7 @@ export const navigationItems: AppNavItem[] = [
     label: "Overview",
     title: "Operations Overview",
     description:
-      "A summary of orders, deliveries, stock alerts, and approvals.",
+      "Authoritative operational counts for inventory, orders, picking, dispatch, and exceptions.",
     group: "Operations",
     icon: LayoutDashboard,
     end: true,
@@ -275,9 +276,11 @@ export const navigationItems: AppNavItem[] = [
     to: "/reports",
     label: "Reports",
     title: "Reports",
-    description: "Operational reports will be generated here in a later phase.",
+    description:
+      "Read-only operational dashboards, inventory, movements, orders, dispatch, and exceptions.",
     group: "Workspace",
     icon: ChartColumn,
+    anyPermissions: operationsReportPermissions,
   },
   {
     to: "/settings",

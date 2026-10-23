@@ -104,29 +104,41 @@ begin
   end if;
 end $$;
 
--- Same-statement pair from false/false is judged on the final pair and still
--- fail-closed without seed (grain mismatch). Both flags must remain false.
+-- Same-statement pair from false/false is judged on the final pair.
+-- Zero-grain inventory is reconciled: there is no unclassified positive stock
+-- and no lot/aggregate mismatch, so dual-write+blocked is the greenfield path.
+-- Fail-closed cases are unclassified in-stock products and grain mismatch,
+-- covered after opening/seed below. Restore false/false afterwards.
 do $$
 begin
-  begin
-    update public.app_configuration
-    set value = 'true'::jsonb
-    where key in (
-      'stock.lots.dual_write_enabled',
-      'stock.lots.aggregate_only_blocked'
-    );
-    raise exception 'expected same-statement enable without seed to fail';
-  exception
-    when sqlstate '55000' then
-      null;
-  end;
+  update public.app_configuration
+  set value = 'true'::jsonb
+  where key in (
+    'stock.lots.dual_write_enabled',
+    'stock.lots.aggregate_only_blocked'
+  );
+
+  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
+       is distinct from 'true'::jsonb
+     or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
+       is distinct from 'true'::jsonb
+  then
+    raise exception 'empty inventory must allow dual-write+blocked greenfield enable';
+  end if;
+
+  update public.app_configuration
+  set value = 'false'::jsonb
+  where key in (
+    'stock.lots.dual_write_enabled',
+    'stock.lots.aggregate_only_blocked'
+  );
 
   if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
        is distinct from 'false'::jsonb
      or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
        is distinct from 'false'::jsonb
   then
-    raise exception 'failed same-statement enable must leave both flags false';
+    raise exception 'greenfield enable must restore false/false for the rest of the suite';
   end if;
 end $$;
 

@@ -2,7 +2,10 @@ import { defineConfig, devices } from "@playwright/test"
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  // Cutover flags and disposable lot fixtures are process-global. One worker
+  // keeps M1-S2 reconciliation and M2 picking from overlapping flag flips.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   use: {

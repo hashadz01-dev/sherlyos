@@ -59,6 +59,202 @@ function releaseQaHolds() {
   }
 }
 
+/**
+ * After db reset the HTTP fixture is gone. Seed the same m1s2qa identities
+ * the UI selectors expect so this file does not depend on a prior HTTP run.
+ */
+function ensureQaFixtures() {
+  runLocalSql(
+    `
+    do $$
+    declare
+      admin_id uuid;
+      admin2_id uuid;
+      godown_id uuid;
+      godown_b_id uuid;
+      keeper_id uuid;
+      branch_a uuid;
+      branch_b uuid;
+      zone_a uuid;
+      zone_b uuid;
+      crate_a1 uuid;
+      crate_a2 uuid;
+      crate_b uuid;
+      soap uuid;
+      oil uuid;
+      found uuid;
+    begin
+      insert into auth.users (
+        instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+        confirmation_token, recovery_token, email_change_token_new,
+        email_change_token_current, reauthentication_token, email_change
+      )
+      select
+        '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+        email, extensions.crypt('${password}', extensions.gen_salt('bf')), now(),
+        '{"provider":"email","providers":["email"]}'::jsonb, jsonb_build_object('full_name', email),
+        now(), now(),
+        replace(gen_random_uuid()::text, '-', '') || 'c',
+        replace(gen_random_uuid()::text, '-', '') || 'r',
+        replace(gen_random_uuid()::text, '-', '') || 'n',
+        replace(gen_random_uuid()::text, '-', '') || 'e',
+        replace(gen_random_uuid()::text, '-', '') || 'a',
+        ''
+      from (values
+        ('admin.m1s2qa@example.com'),
+        ('admin2.m1s2qa@example.com'),
+        ('godown.m1s2qa@example.com'),
+        ('godownb.m1s2qa@example.com'),
+        ('keeper.m1s2qa@example.com')
+      ) u(email)
+      where not exists (select 1 from auth.users e where e.email = u.email);
+
+      update auth.users
+      set
+        encrypted_password = extensions.crypt('${password}', extensions.gen_salt('bf')),
+        email_confirmed_at = coalesce(email_confirmed_at, now()),
+        confirmation_token = coalesce(nullif(confirmation_token, ''), id::text || '-c'),
+        recovery_token = coalesce(nullif(recovery_token, ''), id::text || '-r'),
+        email_change_token_new = coalesce(nullif(email_change_token_new, ''), id::text || '-n'),
+        email_change_token_current = coalesce(nullif(email_change_token_current, ''), id::text || '-e'),
+        reauthentication_token = coalesce(nullif(reauthentication_token, ''), id::text || '-a'),
+        email_change = coalesce(email_change, '')
+      where email in (
+        'admin.m1s2qa@example.com',
+        'admin2.m1s2qa@example.com',
+        'godown.m1s2qa@example.com',
+        'godownb.m1s2qa@example.com',
+        'keeper.m1s2qa@example.com'
+      );
+
+      select id into admin_id from auth.users where email = 'admin.m1s2qa@example.com';
+      select id into admin2_id from auth.users where email = 'admin2.m1s2qa@example.com';
+      select id into godown_id from auth.users where email = 'godown.m1s2qa@example.com';
+      select id into godown_b_id from auth.users where email = 'godownb.m1s2qa@example.com';
+      select id into keeper_id from auth.users where email = 'keeper.m1s2qa@example.com';
+
+      begin
+        perform app_private.bootstrap_initial_admin(admin_id, 'create-initial-administrator');
+      exception
+        when sqlstate '42501' then
+          insert into public.profiles (id, full_name, is_active)
+          values (admin_id, 'QA Admin', true)
+          on conflict (id) do update set is_active = true;
+          insert into public.user_roles (user_id, role_id, assigned_by)
+          select admin_id, roles.id, admin_id from public.roles where code = 'admin'
+          on conflict do nothing;
+      end;
+
+      insert into public.profiles (id, full_name, is_active)
+      values
+        (admin2_id, 'QA Admin 2', true),
+        (godown_id, 'QA Godown', true),
+        (godown_b_id, 'QA Godown B', true),
+        (keeper_id, 'QA Keeper', true)
+      on conflict (id) do update set is_active = true;
+
+      insert into public.user_roles (user_id, role_id, assigned_by)
+      select u.id, r.id, admin_id
+      from (values
+        (admin2_id, 'admin'),
+        (godown_id, 'godown_manager'),
+        (godown_b_id, 'godown_manager'),
+        (keeper_id, 'store_keeper')
+      ) u(id, code)
+      join public.roles r on r.code = u.code
+      on conflict do nothing;
+
+      perform set_config('request.jwt.claim.sub', admin_id::text, true);
+      perform set_config(
+        'request.jwt.claims',
+        jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text,
+        true
+      );
+      execute 'set local role authenticated';
+
+      if not exists (select 1 from public.branches where code = 'm1s2qa_a') then
+        branch_a := public.create_branch('m1s2qa_a', 'M1 S2 QA A');
+      else
+        select id into branch_a from public.branches where code = 'm1s2qa_a';
+      end if;
+      if not exists (select 1 from public.branches where code = 'm1s2qa_b') then
+        branch_b := public.create_branch('m1s2qa_b', 'M1 S2 QA B');
+      else
+        select id into branch_b from public.branches where code = 'm1s2qa_b';
+      end if;
+
+      perform public.assign_user_branch(godown_id, branch_a);
+      perform public.assign_user_branch(godown_b_id, branch_b);
+      perform public.assign_user_branch(keeper_id, branch_a);
+
+      if not exists (select 1 from public.zones where code = 'm1s2qa_za') then
+        zone_a := public.create_zone(branch_a, 'm1s2qa_za', 'QA Zone A', null);
+      else
+        select id into zone_a from public.zones where code = 'm1s2qa_za';
+      end if;
+      if not exists (select 1 from public.zones where code = 'm1s2qa_zb') then
+        zone_b := public.create_zone(branch_b, 'm1s2qa_zb', 'QA Zone B', null);
+      else
+        select id into zone_b from public.zones where code = 'm1s2qa_zb';
+      end if;
+
+      if not exists (select 1 from public.crates where code = 'm1s2qa_ca1') then
+        crate_a1 := public.create_crate(zone_a, 'm1s2qa_ca1', 'QA Crate A1', null);
+      else
+        select id into crate_a1 from public.crates where code = 'm1s2qa_ca1';
+      end if;
+      if not exists (select 1 from public.crates where code = 'm1s2qa_ca2') then
+        crate_a2 := public.create_crate(zone_a, 'm1s2qa_ca2', 'QA Crate A2', null);
+      else
+        select id into crate_a2 from public.crates where code = 'm1s2qa_ca2';
+      end if;
+      if not exists (select 1 from public.crates where code = 'm1s2qa_cb') then
+        crate_b := public.create_crate(zone_b, 'm1s2qa_cb', 'QA Crate B', null);
+      else
+        select id into crate_b from public.crates where code = 'm1s2qa_cb';
+      end if;
+
+      if not exists (select 1 from public.products where sku = 'm1s2qa-soap') then
+        soap := public.create_product('m1s2qa-soap', 'QA Soap', null, null);
+      else
+        select id into soap from public.products where sku = 'm1s2qa-soap';
+      end if;
+      if not exists (select 1 from public.products where sku = 'm1s2qa-oil') then
+        oil := public.create_product('m1s2qa-oil', 'QA Oil', null, null);
+      else
+        select id into oil from public.products where sku = 'm1s2qa-oil';
+      end if;
+      if not exists (select 1 from public.products where sku = 'm1s2qa-found') then
+        found := public.create_product('m1s2qa-found', 'QA Found', null, null);
+      else
+        select id into found from public.products where sku = 'm1s2qa-found';
+      end if;
+
+      perform public.set_product_expiry_policy(soap, 'expiry_controlled');
+      perform public.set_product_expiry_policy(oil, 'non_expiring');
+      perform public.set_product_expiry_policy(found, 'expiry_controlled');
+
+      if not exists (
+        select 1 from public.stock_balances
+        where crate_id = crate_a1 and product_id = soap and quantity > 0
+      ) then
+        perform public.post_opening_stock(soap, crate_a1, 6, 'm1s2qa-open-soap', null);
+        perform public.post_opening_stock(oil, crate_a1, 4, 'm1s2qa-open-oil', null);
+        perform public.post_opening_stock(soap, crate_a2, 3, 'm1s2qa-open-soap-2', null);
+        perform public.post_opening_stock(soap, crate_b, 2, 'm1s2qa-open-soap-b', null);
+      end if;
+    end;
+    $$;
+    `,
+    "m1s2qa e2e fixtures",
+  )
+}
+
+test.beforeAll(() => {
+  ensureQaFixtures()
+})
+
 test.beforeEach(() => {
   releaseQaHolds()
 })
@@ -166,9 +362,15 @@ async function signIn(page: Page, email: string) {
   })
   await page.getByRole("button", { name: "Sign in" }).click()
   assertLocalSupabaseUrl((await pending).url())
-  await expect(page.getByRole("heading", { name: "Operations Overview" })).toBeVisible({
-    timeout: 20_000,
-  })
+  const loginAlert = page.getByRole("alert")
+  await Promise.race([
+    expect(page.getByRole("heading", { name: "Operations Overview" })).toBeVisible({
+      timeout: 20_000,
+    }),
+    loginAlert.waitFor({ state: "visible", timeout: 20_000 }).then(async () => {
+      throw new Error(`sign-in failed for ${email}: ${await loginAlert.innerText()}`)
+    }),
+  ])
 }
 
 async function signOut(page: Page) {

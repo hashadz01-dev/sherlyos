@@ -23,6 +23,10 @@ import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
 import { EditOrderPage, NewOrderPage } from "@/features/orders/OrderEditorPage"
 import { OrderDetailPage } from "@/features/orders/OrderDetailPage"
 import { OrdersPage } from "@/features/orders/OrdersPage"
+import { PickingAllocatePage } from "@/features/picking/PickingAllocatePage"
+import { PickingDetailPage } from "@/features/picking/PickingDetailPage"
+import { PickingExceptionsPage } from "@/features/picking/PickingExceptionsPage"
+import { PickingPage } from "@/features/picking/PickingPage"
 import { ReceiptDetailPage } from "@/features/receiving/ReceiptDetailPage"
 import { ReceiptEditorPage } from "@/features/receiving/ReceiptEditorPage"
 import { ReceivingPage } from "@/features/receiving/ReceivingPage"
@@ -93,6 +97,52 @@ export const appRouteObjects: RouteObject[] = [
             ),
           },
 
+          {
+            path: "picking",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "picking.allocate",
+                  "picking.manage",
+                  "picking.execute",
+                  "operations.monitor",
+                ]}
+              >
+                <PickingPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "picking/exceptions",
+            element: (
+              <RequireAnyPermission permissions={["picking.manage", "picking.allocate", "operations.monitor"]}>
+                <PickingExceptionsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "picking/allocate/:orderId",
+            element: (
+              <RequirePermission permission="picking.allocate">
+                <PickingAllocatePage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "picking/:requestId",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "picking.allocate",
+                  "picking.manage",
+                  "picking.execute",
+                  "operations.monitor",
+                ]}
+              >
+                <PickingDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
           {
             path: "deliveries",
             element: (

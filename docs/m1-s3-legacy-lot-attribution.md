@@ -1,8 +1,30 @@
 # M1-S3 — Legacy lot attribution (Approach B)
 
-Local implementation contract. Does **not** deploy, seed, attribute, or flip flags on development cloud `ypkfondrkhkydkgovwup`.
-
 Source of truth is the shipped M1-S1/M1-S2 schema plus this additive migration `20261022220000_legacy_lot_attribution.sql`. Seed RPC behaviour is unchanged.
+
+## Development schema deployment
+
+**Closed 2026-10-22 18:27 +05:30 (12:57 UTC).** Schema only. Operational cutover was not authorized and was not executed.
+
+| Field | Value |
+|---|---|
+| Project | `ypkfondrkhkydkgovwup` (`sherlysos`, `ap-northeast-2`, `ACTIVE_HEALTHY`) |
+| Git | `c89734aa57ba31ffc6833a42310eaccdcfadd066` on `main` |
+| Command | `npx --yes supabase@2.121.0 db push --linked --skip-vault` |
+| Exit | 0 |
+| Applied | only `20261022220000_legacy_lot_attribution.sql` |
+| Cloud tip | `20261022220000` (26 applied, 0 pending) |
+| Backup | `C:\Users\Hash\Desktop\Hashdev\sherlyos-backups\dev-ypkfondrkhkydkgovwup\20261022T124850Z` |
+| Inventory before/after | 11 balance rows / 73 cartons; 23 ledger rows / 73 net; 0 mismatches; 0 negatives |
+| Lots / seeds / attributions / sessions | 0 / 0 / 0 / 0 unchanged |
+| Product classification | 0 expiry-controlled, 0 non-expiring, 10 unclassified |
+| Flags | `dual_write_enabled=false`, `aggregate_only_blocked=false` |
+
+Schema verification: `apply_legacy_lot_attribution(uuid, integer, text)` and `get_lot_attribution_readiness(uuid)` exist, SECURITY DEFINER, `search_path=''`, EXECUTE granted to `authenticated` (and owner `postgres`) only. Attribution tables exist with FORCE RLS and SELECT-only authenticated policies. Session status includes `applied`. Permit mode includes `attribution`. Cutover flag triggers remain. Existing M1-S2 and posting RPCs remain.
+
+Remaining operational blockers: classify in-stock products, create and approve real physical sessions, seed, then attribute, then dual-write — each under separate owner authorization. Do not fabricate lot identities.
+
+A logical dump is not proof of complete Auth/Storage restore.
 
 ## Architecture findings used
 
@@ -71,7 +93,7 @@ For each expected grain, under exclusive lock:
 
 ## Out of scope
 
-- Development-cloud seed, attribution, or flag activation
+- Development-cloud seed, attribution, or flag activation (schema is deployed; operational cutover is not)
 - FEFO/FIFO picking (M2)
 - Changing `seed_legacy_stock_lots`
 - Rewriting deployed migrations

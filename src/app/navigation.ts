@@ -8,6 +8,7 @@ import {
   Library,
   MapPinned,
   Package,
+  PackageCheck,
   PackageOpen,
   PackagePlus,
   RefreshCw,
@@ -45,6 +46,21 @@ export const navigationItems: AppNavItem[] = [
     anyPermissions: ["orders.capture", "orders.verify", "operations.monitor"],
   },
 
+  {
+    to: "/picking",
+    label: "Picking",
+    title: "Picking",
+    description:
+      "Allocate verified orders with FEFO or FIFO, reserve crate and lot stock, and confirm warehouse picks.",
+    group: "Operations",
+    icon: PackageCheck,
+    anyPermissions: [
+      "picking.allocate",
+      "picking.manage",
+      "picking.execute",
+      "operations.monitor",
+    ],
+  },
   {
     to: "/deliveries",
     label: "Deliveries",

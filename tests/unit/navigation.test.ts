@@ -4,6 +4,7 @@ import { findNavigationItem, navigationItems } from "@/app/navigation"
 const requiredPaths = [
   "/",
   "/orders",
+  "/picking",
   "/deliveries",
   "/damage",
   "/receiving",

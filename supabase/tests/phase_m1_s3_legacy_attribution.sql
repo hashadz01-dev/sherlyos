@@ -195,7 +195,14 @@ begin
   );
   version := (payload ->> 'version')::integer;
   payload := public.save_lot_reconciliation_lots(
-    session, version, public.m1s3_line(session, 'm1s3-soap'),
+    session, version,
+    (
+      select stock_lot_reconciliation_lines.id
+      from public.stock_lot_reconciliation_lines
+      where session_id = session
+        and crate_id = (select id from s3_refs where name = 'crate_a1')
+        and product_id = (select id from s3_refs where name = 'soap')
+    ),
     '[
       {"manufacturer_lot_code":"SOAP-A","expiry_date":"2028-01-01","expiry_unknown":false,"identity_unknown":false,"quantity":4,"condition":"available"},
       {"identity_unknown":true,"expiry_unknown":true,"quantity":2,"condition":"available"}

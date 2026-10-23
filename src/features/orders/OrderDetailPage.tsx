@@ -84,6 +84,7 @@ export function OrderDetailPage() {
     can("orders.verify") && (order?.status === "submitted" || order?.status === "verified")
   const canCreateDeliveryNote =
     can("delivery_notes.issue") && order?.status === "verified"
+  const canAllocatePicking = can("picking.allocate") && order?.status === "verified"
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["orders"] })
@@ -283,6 +284,12 @@ export function OrderDetailPage() {
           ) : null}
 
           <div className="grid gap-4">
+            {canAllocatePicking ? (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link to={`/picking/allocate/${order.id}`}>Allocate for picking</Link>
+              </Button>
+            ) : null}
+
             {canCreateDeliveryNote ? (
               <Button asChild className="w-full sm:w-auto">
                 <Link to={`/deliveries/new?orderId=${order.id}`}>Create delivery note</Link>

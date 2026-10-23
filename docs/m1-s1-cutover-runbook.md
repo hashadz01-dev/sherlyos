@@ -11,6 +11,12 @@ This file documents the operational sequence. It is not a script. Database trigg
 3. A fresh logical backup exists and inventory totals are recorded (balance rows, carton sum, ledger rows, ledger net).
 4. Disposable SQL `supabase/tests/phase_m1_s1_cutover_flag_safety.sql` has passed locally (rolled back).
 
+### Development schema status (ypkfondrkhkydkgovwup)
+
+M1-S3 schema was applied **2026-10-22 18:27 +05:30** from `c89734aa57ba31ffc6833a42310eaccdcfadd066` via `npx --yes supabase@2.121.0 db push --linked --skip-vault` (exit 0). Cloud tip is `20261022220000`. Pre-apply backup: `C:\Users\Hash\Desktop\Hashdev\sherlyos-backups\dev-ypkfondrkhkydkgovwup\20261022T124850Z`. Inventory remained 11/73 balances and 23/73 ledger. Flags remain `false` / `false`.
+
+**Operational cutover is still pending.** Development inventory is not eligible for seed, attribution, or dual-write: all 10 products are unclassified, there are 0 reconciliation sessions, and there are 0 lots. Schema deployment authorization is not seed/attribution/flag authorization.
+
 ## Required product classifications
 
 Dual-write activation is **rejected** unless every product with **positive** `stock_balances.quantity` already has:
@@ -25,6 +31,8 @@ Dual-write activation is **rejected** unless every product with **positive** `st
 - change policy after `stock_lots` exist for that product (database rejects)
 
 Products with zero stock may remain unclassified; lot-aware posting of those SKUs still requires classification at post time.
+
+Zero-grain inventory (no positive `stock_balances` rows) is already reconciled: there is no unclassified in-stock product and no lot/aggregate mismatch, so the validator allows greenfield `dual_write_enabled` + `aggregate_only_blocked`. Development is not on that path. Its 11 positive grains are unclassified, so dual-write remains rejected until classification, seed, and attribution complete. The empty-database SQL assertion was corrected to match this; validators were not weakened.
 
 Verify before freeze ends:
 
@@ -211,10 +219,11 @@ Resume normal posting only after smoke checks and owner sign-off.
 - Attributed lots carry conservation baselines (`stock_lot_attribution_baselines`) so later lot-id ledger can pick without rewriting historical aggregate ledger
 - Remaining `legacy_unattributed` qty is explicit unknown stock; FEFO/FIFO must not treat it as dated available
 - `received_on` is still null on legacy lots; FIFO chronology is a later posting concern
+- M2 picking is implemented locally (`docs/m2-fefo-fifo-picking.md`). It fails closed until dual-write is on and does not debit the ledger. Development-cloud picking is not authorized in this file.
 
 ## Out of scope
 
 - FEFO / order availability cutover
 - Cross-godown lot moves
 - Automatic cloud deploy
-- Development-cloud seed, attribution, or flag activation from this milestone
+- Development-cloud seed, attribution, or flag activation (M1-S3 schema is on development; operational cutover still needs separate authorization)

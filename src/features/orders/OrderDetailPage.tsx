@@ -85,6 +85,7 @@ export function OrderDetailPage() {
   const canCreateDeliveryNote =
     can("delivery_notes.issue") && order?.status === "verified"
   const canAllocatePicking = can("picking.allocate") && order?.status === "verified"
+  const canOpenDispatch = can("dispatch.confirm") && order?.status === "verified"
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["orders"] })
@@ -287,6 +288,12 @@ export function OrderDetailPage() {
             {canAllocatePicking ? (
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to={`/picking/allocate/${order.id}`}>Allocate for picking</Link>
+              </Button>
+            ) : null}
+
+            {canOpenDispatch ? (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link to={`/dispatch/prepare/${order.id}`}>Open dispatch</Link>
               </Button>
             ) : null}
 

@@ -166,6 +166,11 @@ export function PickingDetailPage() {
                 {handoff.isPending ? "Handing off" : "Ready for dispatch"}
               </Button>
             ) : null}
+            {can("dispatch.confirm") && request.status === "ready_for_dispatch" ? (
+              <Button asChild>
+                <Link to={`/dispatch/prepare/${request.order_id}`}>Open dispatch</Link>
+              </Button>
+            ) : null}
             {can("picking.manage") &&
             ["allocated", "picking", "picked", "blocked"].includes(request.status) ? (
               <Button type="button" variant="outline" onClick={() => setConfirmCancel(true)}>

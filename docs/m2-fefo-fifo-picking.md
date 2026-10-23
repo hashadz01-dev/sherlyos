@@ -78,7 +78,7 @@ Store Keepers execute assigned tasks only (`picking.execute` plus `assigned_to =
 | Reservation | Holds `reserved_cases` on the lot×crate grain. No ledger row. |
 | Pick confirmation | Updates `picked_cases` only. Hold remains `reserved_cases`. |
 | Picking complete / handoff | Status `picked` then `ready_for_dispatch`. Still no ledger debit. |
-| M3 dispatch (not implemented) | Must consume held reservations and write `stock_ledger`. |
+| M3 dispatch | Consumes held reservations and writes `stock_ledger` once. See `docs/m3-dispatch-delivery.md`. |
 | Delivery notes (Phase 4.2) | Paperwork only. See below. |
 
 Do not debit the same cartons at pick and again at dispatch.

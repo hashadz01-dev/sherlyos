@@ -11,6 +11,7 @@ import {
   PackageCheck,
   PackageOpen,
   PackagePlus,
+  Send,
   RefreshCw,
   ScrollText,
   Settings,
@@ -62,13 +63,42 @@ export const navigationItems: AppNavItem[] = [
     ],
   },
   {
+    to: "/dispatch",
+    label: "Dispatch",
+    title: "Dispatch",
+    description:
+      "Confirm ready-for-dispatch picks and consume reserved carton cases exactly once.",
+    group: "Operations",
+    icon: Send,
+    anyPermissions: [
+      "dispatch.view",
+      "dispatch.confirm",
+      "operations.monitor",
+    ],
+  },
+  {
+    to: "/delivery-runs",
+    label: "Delivery runs",
+    title: "Delivery runs",
+    description:
+      "Assigned physical deliveries, proof of delivery, and failed-delivery exceptions.",
+    group: "Operations",
+    icon: Truck,
+    anyPermissions: [
+      "deliveries.execute",
+      "deliveries.assign",
+      "dispatch.view",
+      "operations.monitor",
+    ],
+  },
+  {
     to: "/deliveries",
-    label: "Deliveries",
+    label: "Delivery notes",
     title: "Delivery notes",
     description:
       "Create draft delivery notes from verified orders, generate printable documents, and void when required.",
     group: "Operations",
-    icon: Truck,
+    icon: ScrollText,
     anyPermissions: [
       "delivery_notes.issue",
       "delivery_notes.acknowledge",

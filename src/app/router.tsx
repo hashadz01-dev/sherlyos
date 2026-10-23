@@ -23,6 +23,10 @@ import { SuppliersPage } from "@/features/masters/suppliers/SuppliersPage"
 import { EditOrderPage, NewOrderPage } from "@/features/orders/OrderEditorPage"
 import { OrderDetailPage } from "@/features/orders/OrderDetailPage"
 import { OrdersPage } from "@/features/orders/OrdersPage"
+import { DeliveryRunsPage } from "@/features/dispatch/DeliveryRunsPage"
+import { DispatchDetailPage } from "@/features/dispatch/DispatchDetailPage"
+import { DispatchPage } from "@/features/dispatch/DispatchPage"
+import { DispatchPreparePage } from "@/features/dispatch/DispatchPreparePage"
 import { PickingAllocatePage } from "@/features/picking/PickingAllocatePage"
 import { PickingDetailPage } from "@/features/picking/PickingDetailPage"
 import { PickingExceptionsPage } from "@/features/picking/PickingExceptionsPage"
@@ -140,6 +144,55 @@ export const appRouteObjects: RouteObject[] = [
                 ]}
               >
                 <PickingDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "dispatch",
+            element: (
+              <RequireAnyPermission
+                permissions={["dispatch.view", "dispatch.confirm", "operations.monitor"]}
+              >
+                <DispatchPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "dispatch/prepare/:orderId",
+            element: (
+              <RequireAnyPermission permissions={["dispatch.view", "dispatch.confirm", "operations.monitor"]}>
+                <DispatchPreparePage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "dispatch/:dispatchId",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "dispatch.view",
+                  "dispatch.confirm",
+                  "deliveries.execute",
+                  "deliveries.assign",
+                  "operations.monitor",
+                ]}
+              >
+                <DispatchDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "delivery-runs",
+            element: (
+              <RequireAnyPermission
+                permissions={[
+                  "deliveries.execute",
+                  "deliveries.assign",
+                  "dispatch.view",
+                  "operations.monitor",
+                ]}
+              >
+                <DeliveryRunsPage />
               </RequireAnyPermission>
             ),
           },

@@ -5,6 +5,8 @@ const requiredPaths = [
   "/",
   "/orders",
   "/picking",
+  "/dispatch",
+  "/delivery-runs",
   "/deliveries",
   "/damage",
   "/receiving",

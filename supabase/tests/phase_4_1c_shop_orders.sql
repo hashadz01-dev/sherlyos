@@ -737,14 +737,23 @@ $$;
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- 27/28. No reservation / ledger unchanged from transitions (as table owner, not RLS-filtered)
+-- 27/28. Phase 4.1 order RPCs must not create holds or mutate stock.
+-- M2 added stock_reservations as a picking sidecar; the table existing is not a 4.1 regression.
 do $$
 declare
   ledger_now bigint;
   qty_now integer;
 begin
-  if to_regclass('public.stock_reservations') is not null then
-    raise exception 'reservation table must not exist';
+  if exists (
+    select 1
+    from public.stock_reservations
+    where stock_reservations.order_id in (select orders.id from public.orders)
+      and stock_reservations.product_id in (
+        current_setting('sherlyos.product')::uuid,
+        current_setting('sherlyos.product_two')::uuid
+      )
+  ) then
+    raise exception 'order RPCs must not create stock reservations';
   end if;
 
   select count(*) into ledger_now from public.stock_ledger;

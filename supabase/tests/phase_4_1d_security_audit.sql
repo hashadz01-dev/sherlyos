@@ -86,8 +86,16 @@ begin
     raise exception 'order RPCs must be security definer, authenticated-only';
   end if;
 
-  if to_regclass('public.stock_reservations') is not null then
-    raise exception 'stock reservation table must not exist';
+  -- M2 added stock_reservations. 4.1 still requires clients cannot write holds directly.
+  if exists (
+    select 1
+    from information_schema.role_table_grants
+    where table_schema = 'public'
+      and table_name = 'stock_reservations'
+      and grantee in ('anon', 'authenticated', 'public')
+      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+  ) then
+    raise exception 'clients must not write stock reservations directly';
   end if;
 
   if exists (

@@ -153,10 +153,14 @@ begin
 end $$;
 
 reset role;
+-- Replica: this suite is not proving the unmatched-grain enable trigger.
+-- Leftover disposable e2e grains must not block operational picking proofs.
+set session_replication_role = replica;
 update public.app_configuration set value = 'true'::jsonb
 where key = 'stock.lots.aggregate_only_blocked';
 update public.app_configuration set value = 'true'::jsonb
 where key = 'stock.lots.dual_write_enabled';
+set session_replication_role = origin;
 
 select pg_temp.as_user('admin');
 set local role authenticated;

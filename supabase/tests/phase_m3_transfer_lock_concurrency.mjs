@@ -128,8 +128,10 @@ async function setup() {
       perform public.set_product_expiry_policy(product_id, 'expiry_controlled');
       shop_id := public.create_shop('${PREFIX} shop', null, null);
 
+      set session_replication_role = replica;
       update public.app_configuration set value = 'true'::jsonb
       where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+      set session_replication_role = origin;
 
       -- 6 on source: 4 reserved for dispatch, 2 unreserved for a concurrent transfer.
       perform public.post_opening_stock(

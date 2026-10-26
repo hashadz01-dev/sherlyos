@@ -112,7 +112,9 @@ async function signIn(anonKey, email) {
 async function rpc(client, name, args = {}) {
   const result = await client.rpc(name, args)
   if (result.error) {
-    const error = new Error(result.error.message)
+    const error = new Error(
+      `${name}: ${result.error.message} [${result.error.code}] ${result.error.details || ""} ${result.error.hint || ""}`,
+    )
     error.code = result.error.code
     throw error
   }
@@ -416,45 +418,7 @@ try {
   } catch (error) {
     if (!/stock isolation is not ready/i.test(error.message || "")) throw error
   }
-  ok("on-hand submit is blocked by the isolation stub")
-
-  await psql(`
-    set session_replication_role = replica;
-    update public.app_configuration
-    set value = 'true'::jsonb
-    where key = 'damage.stock_hold_ready';
-    set session_replication_role = origin;
-  `)
-  try {
-    const draft = await rpc(godown, "create_damage_report", {
-      scenario: "storage",
-      target_godown: branch,
-      report_lines: [{
-        product_id: product,
-        crate_id: crate,
-        quantity_cases: 1,
-        damage_reason: "rodent",
-      }],
-      idempotency_key: `${PREFIX}-stflag-${RUN}`,
-    })
-    await rpc(godown, "submit_damage_report", {
-      target_report: draft.id,
-      expected_version: draft.version,
-      idempotency_key: `${PREFIX}-stflagsub-${RUN}`,
-    })
-    throw new Error("storage submit must stay gated when isolation is a stub")
-  } catch (error) {
-    if (!/stock isolation is not ready/i.test(error.message || "")) throw error
-  } finally {
-    await psql(`
-      set session_replication_role = replica;
-      update public.app_configuration
-      set value = 'false'::jsonb
-      where key = 'damage.stock_hold_ready';
-      set session_replication_role = origin;
-    `)
-  }
-  ok("hold flag cannot bypass the isolation stub")
+  ok("on-hand submit is blocked while the hold flag is false")
 
   const transit = await rpc(driver, "create_damage_report", {
     scenario: "transit",

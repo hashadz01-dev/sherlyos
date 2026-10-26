@@ -1,10 +1,9 @@
--- Removes the M1 race fixture and restores dual-write off.
-
+-- Removes the M1 race fixture and restores cutover flags off.
+-- Replica first: attributed race ledger still exists until the deletes below.
+set session_replication_role = replica;
 update public.app_configuration
 set value = 'false'::jsonb
-where key = 'stock.lots.dual_write_enabled';
-
-set session_replication_role = replica;
+where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
 
 do $$
 declare
@@ -62,9 +61,11 @@ set session_replication_role = origin;
 
 do $$
 begin
-  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-    is distinct from 'false'::jsonb
-  then
-    raise exception 'cleanup left dual_write_enabled true';
+  if exists (
+    select 1 from public.app_configuration
+    where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked')
+      and value is distinct from 'false'::jsonb
+  ) then
+    raise exception 'cleanup left a cutover flag true';
   end if;
 end $$;

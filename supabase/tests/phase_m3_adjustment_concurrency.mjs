@@ -152,8 +152,10 @@ async function setup() {
       perform public.set_product_expiry_policy(product_b, 'non_expiring');
       shop_id := public.create_shop('${PREFIX} shop', null, null);
 
+      set session_replication_role = replica;
       update public.app_configuration set value = 'true'::jsonb
       where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+      set session_replication_role = origin;
 
       perform public.post_opening_stock(
         product_id, crate_id, 6, '${PREFIX}-open-a', null, 'M3ADJ-A', null, '2028-01-01'

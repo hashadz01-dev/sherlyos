@@ -137,6 +137,9 @@ test.beforeAll(() => {
               and l.product_id = sb.product_id
           ), 0)
           and p.sku not like 'm1s2qa-%'
+          and p.sku not like 'm1s2c%'
+          and p.sku not like 'm1s3c%'
+          and p.sku not like 'm1s3qa%'
           and p.sku not like 'm2e2e_%'
           and p.sku not like 'm2pk%'
           and p.sku not like 'm3e2e_%'
@@ -163,8 +166,11 @@ test.beforeAll(() => {
       end if;
 
       execute 'reset role';
+      -- Replica: dispatch e2e is not proving the unmatched-grain enable trigger.
+      set session_replication_role = replica;
       update public.app_configuration set value = 'true'::jsonb
       where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+      set session_replication_role = origin;
       execute 'set local role authenticated';
 
       branch_id := public.create_branch('${PREFIX}', 'M3E2E ${RUN}');

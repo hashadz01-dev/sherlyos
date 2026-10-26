@@ -44,3 +44,9 @@ $$;
 
 select public.m1s2c_cleanup();
 drop function if exists public.m1s2c_cleanup();
+
+-- Disposable concurrency openings must not leak unmatched grains.
+set session_replication_role = replica;
+delete from public.stock_balances
+where product_id in (select id from public.products where sku like 'm1s2c%');
+set session_replication_role = origin;

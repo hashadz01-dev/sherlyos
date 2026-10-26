@@ -956,27 +956,15 @@ exception
   when insufficient_privilege then null;
 end $$;
 
--- Trusted writers still cannot enable the flag before isolation is installed.
+-- Isolation is installed, so the flag may be enabled. M5.2 submit still
+-- fail-closes while the flag is false; restore immediately.
 reset role;
-do $$
-begin
-  update public.app_configuration
-  set value = 'true'::jsonb
-  where key = 'damage.stock_hold_ready';
-  raise exception 'hold flag must remain fail-closed';
-exception
-  when sqlstate '23514' then
-    if sqlerrm not like '%stock isolation is not ready%' then
-      raise;
-    end if;
-end $$;
-
--- Replica skips the config trigger; submit must still call the isolation stub.
-set session_replication_role = replica;
 update public.app_configuration
 set value = 'true'::jsonb
 where key = 'damage.stock_hold_ready';
-set session_replication_role = origin;
+update public.app_configuration
+set value = 'false'::jsonb
+where key = 'damage.stock_hold_ready';
 
 set local role authenticated;
 select pg_temp.as_user('godown');
@@ -985,7 +973,7 @@ begin
   perform public.submit_damage_report(
     current_setting('sherlyos.dmg03')::uuid, 1, 'm52-sub-03-flag'
   );
-  raise exception 'storage submit must stay gated when isolation is a stub';
+  raise exception 'storage submit must stay gated while the hold flag is false';
 exception
   when sqlstate '23514' then
     if sqlerrm not like '%stock isolation is not ready%' then
@@ -994,11 +982,6 @@ exception
 end $$;
 
 reset role;
-set session_replication_role = replica;
-update public.app_configuration
-set value = 'false'::jsonb
-where key = 'damage.stock_hold_ready';
-set session_replication_role = origin;
 
 do $$
 begin

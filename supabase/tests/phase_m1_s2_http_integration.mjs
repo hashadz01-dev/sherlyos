@@ -414,41 +414,59 @@ async function main() {
   await rpc(admin, "set_product_expiry_policy", { target_product: oil, new_policy: "non_expiring" })
   await rpc(admin, "set_product_expiry_policy", { target_product: found, new_policy: "expiry_controlled" })
 
-  const soapQty = Number(
-    (await psql(
-      `select coalesce(quantity, 0) from public.stock_balances where crate_id = '${crateA1}' and product_id = '${soap}'`,
-    )).match(/\d+/)?.[0] ?? 0,
-  )
-  if (soapQty === 0) {
-    await rpc(admin, "post_opening_stock", {
-      target_product: soap,
-      target_crate: crateA1,
-      carton_quantity: 6,
-      idempotency_key: `${PREFIX}-open-soap`,
-      posting_notes: null,
-    })
-    await rpc(admin, "post_opening_stock", {
-      target_product: oil,
-      target_crate: crateA1,
-      carton_quantity: 4,
-      idempotency_key: `${PREFIX}-open-oil`,
-      posting_notes: null,
-    })
-    await rpc(admin, "post_opening_stock", {
-      target_product: soap,
-      target_crate: crateA2,
-      carton_quantity: 3,
-      idempotency_key: `${PREFIX}-open-soap-2`,
-      posting_notes: null,
-    })
-    await rpc(admin, "post_opening_stock", {
-      target_product: soap,
-      target_crate: crateB,
-      carton_quantity: 2,
-      idempotency_key: `${PREFIX}-open-soap-b`,
-      posting_notes: null,
-    })
-  }
+  // Idempotent opening replay does not restore balances if a prior dual-write
+  // hygiene wipe kept the header and deleted the grain. Restock like e2e.
+  await psql(`
+    do $$
+    declare
+      need record;
+      current_qty integer;
+      opening public.stock_transactions%rowtype;
+      admin_id uuid := '${users.admin}'::uuid;
+    begin
+      perform set_config('request.jwt.claim.sub', admin_id::text, true);
+      perform set_config(
+        'request.jwt.claims',
+        jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text,
+        true
+      );
+      for need in
+        select *
+        from (
+          values
+            ('${soap}'::uuid, '${crateA1}'::uuid, 6, '${PREFIX}-open-soap'),
+            ('${oil}'::uuid, '${crateA1}'::uuid, 4, '${PREFIX}-open-oil'),
+            ('${soap}'::uuid, '${crateA2}'::uuid, 3, '${PREFIX}-open-soap-2'),
+            ('${soap}'::uuid, '${crateB}'::uuid, 2, '${PREFIX}-open-soap-b')
+        ) as lines(product_id, crate_id, qty, idem)
+      loop
+        select coalesce(quantity, 0) into current_qty
+        from public.stock_balances
+        where crate_id = need.crate_id and product_id = need.product_id;
+        current_qty := coalesce(current_qty, 0);
+        if current_qty >= need.qty then
+          continue;
+        end if;
+        select * into opening
+        from public.stock_transactions
+        where idempotency_key = need.idem
+        limit 1;
+        if opening.id is null then
+          execute 'set local role authenticated';
+          perform public.post_opening_stock(
+            need.product_id, need.crate_id, need.qty, need.idem, null
+          );
+        else
+          set session_replication_role = replica;
+          insert into public.stock_balances (crate_id, product_id, quantity)
+          values (need.crate_id, need.product_id, need.qty)
+          on conflict (crate_id, product_id) do update
+            set quantity = excluded.quantity;
+          set session_replication_role = origin;
+        end if;
+      end loop;
+    end $$;
+  `)
   ok("disposable masters, classification, opening stock")
 
   await forceCleanup()

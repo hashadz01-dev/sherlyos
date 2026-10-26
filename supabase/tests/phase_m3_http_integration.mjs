@@ -200,8 +200,10 @@ const shop = await rpc(admin, "create_shop", {
 })
 
 await psql(`
+  set session_replication_role = replica;
   update public.app_configuration set value = 'true'::jsonb where key = 'stock.lots.aggregate_only_blocked';
   update public.app_configuration set value = 'true'::jsonb where key = 'stock.lots.dual_write_enabled';
+  set session_replication_role = origin;
   begin;
   set local role authenticated;
   select set_config('request.jwt.claim.sub', '${users.admin}', true);

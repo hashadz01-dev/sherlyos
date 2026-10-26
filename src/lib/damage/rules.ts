@@ -1,6 +1,6 @@
 /**
- * M5.2 damage-management lifecycle constants.
- * Stock posting, holds, and disposition stay in M5.3.
+ * Damage-management lifecycle constants.
+ * Holds and disposition posting are M5.3 RPCs; the /damage screen stays empty until M5.4.
  */
 
 export const damageScenarios = [
@@ -25,7 +25,23 @@ export const damageStatuses = [
 
 export type DamageStatus = (typeof damageStatuses)[number]
 
-/** Future M5.3 disposition labels only. Not operational in M5.2. */
+export const damageHoldKinds = [
+  "on_hand_deduction",
+  "reservation_conversion",
+  "quarantine_intake",
+] as const
+
+export const damageHoldStatuses = [
+  "active",
+  "released",
+  "transferred",
+  "written_off",
+  "returned_supplier",
+] as const
+
+export const exceptionalDispositionKinds = ["return_supplier", "destroy"] as const
+
+/** Legacy labels retained for M5.4 copy. Operational kinds are exceptionalDispositionKinds. */
 export const reservedDamageDispositionStates = [
   "approved_writeoff",
   "approved_return_supplier",
@@ -35,8 +51,8 @@ export const reservedDamageDispositionStates = [
 
 /**
  * On-hand scenarios that isolate allocatable stock.
- * Submit always calls apply_damage_stock_isolation. The M5.2 stub raises
- * 23514; the hold-ready flag cannot skip that call.
+ * Submit always calls apply_damage_stock_isolation. The hold-ready flag may
+ * only fail-closed; it cannot skip isolation.
  */
 export const stockHoldScenarios = ["storage", "loading", "shop_return"] as const
 

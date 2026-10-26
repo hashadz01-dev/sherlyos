@@ -84,9 +84,12 @@ select set_config(
 select public.set_product_expiry_policy(current_setting('sherlyos.product')::uuid, 'non_expiring');
 
 reset role;
+-- Replica: this race proves transfer conservation, not the unmatched-grain trigger.
+set session_replication_role = replica;
 update public.app_configuration
 set value = 'true'::jsonb
-where key = 'stock.lots.dual_write_enabled';
+where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+set session_replication_role = origin;
 
 select set_config('request.jwt.claim.sub', (select id::text from auth.users where email = 'admin.m1race@example.com'), true);
 select set_config(

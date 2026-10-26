@@ -34,7 +34,7 @@ describe("damage foundation rules", () => {
     )
   })
 
-  it("blocks stock-affecting submit until M5.3 and allows inbound or transit", () => {
+  it("requires isolation for on-hand scenarios and allows inbound or transit without holds", () => {
     expect(scenarioRequiresStockHold("storage")).toBe(true)
     expect(scenarioRequiresStockHold("loading")).toBe(true)
     expect(scenarioRequiresStockHold("shop_return")).toBe(true)

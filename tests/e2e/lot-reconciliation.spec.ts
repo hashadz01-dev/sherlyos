@@ -325,6 +325,44 @@ test.beforeEach(() => {
   releaseQaHolds()
 })
 
+/**
+ * Wipe disposable m1s2qa lots and balances after this file. Opening headers
+ * stay; beforeAll restocks balances when quantity is short so HTTP/e2e can
+ * rerun without unmatched grains leaking into later dual-write suites.
+ */
+test.afterAll(() => {
+  runLocalSql(
+    `
+    set session_replication_role = replica;
+    update public.stock_ledger
+    set lot_id = null
+    where product_id in (select id from public.products where sku like 'm1s2qa-%');
+    delete from public.stock_lot_reconciliation_attributions
+    where product_id in (select id from public.products where sku like 'm1s2qa-%');
+    delete from public.stock_lot_attribution_baselines
+    where lot_id in (
+      select sl.id from public.stock_lots sl
+      join public.products p on p.id = sl.product_id
+      where p.sku like 'm1s2qa-%'
+    );
+    delete from public.stock_legacy_lot_seeds
+    where product_id in (select id from public.products where sku like 'm1s2qa-%');
+    delete from public.stock_lot_balances
+    where lot_id in (
+      select sl.id from public.stock_lots sl
+      join public.products p on p.id = sl.product_id
+      where p.sku like 'm1s2qa-%'
+    );
+    delete from public.stock_lots
+    where product_id in (select id from public.products where sku like 'm1s2qa-%');
+    delete from public.stock_balances
+    where product_id in (select id from public.products where sku like 'm1s2qa-%');
+    set session_replication_role = origin;
+    `,
+    "m1s2qa dual-write hygiene",
+  )
+})
+
 function productArticle(page: Page, sku: string) {
   return page.locator("article").filter({
     has: page.getByRole("heading", { name: new RegExp(`^${sku}\\b`) }),

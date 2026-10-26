@@ -104,8 +104,10 @@ async function setup() {
       select godown_id, roles.id, admin_id from public.roles where roles.code = 'godown_manager'
       on conflict do nothing;
 
+      set session_replication_role = replica;
       update public.app_configuration set value = 'true'::jsonb
       where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+      set session_replication_role = origin;
 
       perform set_config('request.jwt.claim.sub', admin_id::text, true);
       perform set_config(

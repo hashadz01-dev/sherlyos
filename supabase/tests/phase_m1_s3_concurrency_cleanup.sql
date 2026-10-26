@@ -37,3 +37,10 @@ begin
   where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
 end;
 $$;
+
+set session_replication_role = replica;
+delete from public.stock_balances
+where product_id in (
+  select id from public.products where sku like 'm1s3c%' or sku like 'm1s3qa%'
+);
+set session_replication_role = origin;

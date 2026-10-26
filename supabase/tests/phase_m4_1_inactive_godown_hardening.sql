@@ -122,8 +122,11 @@ select public.set_product_expiry_policy(current_setting('sherlyos.product')::uui
 select set_config('sherlyos.shop', public.create_shop('M41IG shop', null, null)::text, true);
 
 reset role;
+-- Replica: inactive-godown proofs, not the unmatched-grain enable trigger.
+set session_replication_role = replica;
 update public.app_configuration set value = 'true'::jsonb
 where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+set session_replication_role = origin;
 
 select pg_temp.as_user('admin');
 set local role authenticated;

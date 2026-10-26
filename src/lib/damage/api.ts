@@ -30,6 +30,23 @@ export type DamageReportDetail = DamageReportSummary & {
   order_id: string | null
   shop_id: string | null
   notes: string | null
+  physical_custody_confirmed?: boolean
+  holds?: {
+    id: string
+    line_id: string
+    product_id: string
+    crate_id: string
+    lot_id: string | null
+    quantity_cases: number
+    hold_kind: string
+    status: string
+  }[]
+  exceptional_requests?: {
+    id: string
+    kind: string
+    status: string
+    version: number
+  }[]
   lines: {
     id: string
     product_id: string
@@ -94,5 +111,83 @@ export function createDamageReport(input: {
     dispatch_id: input.dispatchId ?? null,
     order_id: input.orderId ?? null,
     shop_id: input.shopId ?? null,
+  })
+}
+
+export function confirmShopReturnCustody(targetReport: string, expectedVersion: number) {
+  return callRpc<DamageReportDetail>("confirm_shop_return_custody", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+  })
+}
+
+export function postOrdinaryDamageWriteoff(
+  targetReport: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+) {
+  return callRpc<DamageReportDetail>("post_ordinary_damage_writeoff", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+    idempotency_key: idempotencyKey,
+  })
+}
+
+export function requestExceptionalDamageDisposition(input: {
+  targetReport: string
+  expectedVersion: number
+  dispositionKind: "return_supplier" | "destroy"
+  requestReason: string
+  idempotencyKey: string
+}) {
+  return callRpc<DamageReportDetail>("request_exceptional_damage_disposition", {
+    target_report: input.targetReport,
+    expected_version: input.expectedVersion,
+    disposition_kind: input.dispositionKind,
+    request_reason: input.requestReason,
+    idempotency_key: input.idempotencyKey,
+  })
+}
+
+export function approveExceptionalDamageDisposition(targetRequest: string, expectedVersion: number) {
+  return callRpc<DamageReportDetail>("approve_exceptional_damage_disposition", {
+    target_request: targetRequest,
+    expected_version: expectedVersion,
+  })
+}
+
+export function rejectExceptionalDamageDisposition(
+  targetRequest: string,
+  expectedVersion: number,
+  decisionReason: string,
+) {
+  return callRpc<DamageReportDetail>("reject_exceptional_damage_disposition", {
+    target_request: targetRequest,
+    expected_version: expectedVersion,
+    decision_reason: decisionReason,
+  })
+}
+
+export function postExceptionalDamageDisposition(
+  targetRequest: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+) {
+  return callRpc<DamageReportDetail>("post_exceptional_damage_disposition", {
+    target_request: targetRequest,
+    expected_version: expectedVersion,
+    idempotency_key: idempotencyKey,
+  })
+}
+
+export function transferVerifiedDamageToQuarantine(
+  targetReport: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+) {
+  return callRpc<DamageReportDetail>("transfer_verified_damage_to_quarantine", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+    idempotency_key: idempotencyKey,
   })
 }

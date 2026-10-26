@@ -2,6 +2,7 @@ import { useAccess } from "@/lib/access/use-access"
 import {
   canOpenDamageCreate,
   damageNavPermissions,
+  damageQuarantinePermissions,
   scenariosAvailableForPermissions,
 } from "@/lib/damage/rules"
 
@@ -25,6 +26,11 @@ export function useDamageAccess() {
   const showDispositionQueues = canVerify || canMonitor
   const showExceptionalQueues =
     canMonitor || can("stock.adjustment.approve_exceptional")
+  const canViewQuarantine = damageQuarantinePermissions.some((permission) =>
+    can(permission),
+  )
+  const canConfirmCustody = canRecord && canVerify
+  const canTransferQuarantine = canVerify
 
   return {
     loading: access.loading,
@@ -42,5 +48,8 @@ export function useDamageAccess() {
     showVerificationQueues,
     showDispositionQueues,
     showExceptionalQueues,
+    canViewQuarantine,
+    canConfirmCustody,
+    canTransferQuarantine,
   }
 }

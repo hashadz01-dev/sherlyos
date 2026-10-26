@@ -15,6 +15,9 @@ vi.mock("@/lib/damage/api", () => ({
   listDamageReports: (...args: unknown[]) => listDamageReports(...args),
   getDamageDashboard: (...args: unknown[]) => getDamageDashboard(...args),
   getDamageReport: (...args: unknown[]) => getDamageReport(...args),
+  confirmShopReturnCustody: vi.fn(),
+  transferVerifiedDamageToQuarantine: vi.fn(),
+  listDamageQuarantineInventory: vi.fn(),
   damagePhotoPreview: vi.fn(),
 }))
 
@@ -50,6 +53,9 @@ vi.mock("@/features/damage/hooks/use-damage-access", () => ({
     showVerificationQueues: true,
     showDispositionQueues: true,
     showExceptionalQueues: true,
+    canViewQuarantine: true,
+    canConfirmCustody: true,
+    canTransferQuarantine: true,
   }),
 }))
 

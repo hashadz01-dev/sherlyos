@@ -47,6 +47,11 @@ export function DamagePage() {
             <Button asChild variant="outline">
               <Link to="/damage/reports">All reports</Link>
             </Button>
+            {access.canViewQuarantine ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/quarantine">Quarantine inventory</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -130,6 +135,13 @@ export function DamagePage() {
 
       {queues ? (
         <div className="grid gap-4 lg:grid-cols-2">
+          {access.canConfirmCustody ? (
+            <DamageQueueCard
+              title="Awaiting custody"
+              description="Shop-return drafts waiting for physical custody confirmation."
+              items={queues.awaiting_custody ?? []}
+            />
+          ) : null}
           <DamageQueueCard
             title="Recently submitted"
             description="Newest submitted reports you are allowed to see."

@@ -138,6 +138,52 @@ export function canOpenDamageCreate(can: (permission: string) => boolean) {
   return can("damage.record") || can("deliveries.execute")
 }
 
+/**
+ * Quarantine inventory is not a transit reporting surface.
+ * Backend list_damage_quarantine_inventory rejects deliveries.execute-only.
+ */
+export const damageQuarantinePermissions = [
+  "damage.read",
+  "damage.record",
+  "damage.verify",
+  "operations.monitor",
+] as const
+
+/** UX gate only. confirm_shop_return_custody uses assert_damage_create_auth. */
+export function canConfirmShopReturnCustody(input: {
+  scenario: string
+  status: string
+  alreadyConfirmed: boolean
+  canRecord: boolean
+  canVerify: boolean
+}) {
+  return (
+    input.scenario === "shop_return" &&
+    isEditableDamageStatus(input.status as DamageStatus) &&
+    !input.alreadyConfirmed &&
+    input.canRecord &&
+    input.canVerify
+  )
+}
+
+/**
+ * UX gate only. transfer_verified_damage_to_quarantine requires damage.verify,
+ * verified storage, and remaining active on-hand holds. Quantity is not partial.
+ */
+export function canTransferVerifiedDamage(input: {
+  scenario: string
+  status: string
+  canVerify: boolean
+  activeOnHandHolds: number
+}) {
+  return (
+    input.canVerify &&
+    input.scenario === "storage" &&
+    input.status === "verified" &&
+    input.activeOnHandHolds > 0
+  )
+}
+
 export function isSupportedDamagePhotoMime(mime: string) {
   const normalized = mime.toLowerCase() === "image/jpg" ? "image/jpeg" : mime
   return (damagePhotoMimeTypes as readonly string[]).includes(normalized)

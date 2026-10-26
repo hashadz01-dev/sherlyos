@@ -27,6 +27,8 @@ export type DamageReportSummary = {
   dispatch_id?: string | null
   order_id?: string | null
   shop_id?: string | null
+  shop_name?: string | null
+  physical_custody_confirmed?: boolean
   total_cases?: number
   active_hold_cases?: number
   exceptional_open?: boolean
@@ -36,14 +38,20 @@ export type DamageHoldRow = {
   id: string
   line_id: string
   product_id: string
+  product_sku?: string | null
+  product_name?: string | null
   crate_id: string
   crate_code?: string | null
   location_role?: string | null
+  zone_code?: string | null
+  zone_name?: string | null
   lot_id: string | null
   quantity_cases: number
   hold_kind: string
   status: string
+  source_reservation_id?: string | null
   posted_transaction_id?: string | null
+  created_at?: string | null
 }
 
 export type DamageExceptionalRequest = {
@@ -61,9 +69,13 @@ export type DamageReportDetail = DamageReportSummary & {
   dispatch_id: string | null
   order_id: string | null
   shop_id: string | null
+  shop_name?: string | null
   notes: string | null
   reporter_user_id?: string | null
   physical_custody_confirmed?: boolean
+  physical_custody_confirmed_at?: string | null
+  physical_custody_confirmed_by?: string | null
+  physical_custody_confirmed_by_name?: string | null
   updated_at?: string
   holds?: DamageHoldRow[]
   exceptional_requests?: DamageExceptionalRequest[]
@@ -177,10 +189,72 @@ export type DamageDashboard = {
   queues: {
     recent_submitted: DamageQueueItem[]
     awaiting_verification: DamageQueueItem[]
+    awaiting_custody?: DamageQueueItem[]
     awaiting_disposition: DamageQueueItem[]
     exceptional_pending: DamageQueueItem[]
     recently_resolved: DamageQueueItem[]
   }
+}
+
+export type DamageQuarantineRow = {
+  hold_id: string
+  damage_report_id: string
+  report_number: string
+  report_status: DamageStatus
+  scenario: DamageScenario
+  godown_id: string
+  godown_name: string
+  godown_active: boolean
+  product_id: string
+  product_sku: string
+  product_name: string
+  quantity_cases: number
+  hold_kind: string
+  hold_status: string
+  isolation_class: string
+  crate_id: string
+  crate_code: string | null
+  location_role: string | null
+  zone_code: string | null
+  zone_name: string | null
+  lot_id: string | null
+  source_reservation_id: string | null
+  posted_transaction_id: string | null
+  created_at: string
+}
+
+/** Filter-wide carton totals. Never derived from the current page of items. */
+export type DamageQuarantineTotals = {
+  hold_rows: number
+  current_unavailable_cases: number
+  logical_hold_cases: number
+  reservation_converted_cases: number
+  shop_return_intake_cases: number
+  transferred_quarantine_cases: number
+  written_off_cases: number
+  returned_supplier_cases: number
+  released_cases: number
+}
+
+export type ListDamageQuarantineResult = {
+  items: DamageQuarantineRow[]
+  total: number
+  page: number
+  page_size: number
+  totals: DamageQuarantineTotals
+}
+
+export type ListDamageQuarantineParams = {
+  page?: number
+  pageSize?: number
+  targetGodown?: string | null
+  targetProduct?: string | null
+  scenario?: string | null
+  holdKind?: string | null
+  holdStatus?: string | null
+  productSearch?: string | null
+  fromDate?: string | null
+  toDate?: string | null
 }
 
 export type ListDamageReportsParams = {
@@ -244,6 +318,26 @@ export function getDamageDashboard(targetGodown?: string | null) {
   return callRpc<DamageDashboard>("get_damage_dashboard", {
     target_godown: targetGodown ?? null,
   })
+}
+
+export function listDamageQuarantineInventory(
+  params: ListDamageQuarantineParams = {},
+) {
+  return callRpc<ListDamageQuarantineResult>(
+    "list_damage_quarantine_inventory",
+    {
+      page: params.page ?? 1,
+      page_size: params.pageSize ?? 50,
+      target_godown: params.targetGodown ?? null,
+      target_product: params.targetProduct ?? null,
+      scenario_filter: params.scenario ?? null,
+      hold_kind_filter: params.holdKind ?? null,
+      hold_status_filter: params.holdStatus ?? null,
+      product_search: params.productSearch ?? null,
+      from_date: rpcDate(params.fromDate),
+      to_date: rpcDate(params.toDate),
+    },
+  )
 }
 
 export function getDamageStockHoldReadyStatus() {

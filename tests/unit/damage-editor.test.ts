@@ -201,7 +201,7 @@ describe("damage submission readiness", () => {
     expect(scenarioSubmitHint("transit", false)).toMatch(/may submit/i)
   })
 
-  it("blocks shop-return until custody workflow exists", () => {
+  it("blocks shop-return until physical custody is confirmed", () => {
     const blockers = collectSubmitBlockers({
       scenario: "shop_return",
       stockHoldReady: true,

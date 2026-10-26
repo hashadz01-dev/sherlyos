@@ -6,9 +6,11 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { DamageActivityTimeline } from "@/features/damage/components/DamageActivityTimeline"
+import { DamageCustodyPanel } from "@/features/damage/components/DamageCustodyPanel"
 import { DamageEvidencePanel } from "@/features/damage/components/DamageEvidencePanel"
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import { DamageHoldsPanel } from "@/features/damage/components/DamageHoldsPanel"
+import { DamageLifecycleTimeline } from "@/features/damage/components/DamageLifecycleTimeline"
 import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
 import { useAuth } from "@/hooks/use-auth"
 import { isEditableDamageStatus } from "@/lib/damage/rules"
@@ -55,7 +57,7 @@ export function DamageReportDetailPage() {
     <section className="min-w-0">
       <PageHeader
         title={report?.report_number ?? "Damage report"}
-        description="Damage report detail. Verification and disposition actions arrive in later phases."
+        description="Damage report detail. Custody and quarantine transfer use trusted backend RPCs."
         action={
           <div className="flex flex-wrap gap-2">
             {report &&
@@ -108,14 +110,14 @@ export function DamageReportDetailPage() {
                   <dt className="text-muted-foreground">Updated</dt>
                   <dd>{formatTimestamp(report.updated_at)}</dd>
                 </div>
-                <div>
-                  <dt className="text-muted-foreground">Custody</dt>
-                  <dd>
-                    {report.physical_custody_confirmed
-                      ? "Physical custody confirmed"
-                      : "Not confirmed"}
-                  </dd>
-                </div>
+                {report.scenario === "shop_return" ? (
+                  <div>
+                    <dt className="text-muted-foreground">Shop</dt>
+                    <dd>
+                      {report.shop_name ?? report.shop_id?.slice(0, 8) ?? "—"}
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
               <StatusBadge tone={damageStatusTone[report.status]}>
                 {formatDamageStatus(report.status)}
@@ -172,6 +174,17 @@ export function DamageReportDetailPage() {
             </dl>
           </DetailSection>
 
+          {report.scenario === "shop_return" ? (
+            <DamageCustodyPanel
+              report={report}
+              onConfirmed={() => void detail.refetch()}
+            />
+          ) : null}
+
+          <DetailSection title="Lifecycle">
+            <DamageLifecycleTimeline report={report} />
+          </DetailSection>
+
           <DetailSection title="Damage lines">
             {report.lines.length === 0 ? (
               <p className="text-sm text-muted-foreground">
@@ -218,7 +231,10 @@ export function DamageReportDetailPage() {
           </DetailSection>
 
           <DetailSection title="Stock isolation">
-            <DamageHoldsPanel report={report} />
+            <DamageHoldsPanel
+              report={report}
+              onTransferred={() => void detail.refetch()}
+            />
           </DetailSection>
 
           {(report.exceptional_requests?.length ?? 0) > 0 ? (

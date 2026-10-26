@@ -1,14 +1,70 @@
-import {
-  damageHoldKindLabels,
-  damageHoldStatusLabels,
-  formatCases,
-} from "@/features/damage/utils/labels"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { DamageHoldDetails } from "@/features/damage/components/DamageHoldDetails"
+import { DamageQuarantineTransferDialog } from "@/features/damage/components/DamageQuarantineTransferDialog"
+import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
+import { formatCases } from "@/features/damage/utils/labels"
 import { damageQuantityBreakdown } from "@/features/damage/utils/quantities"
-import type { DamageHoldRow, DamageReportDetail } from "@/lib/damage/api"
+import { mapDamageMutationError } from "@/features/damage/utils/submit"
+import {
+  transferVerifiedDamageToQuarantine,
+  type DamageHoldRow,
+  type DamageReportDetail,
+} from "@/lib/damage/api"
+import { canTransferVerifiedDamage } from "@/lib/damage/rules"
+import { notify } from "@/lib/utilities/notify"
 
-export function DamageHoldsPanel({ report }: { report: DamageReportDetail }) {
+function newTransferKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID()
+  }
+  return `xfer-${Date.now()}`
+}
+
+export function DamageHoldsPanel({
+  report,
+  onTransferred,
+}: {
+  report: DamageReportDetail
+  onTransferred?: () => void
+}) {
+  const access = useDamageAccess()
   const breakdown = damageQuantityBreakdown(report)
   const holds = report.holds ?? []
+  const activeOnHand = holds.filter(
+    (hold: DamageHoldRow) =>
+      hold.status === "active" && hold.hold_kind === "on_hand_deduction",
+  )
+  const eligible = canTransferVerifiedDamage({
+    scenario: report.scenario,
+    status: report.status,
+    canVerify: access.canVerify,
+    activeOnHandHolds: activeOnHand.length,
+  })
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [idempotencyKey, setIdempotencyKey] = useState(newTransferKey)
+
+  async function transfer() {
+    setBusy(true)
+    setError(null)
+    try {
+      await transferVerifiedDamageToQuarantine(
+        report.id,
+        report.version,
+        idempotencyKey,
+      )
+      notify.success("Verified damage transferred to quarantine")
+      setOpen(false)
+      setIdempotencyKey(newTransferKey())
+      onTransferred?.()
+    } catch (caught) {
+      setError(mapDamageMutationError(caught, "transfer"))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="grid gap-4">
@@ -20,12 +76,12 @@ export function DamageHoldsPanel({ report }: { report: DamageReportDetail }) {
           </dd>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
-          <dt className="text-xs text-muted-foreground">Logical hold</dt>
+          <dt className="text-xs text-muted-foreground">Held</dt>
           <dd className="text-lg font-semibold">
             {formatCases(breakdown.heldCases)}
           </dd>
           <p className="mt-1 text-xs text-muted-foreground">
-            Not a physical quarantine move
+            Unavailable logical stock. Not a physical quarantine move.
           </p>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
@@ -33,6 +89,9 @@ export function DamageHoldsPanel({ report }: { report: DamageReportDetail }) {
           <dd className="text-lg font-semibold">
             {formatCases(breakdown.quarantinedCases)}
           </dd>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Physically segregated unavailable stock.
+          </p>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
           <dt className="text-xs text-muted-foreground">Written off</dt>
@@ -42,51 +101,33 @@ export function DamageHoldsPanel({ report }: { report: DamageReportDetail }) {
         </div>
       </dl>
 
-      {holds.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No stock holds are recorded for this report. Inbound and transit
-          scenarios may never create holds.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 pr-3">Kind</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2 pr-3">Crate</th>
-                <th className="py-2 pr-3">Role</th>
-                <th className="py-2 pr-3">Cases</th>
-                <th className="py-2 pr-3">Stock txn</th>
-              </tr>
-            </thead>
-            <tbody>
-              {holds.map((hold: DamageHoldRow) => (
-                <tr key={hold.id} className="border-b last:border-0">
-                  <td className="py-2 pr-3">
-                    {damageHoldKindLabels[hold.hold_kind] ?? hold.hold_kind}
-                  </td>
-                  <td className="py-2 pr-3">
-                    {damageHoldStatusLabels[hold.status] ?? hold.status}
-                  </td>
-                  <td className="py-2 pr-3">
-                    {hold.crate_code ?? hold.crate_id.slice(0, 8)}
-                  </td>
-                  <td className="py-2 pr-3">{hold.location_role ?? "—"}</td>
-                  <td className="py-2 pr-3">
-                    {formatCases(hold.quantity_cases)}
-                  </td>
-                  <td className="py-2 pr-3 font-mono text-xs">
-                    {hold.posted_transaction_id
-                      ? hold.posted_transaction_id.slice(0, 8)
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <DamageHoldDetails holds={holds} />
+
+      {eligible ? (
+        <div>
+          <Button type="button" onClick={() => setOpen(true)}>
+            Transfer verified damage to quarantine
+          </Button>
         </div>
-      )}
+      ) : null}
+
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <DamageQuarantineTransferDialog
+        report={report}
+        open={open}
+        busy={busy}
+        sourceCases={activeOnHand.reduce(
+          (sum, hold) => sum + Number(hold.quantity_cases || 0),
+          0,
+        )}
+        onOpenChange={setOpen}
+        onConfirm={() => void transfer()}
+      />
     </div>
   )
 }

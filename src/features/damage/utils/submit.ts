@@ -19,7 +19,7 @@ export type SubmitBlocker = {
 }
 
 export type DamageMutationKind =
-  "save" | "submit" | "upload" | "finalize" | "network"
+  "save" | "submit" | "upload" | "finalize" | "network" | "custody" | "transfer"
 
 /**
  * Frontend submit gates. Isolation and custody remain backend-enforced.
@@ -84,7 +84,7 @@ export function collectSubmitBlockers(input: {
     blockers.push({
       code: "custody",
       message:
-        "Shop-return physical custody confirmation belongs to the forthcoming authorized workflow. This report cannot be submitted yet.",
+        "Confirm physical custody at the receiving godown before submitting this shop-return report.",
     })
   }
   return blockers
@@ -125,7 +125,22 @@ export function mapDamageMutationError(
     return "Stock isolation is not ready. This scenario cannot be submitted."
   }
   if (/shop-return damage requires confirmed physical custody/i.test(raw)) {
-    return "Shop-return physical custody is not confirmed. Use the forthcoming authorized custody workflow."
+    return "Shop-return physical custody is not confirmed."
+  }
+  if (/quarantine transfer requires verified storage damage/i.test(raw)) {
+    return "Only verified storage damage can be transferred to quarantine."
+  }
+  if (/no isolated damage quantity remains/i.test(raw)) {
+    return "No isolated damage quantity remains to transfer. Refresh the report."
+  }
+  if (/godown is inactive/i.test(raw)) {
+    return "This godown is inactive. Operational transfers are not allowed."
+  }
+  if (
+    /duplicate key|already posted|idempotency/i.test(raw) &&
+    kind === "transfer"
+  ) {
+    return "This quarantine transfer was already posted. Refresh the report."
   }
   if (/photographic evidence is required/i.test(raw)) {
     return "Finalized photographic evidence is required."
@@ -137,14 +152,14 @@ export function mapDamageMutationError(
     return raw
   }
   if (/failed to fetch|networkerror|load failed|aborted/i.test(raw)) {
-    if (kind === "submit") {
-      return "The request may have been received. Refresh the report before retrying submission."
+    if (kind === "submit" || kind === "transfer" || kind === "custody") {
+      return "The request may have been received. Refresh the report before retrying."
     }
     return "The connection was interrupted. Refresh and try again."
   }
   if (!raw) {
-    if (kind === "submit") {
-      return "The request may have been received. Refresh the report before retrying submission."
+    if (kind === "submit" || kind === "transfer" || kind === "custody") {
+      return "The request may have been received. Refresh the report before retrying."
     }
     return "The request could not be completed. Try again or ask an administrator."
   }

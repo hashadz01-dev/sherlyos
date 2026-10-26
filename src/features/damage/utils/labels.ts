@@ -22,7 +22,7 @@ export const damageScenarioDescriptions: Record<DamageScenario, string> = {
   transit:
     "DMG-05. Damage on an assigned consumed dispatch. Delivery Persons may report only their assigned runs.",
   shop_return:
-    "DMG-06. Shop, expired, or returned-goods damage. Physical custody confirmation is a later authorized workflow.",
+    "DMG-06. Shop, expired, or returned-goods damage. Physical custody must be confirmed at the receiving godown before submit.",
 }
 
 export const damageStatusLabels: Record<DamageStatus, string> = {
@@ -45,16 +45,41 @@ export const damageStatusTone: Record<DamageStatus, StatusTone> = {
 
 export const damageHoldKindLabels: Record<string, string> = {
   on_hand_deduction: "On-hand hold",
-  reservation_conversion: "Reservation conversion",
-  quarantine_intake: "Quarantine intake",
+  reservation_conversion: "Reservation converted",
+  quarantine_intake: "Shop-return quarantine intake",
 }
 
 export const damageHoldStatusLabels: Record<string, string> = {
-  active: "Active hold",
+  active: "Held",
   released: "Released",
-  transferred: "In quarantine crate",
+  transferred: "Quarantined",
   written_off: "Written off",
   returned_supplier: "Returned to supplier",
+}
+
+/** Isolation classes from list_damage_quarantine_inventory. Not DB statuses. */
+export const damageIsolationClassLabels: Record<string, string> = {
+  logical_hold: "Held — logical on-hand isolation",
+  reservation_converted:
+    "Reservation converted — previously allocated loading stock",
+  shop_return_intake: "Shop-return quarantine intake",
+  transferred_quarantine:
+    "Quarantined — physically transferred verified damage",
+  written_off: "Written off — authorized ledger posting",
+  returned_supplier: "Returned to supplier",
+  released: "Released",
+}
+
+export function formatHoldKind(kind: string) {
+  return damageHoldKindLabels[kind] ?? kind
+}
+
+export function formatHoldStatus(status: string) {
+  return damageHoldStatusLabels[status] ?? status
+}
+
+export function formatIsolationClass(value: string) {
+  return damageIsolationClassLabels[value] ?? value
 }
 
 export function formatDamageScenario(scenario: string) {

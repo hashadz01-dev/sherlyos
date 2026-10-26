@@ -490,7 +490,9 @@ test("evidence upload finalizes through the trusted RPC and missing evidence blo
   await expect(page.getByRole("heading", { name: /DMG-/ })).toBeVisible({
     timeout: 20_000,
   })
-  await expect(page.getByText("Submitted", { exact: true })).toBeVisible()
+  await expect(
+    page.getByText("Submitted", { exact: true }).first(),
+  ).toBeVisible()
   fixture.inboundNumber =
     (await page.getByRole("heading").first().textContent()) ?? ""
 })

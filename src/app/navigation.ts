@@ -23,6 +23,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react"
+import { damageNavPermissions } from "@/lib/damage/rules"
 import { operationsReportPermissions } from "@/lib/reports/access"
 import type { AppNavItem, NavGroup } from "@/types/navigation"
 
@@ -114,6 +115,7 @@ export const navigationItems: AppNavItem[] = [
       "Damage reports and quarantine will be handled here in a later phase.",
     group: "Operations",
     icon: TriangleAlert,
+    anyPermissions: [...damageNavPermissions],
   },
   {
     to: "/receiving",

@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { ReportLinks } from "@/features/reports/ReportLinks"
 import { ReportTable } from "@/features/reports/ReportTable"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { formatUtc } from "@/lib/reports/format"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -14,10 +16,12 @@ import { listDispatchDeliveryReport, reportKeys } from "@/lib/reports/api"
 export function DispatchReportPage() {
   useDocumentTitle("Dispatch and delivery report")
   const { session } = useAuth()
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [status, setStatus] = useState("")
   const [page, setPage] = useState(1)
   const filters = {
     dispatch_status: status || null,
+    filter_branch: branchId || null,
     page,
     page_size: 50,
   }
@@ -40,7 +44,15 @@ export function DispatchReportPage() {
           {report.error.message}
         </p>
       ) : null}
-      <div className="mb-4 max-w-xs">
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        <ReportBranchSelect
+          value={branchId}
+          onChange={(value) => {
+            setBranchId(value)
+            setPage(1)
+          }}
+          branches={branches}
+        />
         <ReportSelect
           label="Dispatch status"
           value={status}
@@ -57,6 +69,9 @@ export function DispatchReportPage() {
           <option value="exception">Exception</option>
           <option value="cancelled">Cancelled</option>
         </ReportSelect>
+      </div>
+      <div className="mb-4">
+        <BranchFilterNote />
       </div>
       {report.data ? (
         <ReportTable

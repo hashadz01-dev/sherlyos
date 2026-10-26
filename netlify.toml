@@ -1,0 +1,18 @@
+# Development frontend only. Do not reuse this file for production.
+# Site env: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.
+# Never add service_role, database passwords, or access tokens here.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  SHERLYS_RELEASE_TARGET = "development"
+  NODE_VERSION = "22"
+
+# Existing static files win. This rewrite is last so React Router can refresh
+# protected URLs without a 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

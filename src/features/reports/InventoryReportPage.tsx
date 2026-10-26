@@ -4,20 +4,19 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
 import { ReportLinks } from "@/features/reports/ReportLinks"
-import { BranchFilterNote } from "@/features/reports/BranchFilterNote"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { ReportTable } from "@/features/reports/ReportTable"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
-import { useStockLocations } from "@/features/inventory/location-options"
 import { listInventoryReport, reportKeys } from "@/lib/reports/api"
 
 export function InventoryReportPage() {
   useDocumentTitle("Inventory report")
   const { session } = useAuth()
-  const locations = useStockLocations()
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [grain, setGrain] = useState("crate")
-  const [branchId, setBranchId] = useState("")
   const [page, setPage] = useState(1)
   const filters = {
     grain,
@@ -58,39 +57,17 @@ export function InventoryReportPage() {
           <option value="godown">Godown</option>
           <option value="product">Product</option>
         </ReportSelect>
-        <ReportSelect
-          label="Branch"
+        <ReportBranchSelect
           value={branchId}
           onChange={(value) => {
             setBranchId(value)
             setPage(1)
           }}
-        >
-          <option value="">All authorized branches</option>
-          <optgroup label="Active operational branches">
-            {(locations.branches.data ?? [])
-              .filter((branch) => branch.is_active)
-              .map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-          </optgroup>
-          {(locations.branches.data ?? []).some((branch) => !branch.is_active) ? (
-            <optgroup label="Inactive (historical reporting)">
-              {(locations.branches.data ?? [])
-                .filter((branch) => !branch.is_active)
-                .map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name} (inactive)
-                  </option>
-                ))}
-            </optgroup>
-          ) : null}
-        </ReportSelect>
+          branches={branches}
+        />
       </div>
       <div className="mb-4">
-        <BranchFilterNote operationalDropdown={false} />
+        <BranchFilterNote />
       </div>
       {report.data ? (
         <ReportTable

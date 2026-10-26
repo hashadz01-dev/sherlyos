@@ -39,6 +39,20 @@ vi.mock("@/lib/reports/api", async () => {
   return { ...actual, getOperationsDashboard: reports.getOperationsDashboard }
 })
 
+vi.mock("@/features/inventory/location-options", () => ({
+  useStockLocations: () => ({
+    branches: {
+      data: [
+        { id: "b1", code: "G1", name: "Main", is_active: true },
+        { id: "b0", code: "G0", name: "Closed godown", is_active: false },
+      ],
+    },
+    zones: { data: [] },
+    crates: { data: [] },
+    products: { data: [] },
+  }),
+}))
+
 function renderDashboard() {
   const router = createMemoryRouter(
     [
@@ -116,7 +130,9 @@ describe("dashboard", () => {
     expect(
       screen.getByText(/Lot-aware allocation is inactive/i),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Inactive godowns are not selectable/i)).toBeInTheDocument()
+    expect(screen.getByText(/Inactive \/ Historical/i)).toBeInTheDocument()
+    expect(screen.getByText(/include inactive godown stock/i)).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Closed godown (G0) (inactive)" })).toBeInTheDocument()
     expect(screen.getByText("Closed godown")).toBeInTheDocument()
     expect(screen.getByText("Inactive (historical)")).toBeInTheDocument()
     expect(screen.queryByText("Orders Today")).not.toBeInTheDocument()

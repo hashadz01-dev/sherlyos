@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { ReportLinks } from "@/features/reports/ReportLinks"
 import { ReportTable } from "@/features/reports/ReportTable"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { formatUtc } from "@/lib/reports/format"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -14,12 +16,14 @@ import { listOrderPickingReport, reportKeys } from "@/lib/reports/api"
 export function OrderPickingReportPage() {
   useDocumentTitle("Orders and picking report")
   const { session } = useAuth()
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [orderStatus, setOrderStatus] = useState("")
   const [pickingStatus, setPickingStatus] = useState("")
   const [page, setPage] = useState(1)
   const filters = {
     order_status: orderStatus || null,
     picking_status: pickingStatus || null,
+    filter_branch: branchId || null,
     page,
     page_size: 50,
   }
@@ -42,7 +46,15 @@ export function OrderPickingReportPage() {
           {report.error.message}
         </p>
       ) : null}
-      <div className="mb-4 grid gap-3 md:grid-cols-2">
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <ReportBranchSelect
+          value={branchId}
+          onChange={(value) => {
+            setBranchId(value)
+            setPage(1)
+          }}
+          branches={branches}
+        />
         <ReportSelect
           label="Order status"
           value={orderStatus}
@@ -75,6 +87,9 @@ export function OrderPickingReportPage() {
           <option value="blocked">Blocked</option>
           <option value="cancelled">Cancelled</option>
         </ReportSelect>
+      </div>
+      <div className="mb-4">
+        <BranchFilterNote />
       </div>
       {report.data ? (
         <ReportTable

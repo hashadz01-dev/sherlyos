@@ -31,6 +31,9 @@ test.beforeAll(() => {
       zone_id uuid;
       crate_id uuid;
       product_id uuid;
+      inactive_id uuid;
+      inactive_zone uuid;
+      inactive_crate uuid;
     begin
       insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -97,6 +100,12 @@ test.beforeAll(() => {
       crate_id := public.create_crate(zone_id, '${PREFIX}_c', 'C', null);
       product_id := public.create_product('${PREFIX}', 'M4E2E soap', null, null);
       perform public.post_opening_stock(product_id, crate_id, 7, '${PREFIX}-open', null);
+
+      inactive_id := public.create_branch('${PREFIX}_hist', 'M4E2E historical');
+      inactive_zone := public.create_zone(inactive_id, '${PREFIX}_hz', 'HZ', null);
+      inactive_crate := public.create_crate(inactive_zone, '${PREFIX}_hc', 'HC', null);
+      perform public.post_opening_stock(product_id, inactive_crate, 2, '${PREFIX}-hist-open', null);
+      perform public.set_branch_active(inactive_id, false);
     end $$;
     `,
     "m4e2e seed",
@@ -153,7 +162,7 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   await expect(page.getByText("Available to pick")).toBeVisible()
   await expect(page.getByText(/Lot-aware allocation is inactive/i)).toBeVisible()
   await expect(page.getByText(/Operational lot cutover is inactive/i)).toBeVisible()
-  await expect(page.getByText(/Inactive godowns are not selectable/i)).toBeVisible()
+  await expect(page.getByText(/include inactive godown stock/i)).toBeVisible()
 
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible()
@@ -162,7 +171,7 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   await expect(page.getByRole("heading", { name: "Inventory report" })).toBeVisible()
   await expect(page.getByText("M4E2E soap")).toBeVisible()
   await expect(page.getByText("7").first()).toBeVisible()
-  await expect(page.getByText(/Inactive godowns stay in the historical group/i)).toBeVisible()
+  await expect(page.getByText(/include inactive godown stock/i)).toBeVisible()
 
   const downloadPromise = page.waitForEvent("download")
   await page.getByRole("button", { name: "Export CSV" }).click()
@@ -197,6 +206,24 @@ test("inventory report stays usable at tablet width", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Inventory report" })).toBeVisible()
   await expect(page.getByText("M4E2E soap")).toBeVisible()
   await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible()
+  await signOut(page)
+})
+
+test("admin reports include labeled inactive godown stock", async ({ page }) => {
+  await signIn(page, "admin.m4e2e@example.com")
+  await expect(page.getByText("Cartons on hand")).toBeVisible()
+  await expect(page.getByText("9").first()).toBeVisible()
+  await expect(page.getByText("M4E2E historical")).toBeVisible()
+  await expect(page.getByText("Inactive (historical)")).toBeVisible()
+  await expect(page.getByRole("option", { name: /M4E2E historical \(.*\) \(inactive\)/ })).toBeVisible()
+
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Opening stock" }).click()
+  await expect(page.getByRole("heading", { name: "Opening stock" })).toBeVisible()
+  await expect(page.getByRole("option", { name: "M4E2E historical" })).toHaveCount(0)
+
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
+  await page.getByRole("navigation", { name: "Reports" }).getByRole("link", { name: "Inventory" }).click()
+  await expect(page.getByRole("option", { name: /M4E2E historical .* \(inactive\)/ })).toBeVisible()
   await signOut(page)
 })
 

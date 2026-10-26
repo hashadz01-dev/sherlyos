@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { activeOperationalBranches } from "@/lib/branches/operational"
 import {
   getStockLotCutoverState,
   listStockBalances,
@@ -72,7 +73,7 @@ export function TransfersPage() {
       crate.id !== sourceCrateId,
   )
   const products = (locations.products.data ?? []).filter((product) => product.is_active)
-  const branches = (locations.branches.data ?? []).filter((branch) => branch.is_active)
+  const branches = activeOperationalBranches(locations.branches.data)
   const sourceBalance =
     balances.data?.find(
       (row) => row.crate_id === sourceCrateId && row.product_id === productId,

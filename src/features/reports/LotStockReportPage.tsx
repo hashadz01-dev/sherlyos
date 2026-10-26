@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
 import { ReportLinks } from "@/features/reports/ReportLinks"
 import { ReportSelect } from "@/features/reports/ReportControls"
 import { ReportTable } from "@/features/reports/ReportTable"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { listLotStockReport, reportKeys } from "@/lib/reports/api"
@@ -13,12 +15,14 @@ import { listLotStockReport, reportKeys } from "@/lib/reports/api"
 export function LotStockReportPage() {
   useDocumentTitle("Lot stock report")
   const { session } = useAuth()
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [bucket, setBucket] = useState("")
   const [status, setStatus] = useState("")
   const [page, setPage] = useState(1)
   const filters = {
     expiry_bucket: bucket || null,
     filter_lot_status: status || null,
+    filter_branch: branchId || null,
     page,
     page_size: 50,
   }
@@ -44,7 +48,15 @@ export function LotStockReportPage() {
       <p className="mb-4 text-sm text-muted-foreground">
         Near-expiry window: {report.data?.near_expiry_warning_days ?? 90} days (UTC dates).
       </p>
-      <div className="mb-4 grid gap-3 md:grid-cols-2">
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <ReportBranchSelect
+          value={branchId}
+          onChange={(value) => {
+            setBranchId(value)
+            setPage(1)
+          }}
+          branches={branches}
+        />
         <ReportSelect
           label="Expiry bucket"
           value={bucket}
@@ -73,6 +85,9 @@ export function LotStockReportPage() {
           <option value="expired_blocked">Expired blocked</option>
           <option value="legacy_unattributed">Legacy unattributed</option>
         </ReportSelect>
+      </div>
+      <div className="mb-4">
+        <BranchFilterNote />
       </div>
       {report.data ? (
         <ReportTable

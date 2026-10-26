@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { activeOperationalBranches } from "@/lib/branches/operational"
 import { getStockLotCutoverState, postOpeningStock } from "@/lib/inventory/api"
 import { notify } from "@/lib/utilities/notify"
 import {
@@ -55,7 +56,7 @@ export function OpeningStockPage() {
     (crate) => crate.is_active && crate.zone_id === zoneId,
   )
   const products = (locations.products.data ?? []).filter((product) => product.is_active)
-  const branches = (locations.branches.data ?? []).filter((branch) => branch.is_active)
+  const branches = activeOperationalBranches(locations.branches.data)
   const selectedProduct = products.find((product) => product.id === productId)
 
   useEffect(() => {

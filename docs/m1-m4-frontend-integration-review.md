@@ -1,23 +1,25 @@
 # M1–M4 frontend integration review
 
-Date: 2026-10-23  
+Date: 2026-10-26  
 Repository: `C:\Users\Hash\Desktop\Hashdev\sherlyos`  
-Git HEAD: `202eb8a4c468e22a22e85ed082a4d2c7b000ab39` (`main`, ahead of `origin/main` by 4)  
+Baseline before this checkpoint: `f08304a7ba84438444850d8e2bd162088049e2d8` (`main`, in sync with `origin/main`)  
+M4 landing commit: `202eb8a4c468e22a22e85ed082a4d2c7b000ab39`  
 Development project: `ypkfondrkhkydkgovwup`  
 Development API: `https://ypkfondrkhkydkgovwup.supabase.co`  
-This review did **not** commit, push, deploy frontend, apply cloud migrations, or mutate development-cloud business data.
+This review did **not** push Git, deploy Netlify, apply cloud migrations, mutate development-cloud business data, or activate lot cutover.
+
+## Owner decisions
+
+- **A.** Netlify is the approved development frontend host. Configuration is in `netlify.toml`. Procedure: `docs/netlify-development-release.md`.
+- **B.** Inactive godowns stay in authorized reporting (overall totals and a labeled Inactive / Historical filter). They are not selectable for new operational transactions.
 
 ## Verdict
 
-**M1–M4 FRONTEND INTEGRATION PARTIAL — CORRECTIONS REQUIRED**
+**M1–M4 FRONTEND INTEGRATION READY FOR NETLIFY DEVELOPMENT — AWAITING DEPLOYMENT AUTHORIZATION**
 
-The integrated Vite frontend matches the deployed M1–M4 RPC contracts. Local journeys A–J pass against a disposable database, including SQL assertions for reservation-versus-DISPATCH. Cache isolation, Playwright local-target guarding, and inactive-godown reporting copy are in the working tree (uncommitted).
+The integrated Vite frontend matches the deployed M1–M4 RPC contracts. Local journeys A–J pass against a disposable database, including SQL assertions for reservation-versus-DISPATCH. Session query isolation, Playwright local-target guarding, inactive-godown reporting, and the Netlify development build guard are in the release checkpoint.
 
-Release authorization is not complete because:
-
-1. No development frontend host, CI deploy pipeline, or rollback artifact exists in the repository.
-2. Inactive-godown reporting policy remains an unresolved product decision (totals unchanged; UI now explains the split).
-3. The production JS entry chunk is still above Vite’s 500 kB warning after route splitting.
+Remaining gates are owner actions (create Netlify site, set publishable env, authorize push if Git-connected, authorize deploy, Auth URL update) plus a separate authorized migration for picking/dispatch/adjustment `branches.is_active` enforcement. The 500 kB entry-chunk warning remains optional follow-up.
 
 ## Application route map
 
@@ -88,11 +90,11 @@ Store Keeper cannot confirm dispatch (Playwright + M3 HTTP). Delivery person can
 
 ## Branch behavior
 
-Operational selectors (opening stock, dashboard dropdown from `authorized_branches`) list **active** godowns.
+Approved policy: authorized Admin reports and overall stock totals **include inactive godowns**. Filters group them under **Inactive / Historical** and label rows “Inactive (historical)”. Totals and ledger rows are not rewritten. Inactive branches are not reactivated.
 
-M4 admin totals and `stock_by_godown` **include inactive godowns**. The dashboard dropdown does not. Inventory report now groups inactive sites as “Inactive (historical reporting)” without activating them.
+Operational selectors (opening stock, transfers, new orders, new lot reconciliation) list **active** godowns only. Receiving and verification option RPCs already filter `branches.is_active`. Dashboard reporting no longer uses `authorized_branches` (active-only) as the filter list; it uses the RLS branch list via `useStockLocations`.
 
-**Unresolved product decision:** whether “All authorized branches” should continue to include inactive stock, or whether reports should default to active-only. This review did not change totals.
+`get_operations_dashboard` / `report_assert_branch` still authorize an inactive UUID through admin `can_work_at_branch` (`branches.access_all` ignores `is_active`). Assigned non-admins still require `branches.is_active`.
 
 ## Frontend-to-RPC contract map
 
@@ -212,79 +214,34 @@ A polluted local database caused M4 SQL `opening summary` to fail before reset. 
 
 ## Deployment target
 
-No Vercel, Netlify, Cloudflare, GitHub Actions, or Pages config exists. Scripts are `dev`, `build`, `preview`, `test`, `test:e2e`. Frontend env is only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. `.env.example` already names `ypkfondrkhkydkgovwup`. Default `npm run dev` uses `.env.local` (development cloud). Playwright uses `--mode m1s2` and now refuses to start unless the effective Vite URL host is `127.0.0.1` or `localhost`.
+Netlify is the approved **development** frontend host. `netlify.toml` sets `npm run build`, publish `dist`, Node 22, `SHERLYS_RELEASE_TARGET=development`, and an SPA rewrite to `/index.html`. Vite fails the build if a Netlify/development release does not target `ypkfondrkhkydkgovwup` or if a service-role JWT is used as the browser key.
 
-There is no prior frontend deployment artifact to roll back.
+Frontend env remains only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Default `npm run dev` uses `.env.local` (development cloud). Playwright uses `--mode m1s2` and refuses to start unless the effective Vite URL host is `127.0.0.1` or `localhost`.
+
+Login is password authentication. After the Netlify site exists, the owner must set the development project’s Auth Site URL and Redirect URLs to that origin. Do not invent the URL in this repository.
+
+Git-connected Netlify deploys cannot see local commits until an authorized `git push`. Manual/CLI deploy of `dist` does not require push. See `docs/netlify-development-release.md`.
 
 ## Release checklist (do not execute until owner authorizes)
 
-1. Owner names a **development-only** frontend host. Do not create production.
-2. Confirm the host’s env is `VITE_SUPABASE_URL=https://ypkfondrkhkydkgovwup.supabase.co` and the development publishable key — never production.
+1. Owner creates a dedicated Netlify **development** site. Do not create production.
+2. Set `VITE_SUPABASE_URL=https://ypkfondrkhkydkgovwup.supabase.co` and the development publishable key in Netlify env. Never production, never service_role.
 3. Confirm cutover flags remain false/false.
-4. Build from this working tree (or the proposed checkpoint) with `npm run typecheck && npm run lint && npm test && npm run build`.
-5. Smoke login against development Auth; open overview; confirm available-to-pick is not applicable; confirm 0 lots / 0 dispatch.
-6. Do not run picking confirm or dispatch confirm against development cloud.
-7. Keep a copy of the previous static build if the host retains one.
+4. Push Git only if the site is Git-connected and the owner authorizes the push.
+5. Build/deploy from the release checkpoint SHA.
+6. Smoke login against development Auth; open overview; confirm available-to-pick is not applicable; confirm inactive godowns are labeled and excluded from opening stock.
+7. Do not run picking confirm or dispatch confirm against development cloud.
+8. Record the Netlify deploy ID and Git SHA. Restore the previous Netlify deploy to roll back.
 
 ## Rollback plan
 
-Because no frontend is deployed, rollback is “do not publish.” After a future deploy: restore the previous static artifact on the same host, or point the host back to the last known `202eb8a` build, without changing database migrations. Do not reverse `20261023200000` on development cloud as part of a frontend rollback.
+Before the first publish: do not publish. After a deploy: restore the previous unique Netlify deploy for the same site. Do not reverse `20261023200000` on development cloud as part of a frontend rollback.
 
 ## Outstanding blockers
 
-1. Owner must designate the development frontend host and env.
-2. Owner should confirm inactive-godown reporting policy.
-3. Entry bundle still large; further splitting of the shell is optional follow-up.
-4. `/damage` and `/refill` remain empty by design.
-5. Settings does not administer accounts.
-
-## Proposed Git checkpoint (DO NOT COMMIT)
-
-Preserve unrelated: `.cursor/mcp.json`, `README.md`, `.cursor/rules/`.
-
-Include:
-
-```
-playwright.config.ts
-src/app/lazy-pages.ts
-src/app/layouts/AppShell.tsx
-src/app/providers.tsx
-src/app/router.tsx
-src/features/administration/branches/BranchesPage.tsx
-src/features/inventory/HistoryPage.tsx
-src/features/inventory/InventoryLinks.tsx
-src/features/inventory/InventoryPage.tsx
-src/features/reports/BranchFilterNote.tsx
-src/features/reports/InventoryReportPage.tsx
-src/lib/auth/AuthProvider.tsx
-src/lib/delivery-notes/api.ts
-src/lib/dispatch/api.ts
-src/lib/inventory/api.ts
-src/lib/inventory/labels.ts
-src/lib/lot-reconciliation/api.ts
-src/lib/masters/api.ts
-src/lib/orders/api.ts
-src/lib/picking/api.ts
-src/lib/query/QueryCacheIsolation.tsx
-src/lib/query/session-scope.ts
-src/lib/rpc/user-error.ts
-src/pages/dashboard/DashboardPage.tsx
-tests/e2e/assert-local-target.ts
-tests/e2e/dispatch.spec.ts
-tests/e2e/journeys.spec.ts
-tests/e2e/picking.spec.ts
-tests/e2e/reports.spec.ts
-tests/integration/dashboard.test.tsx
-tests/unit/inventory.test.ts
-tests/unit/query-session-scope.test.ts
-tests/unit/rpc-user-error.test.ts
-docs/m1-m4-frontend-integration-review.md
-```
-
-Proposed message:
-
-```
-fix(frontend): isolate session cache and harden M1-M4 development release
-
-Clear and hash TanStack Query by signed-in user, fail closed if Playwright would target a non-local API, and explain inactive-godown reporting without changing stock totals.
-```
+1. Owner must create the Netlify development site, set env, and authorize the first deploy.
+2. After this local checkpoint, Git push is required for a Git-connected Netlify build; push is not authorized here.
+3. Picking, dispatch, and adjustment RPCs that only call `can_work_at_branch` do not reject inactive godowns for Admin `branches.access_all`. Affected helpers/RPCs: `assert_picking_allocator`, `assert_picking_manager`, `assert_picking_executor`, `reserve_order_allocation`, `start_picking`, `prepare_dispatch`, `confirm_dispatch`, `assert_dispatch_confirmer`, `assert_dispatch_assigner`, `assert_dispatch_executor`, `create_stock_adjustment`. Frontend selectors hide inactive sites; a backend migration is **not** included in this release.
+4. Entry bundle still large; further splitting of the shell is optional follow-up.
+5. `/damage` and `/refill` remain empty by design.
+6. Settings does not administer accounts.

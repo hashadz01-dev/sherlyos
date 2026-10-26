@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Link } from "react-router"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -12,8 +11,8 @@ import {
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
-import { BranchFilterNote } from "@/features/reports/BranchFilterNote"
-import { ReportSelect } from "@/features/reports/ReportControls"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
@@ -54,7 +53,7 @@ export function DashboardPage() {
   useDocumentTitle("Operations Overview")
   const access = useAccess()
   const { session } = useAuth()
-  const [branchId, setBranchId] = useState("")
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const dashboard = useQuery({
     queryKey: reportKeys.dashboard(session?.user.id, branchId),
     queryFn: () => getOperationsDashboard(branchId || null),
@@ -79,7 +78,14 @@ export function DashboardPage() {
           {dashboard.error.message}
         </p>
       ) : null}
-      {data ? <DashboardBody data={data} branchId={branchId} onBranch={setBranchId} /> : null}
+      {data ? (
+        <DashboardBody
+          data={data}
+          branchId={branchId}
+          onBranch={setBranchId}
+          branches={branches}
+        />
+      ) : null}
     </section>
   )
 }
@@ -88,10 +94,12 @@ function DashboardBody({
   data,
   branchId,
   onBranch,
+  branches,
 }: {
   data: OperationsDashboard
   branchId: string
   onBranch: (value: string) => void
+  branches: { id: string; name: string; code?: string; is_active: boolean }[]
 }) {
   const access = useAccess()
   const pick = availablePickDisplay(data.inventory.available_to_pick, data.inventory.visible)
@@ -100,14 +108,7 @@ function DashboardBody({
   return (
     <>
       <div className="mb-6 grid gap-3 md:grid-cols-[16rem_minmax(0,1fr)]">
-        <ReportSelect label="Branch" value={branchId} onChange={onBranch}>
-          <option value="">All authorized branches</option>
-          {data.authorized_branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name} ({branch.code})
-            </option>
-          ))}
-        </ReportSelect>
+        <ReportBranchSelect value={branchId} onChange={onBranch} branches={branches} />
         <p className="self-end text-sm text-muted-foreground">
           Timezone UTC.
           {cutoverOff
@@ -116,7 +117,7 @@ function DashboardBody({
         </p>
       </div>
       <div className="mb-6">
-        <BranchFilterNote operationalDropdown />
+        <BranchFilterNote />
       </div>
 
       {data.inventory.visible ? (
@@ -156,15 +157,16 @@ function DashboardBody({
           </div>
           <ul className="divide-y divide-slate-100">
             {data.inventory.stock_by_godown?.map((row) => {
-              const operational = data.authorized_branches.some((branch) => branch.id === row.branch_id)
+              const listed = branches.find((branch) => branch.id === row.branch_id)
+              const inactive = listed ? !listed.is_active : !data.authorized_branches.some((branch) => branch.id === row.branch_id)
               return (
                 <li key={row.branch_id} className="flex items-center justify-between px-5 py-3 text-sm">
                   <span>
                     {row.branch_name}
                     <span className="ml-2 text-muted-foreground">{row.branch_code}</span>
-                    {operational ? null : (
+                    {inactive ? (
                       <span className="ml-2 text-muted-foreground">Inactive (historical)</span>
-                    )}
+                    ) : null}
                   </span>
                   <span className="font-medium">{row.cartons}</span>
                 </li>

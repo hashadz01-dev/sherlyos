@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { Button } from "@/components/ui/button"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { activeOperationalBranches } from "@/lib/branches/operational"
 import { createLotReconciliation, lotReconciliationKeys } from "@/lib/lot-reconciliation/api"
 import {
   cratesBelongToGodown,
@@ -24,7 +25,7 @@ export function NewLotReconciliationPage() {
   const [crateIds, setCrateIds] = useState<string[]>([])
   const [notes, setNotes] = useState("")
   const [idempotencyKey, setIdempotencyKey] = useState(() => newIdempotencyKey("lr-create"))
-  const branches = (locations.branches.data ?? []).filter((branch) => branch.is_active)
+  const branches = activeOperationalBranches(locations.branches.data)
   const zones = useMemo(
     () => (locations.zones.data ?? []).filter((zone) => zone.is_active && zone.branch_id === godownId),
     [locations.zones.data, godownId],

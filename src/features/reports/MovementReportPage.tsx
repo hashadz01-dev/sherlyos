@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { ExportButton } from "@/features/reports/ExportButton"
+import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
 import { ReportDateField, ReportSelect } from "@/features/reports/ReportControls"
 import { ReportLinks } from "@/features/reports/ReportLinks"
 import { ReportTable } from "@/features/reports/ReportTable"
+import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { formatUtc, utcDayEndExclusive, utcDayStart } from "@/lib/reports/format"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -14,6 +16,7 @@ import { listStockMovementReport, reportKeys } from "@/lib/reports/api"
 export function MovementReportPage() {
   useDocumentTitle("Stock movement report")
   const { session } = useAuth()
+  const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [movementType, setMovementType] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
@@ -22,6 +25,7 @@ export function MovementReportPage() {
     movement_type: movementType || null,
     posted_from: utcDayStart(fromDate),
     posted_to: utcDayEndExclusive(toDate),
+    filter_branch: branchId || null,
     page,
     page_size: 50,
   }
@@ -45,7 +49,15 @@ export function MovementReportPage() {
           {report.error.message}
         </p>
       ) : null}
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
+      <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <ReportBranchSelect
+          value={branchId}
+          onChange={(value) => {
+            setBranchId(value)
+            setPage(1)
+          }}
+          branches={branches}
+        />
         <ReportSelect
           label="Movement type"
           value={movementType}
@@ -77,6 +89,9 @@ export function MovementReportPage() {
             setPage(1)
           }}
         />
+      </div>
+      <div className="mb-4">
+        <BranchFilterNote />
       </div>
       {summary ? (
         <dl className="mb-4 grid gap-3 text-sm md:grid-cols-5">

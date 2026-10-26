@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { activeOperationalBranches } from "@/lib/branches/operational"
 import type { OrderCatalogBranch, OrderCatalogProduct, OrderCatalogShop, OrderLineInput, OrderSource } from "@/lib/orders/api"
 
 export type OrderFormValues = {
@@ -46,7 +47,7 @@ export function OrderForm({
     initial.lines.length > 0 ? initial.lines : [{ product_id: "", requested_cases: 1 }],
   )
   const activeShops = shops.filter((shop) => shop.is_active)
-  const activeBranches = branches.filter((branch) => branch.is_active)
+  const activeBranches = activeOperationalBranches(branches)
   const activeProducts = products.filter((product) => product.is_active)
   const valid =
     shopId !== "" &&

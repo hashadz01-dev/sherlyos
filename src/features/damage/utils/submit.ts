@@ -255,15 +255,9 @@ export function reportHasCompletedOrdinaryWriteoff(
   report: DamageReportDetail | null | undefined,
 ) {
   if (!report) return false
-  const holds = report.holds ?? []
-  const remaining = holds.filter(
-    (hold) => hold.status === "active" || hold.status === "transferred",
-  )
-  const written = holds.some((hold) => hold.status === "written_off")
-  const event = (report.events ?? []).some(
-    (row) => row.action === "ordinary_writeoff",
-  )
-  return event || (written && remaining.length === 0)
+  // Exceptional destroy also leaves written_off holds. Only the ordinary event
+  // is a completed ordinary posting; backend completed-identification agrees.
+  return (report.events ?? []).some((row) => row.action === "ordinary_writeoff")
 }
 
 /**

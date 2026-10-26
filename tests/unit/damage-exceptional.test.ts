@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { formatDamageEventAction } from "@/features/damage/utils/labels"
 import { damageLifecycleStages } from "@/features/damage/utils/lifecycle"
 import {
   mapDamageMutationError,
@@ -111,6 +112,12 @@ describe("exceptional approval and execution", () => {
   it("labels approved as pending execution", () => {
     expect(formatExceptionalStatus("approved")).toMatch(/pending execution/i)
     expect(formatExceptionalStatus("posted")).toMatch(/ledger complete/i)
+    expect(formatDamageEventAction("exceptional_posted")).toMatch(
+      /ledger complete/i,
+    )
+    expect(formatDamageEventAction("ordinary_writeoff")).toMatch(
+      /ordinary write-off posted/i,
+    )
   })
 
   it("requires Admin damage.dispose for rejection and a requested status", () => {
@@ -242,5 +249,72 @@ describe("exceptional recovery and lifecycle", () => {
     expect(
       stages.find((row) => row.id === "exceptional_posted")?.description,
     ).toMatch(/not independently recorded/i)
+    expect(
+      stages.find((row) => row.id === "ordinary_writeoff")?.complete,
+    ).toBe(false)
+    expect(
+      stages.find((row) => row.id === "ordinary_writeoff")?.applicable,
+    ).toBe(false)
+  })
+
+  it("keeps ordinary write-off available after an exceptional rejection", () => {
+    const stages = damageLifecycleStages({
+      id: "r1",
+      report_number: "DMG-1",
+      scenario: "storage",
+      godown_id: "g1",
+      godown_name: "G",
+      status: "verified",
+      version: 4,
+      reporter_name: "GM",
+      created_at: "2026-10-26T10:00:00Z",
+      receipt_id: null,
+      picking_request_id: null,
+      dispatch_id: null,
+      order_id: null,
+      shop_id: null,
+      notes: null,
+      verified_at: "2026-10-26T12:00:00Z",
+      lines: [],
+      holds: [
+        {
+          id: "h1",
+          line_id: "l1",
+          product_id: "p1",
+          crate_id: "c1",
+          lot_id: null,
+          quantity_cases: 2,
+          hold_kind: "on_hand_deduction",
+          status: "active",
+        },
+      ],
+      events: [
+        {
+          action: "exceptional_rejected",
+          actor_name: "Admin",
+          previous_status: "verified",
+          next_status: "verified",
+          created_at: "2026-10-26T13:00:00Z",
+          metadata: {},
+        },
+      ],
+      evidence: [],
+      exceptional_requests: [
+        {
+          id: "ex1",
+          kind: "destroy",
+          status: "rejected",
+          version: 2,
+          requested_at: "2026-10-26T12:30:00Z",
+          decided_at: "2026-10-26T13:00:00Z",
+        },
+      ],
+    } as DamageReportDetail)
+    expect(
+      stages.find((row) => row.id === "ordinary_writeoff")?.applicable,
+    ).toBe(true)
+    expect(
+      stages.find((row) => row.id === "ordinary_writeoff")?.complete,
+    ).toBe(false)
   })
 })

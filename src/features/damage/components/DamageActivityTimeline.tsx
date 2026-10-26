@@ -1,5 +1,6 @@
 import {
   activityNote,
+  formatDamageEventAction,
   formatDamageStatus,
   formatTimestamp,
 } from "@/features/damage/utils/labels"
@@ -28,7 +29,9 @@ export function DamageActivityTimeline({
             className="rounded-xl border border-border/70 bg-card px-3 py-2"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-medium">{event.action.replaceAll("_", " ")}</p>
+              <p className="font-medium">
+                {formatDamageEventAction(event.action)}
+              </p>
               <time
                 className="text-xs text-muted-foreground"
                 dateTime={event.created_at}

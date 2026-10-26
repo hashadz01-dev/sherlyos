@@ -92,12 +92,17 @@ export function damageLifecycleStages(
   )
   const remainingIsolation =
     breakdown.heldCases > 0 || breakdown.quarantinedCases > 0
+  const ordinaryPostedAt = eventAt(report, "ordinary_writeoff")
+  const ordinaryPosted = Boolean(ordinaryPostedAt)
   const writtenOff = breakdown.writtenOffCases > 0
   const rejected = report.status === "rejected"
   const cancelled = report.status === "cancelled"
+  // Exceptional destroy also sets hold status written_off. Ordinary completion
+  // is the persisted ordinary_writeoff event, not that hold status.
   const resolved =
     cancelled ||
-    (writtenOff && !remainingIsolation) ||
+    ((ordinaryPosted || Boolean(exceptionalPosted) || writtenOff) &&
+      !remainingIsolation) ||
     (verified && !remainingIsolation && !exceptionalOpen)
 
   return [
@@ -188,11 +193,11 @@ export function damageLifecycleStages(
       label: "Ordinary write-off posted",
       description:
         "Trusted ledger adjustment consumed remaining isolated cases. Separate from verification.",
-      applicable: writtenOff || (verified && remainingIsolation),
-      complete: writtenOff,
-      at: writtenOff
-        ? (eventAt(report, "ordinary_writeoff") ?? report.updated_at ?? null)
-        : null,
+      applicable:
+        ordinaryPosted ||
+        (verified && remainingIsolation && !exceptionalOpen && !exceptionalPosted),
+      complete: ordinaryPosted,
+      at: ordinaryPosted ? ordinaryPostedAt : null,
     },
     {
       id: "quarantined",
@@ -244,9 +249,11 @@ export function damageLifecycleStages(
       label: "Disposition pending",
       description: rejected
         ? "Rejected shop-return stock stays quarantined until authorized resolution."
-        : writtenOff
+        : ordinaryPosted
           ? "Ordinary write-off posted. Remaining isolation is shown separately."
-          : "Verified holds await write-off, return, or destroy posting.",
+          : exceptionalPosted
+            ? "Exceptional posting completed. Remaining isolation is shown separately."
+            : "Verified holds await write-off, return, or destroy posting.",
       applicable: remainingIsolation || exceptionalOpen || rejected,
       complete: remainingIsolation || exceptionalOpen,
       at:

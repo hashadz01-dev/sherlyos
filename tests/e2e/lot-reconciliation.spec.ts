@@ -1,5 +1,9 @@
 import { spawnSync } from "node:child_process"
 import { expect, test, type Page } from "@playwright/test"
+import {
+  cleanupDisposableTestStock,
+  DISPOSABLE_SKU_PATTERNS,
+} from "./disposable-stock"
 
 const password = "local-only-m1s2qa"
 const crateA1 = "m1s2qa_za · m1s2qa_ca1 · QA Crate A1"
@@ -716,6 +720,11 @@ test("admin applies approved attribution after local legacy seed", async ({ page
   await expect(page.getByText(/Attribution is not eligible yet/)).toBeVisible()
   await expect(page.getByRole("button", { name: "Apply attribution" })).toBeDisabled()
 
+  cleanupDisposableTestStock("lot-recon leftover disposable cleanup", {
+    skuPatterns: DISPOSABLE_SKU_PATTERNS.filter(
+      (pattern) => !pattern.startsWith("m1s2"),
+    ),
+  })
   seedLegacyLotsAsAdmin()
   await page.reload()
   await expect(page.getByText(/Attribution is eligible/)).toBeVisible({ timeout: 20_000 })

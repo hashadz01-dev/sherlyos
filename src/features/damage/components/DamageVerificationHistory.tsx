@@ -1,4 +1,8 @@
-import { activityNote, formatTimestamp } from "@/features/damage/utils/labels"
+import {
+  activityNote,
+  formatDamageEventAction,
+  formatTimestamp,
+} from "@/features/damage/utils/labels"
 import type { DamageReportDetail } from "@/lib/damage/api"
 
 const verificationActions = new Set([
@@ -14,6 +18,10 @@ const verificationActions = new Set([
   "ordinary_writeoff",
   "quarantine_transferred",
   "holds_released",
+  "exceptional_requested",
+  "exceptional_approved",
+  "exceptional_rejected",
+  "exceptional_posted",
 ])
 
 /** Persisted verification and write-off events only. No fabricated timestamps. */
@@ -40,7 +48,7 @@ export function DamageVerificationHistory({
           className="rounded-xl bg-muted/40 px-3 py-2"
         >
           <p className="font-medium">
-            {event.action.replaceAll("_", " ")} · {event.actor_name ?? "—"}
+            {formatDamageEventAction(event.action)} · {event.actor_name ?? "—"}
           </p>
           <p className="text-xs text-muted-foreground">
             {formatTimestamp(event.created_at)}

@@ -309,5 +309,22 @@ describe("verification queue labels and error mapping", () => {
         events: [],
       } as unknown as DamageReportDetail),
     ).toBe(false)
+    expect(
+      reportHasCompletedOrdinaryWriteoff({
+        holds: [
+          {
+            id: "h1",
+            line_id: "l1",
+            product_id: "p1",
+            crate_id: "c1",
+            lot_id: null,
+            quantity_cases: 2,
+            hold_kind: "on_hand_deduction",
+            status: "written_off",
+          },
+        ],
+        events: [{ action: "exceptional_posted" }],
+      } as unknown as DamageReportDetail),
+    ).toBe(false)
   })
 })

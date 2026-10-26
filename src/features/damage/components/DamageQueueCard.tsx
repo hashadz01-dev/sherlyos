@@ -8,7 +8,10 @@ import {
   formatDate,
 } from "@/features/damage/utils/labels"
 import type { DamageQueueItem } from "@/lib/damage/api"
-import type { DamageStatus } from "@/lib/damage/rules"
+import {
+  formatExceptionalStatus,
+  type DamageStatus,
+} from "@/lib/damage/rules"
 
 export function DamageQueueCard({
   title,
@@ -63,7 +66,7 @@ export function DamageQueueCard({
                   }
                 >
                   {item.exceptional_status
-                    ? item.exceptional_status
+                    ? formatExceptionalStatus(item.exceptional_status)
                     : formatDamageStatus(item.status)}
                 </StatusBadge>
               </Link>

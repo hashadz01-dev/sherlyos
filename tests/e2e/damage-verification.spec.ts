@@ -398,7 +398,7 @@ test("ordinary write-off confirmation and double-submit protection", async ({
   await expect(
     page.getByRole("button", { name: /post ordinary write-off/i }),
   ).toBeDisabled()
-  await expect(page.getByText("Ordinary write-off posted")).toBeVisible()
+  await expect(page.getByText("Ordinary write-off posted").first()).toBeVisible()
 })
 
 test("store keeper cannot open the verification queue", async ({ page }) => {

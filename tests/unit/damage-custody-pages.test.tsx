@@ -372,7 +372,7 @@ describe("quarantine table and page", () => {
         shop_return_intake_cases: 3,
         transferred_quarantine_cases: 0,
         written_off_cases: 5,
-        returned_supplier_cases: 0,
+        returned_supplier_cases: 4,
         released_cases: 0,
       },
     })
@@ -383,6 +383,10 @@ describe("quarantine table and page", () => {
     expect(screen.getByText("6 cases")).toBeInTheDocument()
     expect(screen.getByText("Written off (not current)")).toBeInTheDocument()
     expect(screen.getByText("5 cases")).toBeInTheDocument()
+    expect(
+      screen.getByText("Returned to supplier (not current)"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("4 cases")).toBeInTheDocument()
     expect(screen.getByText(/3 matching holds/i)).toBeInTheDocument()
     expect(screen.getByText(/logical on-hand isolation/i)).toBeInTheDocument()
   })

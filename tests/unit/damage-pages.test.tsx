@@ -121,12 +121,25 @@ describe("damage pages", () => {
         active_hold_cases: 4,
         quarantined_cases: 0,
         pending_exceptional: 0,
+        ordinary_writeoff_cases: 3,
+        exceptional_writeoff_cases: 7,
+        returned_supplier_cases: 4,
       },
       queues: {
         recent_submitted: [],
         awaiting_verification: [],
         awaiting_disposition: [],
-        exceptional_pending: [],
+        exceptional_pending: [
+          {
+            id: "r-ex",
+            report_number: "DMG-9401",
+            scenario: "storage",
+            status: "verified",
+            godown_name: "Main Godown",
+            created_at: "2026-10-26T10:00:00Z",
+            exceptional_status: "approved",
+          },
+        ],
         recently_resolved: [],
       },
     })
@@ -140,6 +153,12 @@ describe("damage pages", () => {
     })
     expect(screen.getByText("2")).toBeInTheDocument()
     expect(screen.getByText("All reports")).toBeInTheDocument()
+    expect(screen.getByText("Ordinary write-off cases")).toBeInTheDocument()
+    expect(screen.getByText("Exceptional write-off cases")).toBeInTheDocument()
+    expect(screen.getByText("Returned to supplier")).toBeInTheDocument()
+    expect(
+      screen.getByText("Approved — pending execution"),
+    ).toBeInTheDocument()
   })
 
   it("shows an empty report list state", async () => {

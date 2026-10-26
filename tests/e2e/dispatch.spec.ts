@@ -1,5 +1,9 @@
 import { spawnSync } from "node:child_process"
 import { expect, test, type Page } from "@playwright/test"
+import {
+  cleanupDisposableTestStock,
+  disposableSkuExcludeSql,
+} from "./disposable-stock"
 
 const password = "local-only-m3e2e"
 const RUN = Date.now().toString(36)
@@ -31,6 +35,7 @@ function lastLine(text: string) {
 }
 
 test.beforeAll(() => {
+  cleanupDisposableTestStock("dispatch leftover disposable cleanup")
   runLocalSql(
     `
     do $$
@@ -136,16 +141,7 @@ test.beforeAll(() => {
             where lb.crate_id = sb.crate_id
               and l.product_id = sb.product_id
           ), 0)
-          and p.sku not like 'm1s2qa-%'
-          and p.sku not like 'm1s2c%'
-          and p.sku not like 'm1s3c%'
-          and p.sku not like 'm1s3qa%'
-          and p.sku not like 'm2e2e_%'
-          and p.sku not like 'm2pk%'
-          and p.sku not like 'm3e2e_%'
-          and p.sku not like 'm3qa%'
-          and p.sku not like 'm3c_%'
-          and p.sku not like 'm3ds%'
+          and ${disposableSkuExcludeSql("p")}
       ) then
         raise exception 'unmatched non-disposable stock blocks dispatch flag enable';
       end if;

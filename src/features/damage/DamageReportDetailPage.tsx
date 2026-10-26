@@ -84,6 +84,11 @@ export function DamageReportDetailPage() {
                 <Link to="/damage/exceptional">Exceptional approvals</Link>
               </Button>
             ) : null}
+            {access.canViewQuarantine ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/quarantine">Quarantine</Link>
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <Link to="/damage/reports">Back to list</Link>
             </Button>

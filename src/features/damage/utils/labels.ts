@@ -108,6 +108,36 @@ export function formatDate(value: string | null | undefined) {
   return value.slice(0, 10)
 }
 
+/** Persisted damage_report_events.action labels. Unknown actions stay literal. */
+export const damageEventActionLabels: Record<string, string> = {
+  create: "Report created",
+  created: "Report created",
+  submit: "Report submitted",
+  submitted: "Report submitted",
+  returned: "Returned for correction",
+  rejected: "Report rejected",
+  cancelled: "Report cancelled",
+  custody_confirmed: "Custody confirmed",
+  isolate: "Stock isolated",
+  isolated: "Stock isolated",
+  stock_isolated: "Stock isolated",
+  verified: "Verified",
+  verify: "Verified",
+  ordinary_writeoff: "Ordinary write-off posted",
+  quarantine_transferred: "Transferred to quarantine",
+  holds_released: "Holds released",
+  exceptional_requested: "Exceptional requested",
+  exceptional_approved: "Exceptional approved",
+  exceptional_rejected: "Exceptional rejected",
+  exceptional_posted: "Exceptional posted — ledger complete",
+  evidence_uploaded: "Evidence uploaded",
+  evidence_finalized: "Evidence finalized",
+}
+
+export function formatDamageEventAction(action: string) {
+  return damageEventActionLabels[action] ?? action.replaceAll("_", " ")
+}
+
 /** Safe activity note: strip internal tokens from event metadata. */
 export function activityNote(
   metadata: Record<string, unknown> | null | undefined,

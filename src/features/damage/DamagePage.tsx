@@ -140,6 +140,24 @@ export function DamagePage() {
               !access.showExceptionalQueues && totals.pending_exceptional === 0
             }
           />
+          <MetricCard
+            label="Ordinary write-off cases"
+            icon={Package}
+            hint="Posted ordinary write-off cartons. Not current unavailable stock."
+            value={totals.ordinary_writeoff_cases ?? 0}
+          />
+          <MetricCard
+            label="Exceptional write-off cases"
+            icon={ShieldAlert}
+            hint="Posted exceptional destroy cartons. Not current unavailable stock."
+            value={totals.exceptional_writeoff_cases ?? 0}
+          />
+          <MetricCard
+            label="Returned to supplier"
+            icon={Package}
+            hint="Posted return-to-supplier cartons. Saleable stock was not restored."
+            value={totals.returned_supplier_cases ?? 0}
+          />
         </div>
       ) : null}
 
@@ -168,8 +186,9 @@ export function DamagePage() {
           {access.showDispositionQueues ? (
             <DamageQueueCard
               title="Awaiting disposition"
-              description="Verified reports that still have active or transferred holds."
+              description="Verified reports that still have active or transferred holds. Open a report to post an ordinary write-off or request exceptional disposition."
               items={queues.awaiting_disposition}
+              href="/damage/reports"
             />
           ) : null}
           {access.showExceptionalQueues ? (

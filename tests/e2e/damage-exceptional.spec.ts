@@ -493,6 +493,13 @@ test("quarantine totals and ordinary write-off remain intact", async ({
   await expect(page.getByText("Written off").first()).toBeVisible()
   await page.goto("/damage")
   await expect(page.getByText("Damage stock isolation not ready")).toBeVisible()
+  await expect(page.getByText("Ordinary write-off cases")).toBeVisible()
+  await expect(page.getByText("Exceptional write-off cases")).toBeVisible()
+  await expect(page.getByText("Returned to supplier")).toBeVisible()
+  await page.goto("/damage/quarantine")
+  await expect(
+    page.getByText("Returned to supplier (not current)"),
+  ).toBeVisible()
 })
 
 test.afterAll(() => {

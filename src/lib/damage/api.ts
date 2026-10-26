@@ -248,6 +248,12 @@ export type DamageDashboard = {
     active_hold_cases: number
     quarantined_cases: number
     pending_exceptional: number
+    /** Historical posted ordinary write-off cartons. Not current unavailable. */
+    ordinary_writeoff_cases: number
+    /** Historical posted exceptional destroy cartons. Not current unavailable. */
+    exceptional_writeoff_cases: number
+    /** Historical returned-to-supplier cartons. Not current unavailable. */
+    returned_supplier_cases: number
   }
   queues: {
     recent_submitted: DamageQueueItem[]

@@ -135,6 +135,11 @@ export function DamageReportsPage() {
                 <Link to="/damage/verification">Verification</Link>
               </Button>
             ) : null}
+            {access.canViewExceptionalQueue ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/exceptional">Exceptional</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />

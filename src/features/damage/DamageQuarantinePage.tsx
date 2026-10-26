@@ -239,8 +239,8 @@ export function DamageQuarantinePage() {
         <div className="mb-4 rounded-lg border border-border p-3">
           <p className="text-sm text-muted-foreground">
             Filter-wide hold counts. These are not this page&apos;s cartons and
-            are not saleable stock. Written-off cases are excluded from current
-            unavailable.
+            are not saleable stock. Written-off and returned-to-supplier cases
+            are excluded from current unavailable.
           </p>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3">
             <div>
@@ -276,6 +276,12 @@ export function DamageQuarantinePage() {
                 Written off (not current)
               </dt>
               <dd>{formatCases(list.data.totals.written_off_cases)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">
+                Returned to supplier (not current)
+              </dt>
+              <dd>{formatCases(list.data.totals.returned_supplier_cases)}</dd>
             </div>
           </dl>
         </div>

@@ -1,5 +1,9 @@
 import { spawnSync } from "node:child_process"
 import { expect, test, type Page } from "@playwright/test"
+import {
+  cleanupDisposableTestStock,
+  wipeDisposableSkuStock,
+} from "./disposable-stock"
 
 const password = "local-only-m4e2e"
 const RUN = Date.now().toString(36)
@@ -32,6 +36,7 @@ function runLocalSql(sql: string, label: string) {
 }
 
 test.beforeAll(() => {
+  cleanupDisposableTestStock("reports leftover disposable cleanup")
   runLocalSql(
     `
     do $$
@@ -125,25 +130,7 @@ test.beforeAll(() => {
 })
 
 test.afterAll(() => {
-  runLocalSql(
-    `
-    set session_replication_role = replica;
-    delete from public.stock_balances
-    where product_id in (select id from public.products where sku = '${PREFIX}');
-    delete from public.stock_lot_balances
-    where lot_id in (
-      select id from public.stock_lots
-      where product_id in (select id from public.products where sku = '${PREFIX}')
-    );
-    delete from public.stock_lots
-    where product_id in (select id from public.products where sku = '${PREFIX}');
-    update public.app_configuration
-    set value = 'false'::jsonb
-    where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
-    set session_replication_role = origin;
-    `,
-    "m4e2e cleanup",
-  )
+  wipeDisposableSkuStock(["m4e2e_%"], "m4e2e family cleanup")
 })
 
 async function signIn(page: Page, email: string) {

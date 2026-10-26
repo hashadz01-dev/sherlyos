@@ -9,6 +9,8 @@ import {
   DamagePage,
   DamageReportDetailPage,
   DamageReportsPage,
+  EditDamageReportPage,
+  NewDamageReportPage,
   DeliveriesPage,
   DeliveryNoteDetailPage,
   DeliveryNotePrintPage,
@@ -60,7 +62,10 @@ import {
 } from "@/app/lazy-pages"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
-import { damageNavPermissions } from "@/lib/damage/rules"
+import {
+  damageCreatePermissions,
+  damageNavPermissions,
+} from "@/lib/damage/rules"
 import {
   dispatchReportPermissions,
   inventoryReportPermissions,
@@ -301,6 +306,22 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequireAnyPermission permissions={[...damageNavPermissions]}>
                 <DamageReportsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "damage/new",
+            element: (
+              <RequireAnyPermission permissions={[...damageCreatePermissions]}>
+                <NewDamageReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "damage/:reportId/edit",
+            element: (
+              <RequireAnyPermission permissions={[...damageCreatePermissions]}>
+                <EditDamageReportPage />
               </RequireAnyPermission>
             ),
           },

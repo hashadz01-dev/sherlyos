@@ -32,6 +32,15 @@ vi.mock("@/features/damage/hooks/use-damage-access", () => ({
     roles: ["godown_manager"],
     can: () => true,
     canOpenDamage: true,
+    canCreate: true,
+    availableScenarios: [
+      "refill_supply",
+      "unloading",
+      "storage",
+      "loading",
+      "transit",
+      "shop_return",
+    ],
     canRead: true,
     canRecord: true,
     canVerify: true,
@@ -42,6 +51,10 @@ vi.mock("@/features/damage/hooks/use-damage-access", () => ({
     showDispositionQueues: true,
     showExceptionalQueues: true,
   }),
+}))
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({ session: { user: { id: "u1" } } }),
 }))
 
 vi.mock("@/hooks/use-document-title", () => ({

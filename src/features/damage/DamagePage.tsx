@@ -36,11 +36,18 @@ export function DamagePage() {
     <section className="min-w-0">
       <PageHeader
         title="Damage Management"
-        description="Authorized damage reports, verification queues, and stock isolation status. Mutation workflows arrive in later phases."
+        description="Authorized damage reports, verification queues, and stock isolation status."
         action={
-          <Button asChild variant="outline">
-            <Link to="/damage/reports">All reports</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {access.canCreate ? (
+              <Button asChild>
+                <Link to="/damage/new">New report</Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link to="/damage/reports">All reports</Link>
+            </Button>
+          </div>
         }
       />
 

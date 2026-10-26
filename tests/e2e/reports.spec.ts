@@ -10,7 +10,19 @@ test.describe.configure({ mode: "serial" })
 function runLocalSql(sql: string, label: string) {
   const result = spawnSync(
     "docker",
-    ["exec", "-i", "supabase_db_sherlyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"],
+    [
+      "exec",
+      "-i",
+      "supabase_db_sherlyos",
+      "psql",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-tA",
+    ],
     { input: sql, encoding: "utf8" },
   )
   if (result.status !== 0) {
@@ -139,7 +151,9 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel("Email").fill(email)
   await page.getByLabel("Password", { exact: true }).fill(password)
   await page.getByRole("button", { name: "Sign in" }).click()
-  await expect(page.getByRole("heading", { name: "Operations Overview" })).toBeVisible({
+  await expect(
+    page.getByRole("heading", { name: "Operations Overview" }),
+  ).toBeVisible({
     timeout: 20_000,
   })
 }
@@ -147,7 +161,9 @@ async function signIn(page: Page, email: string) {
 async function signOut(page: Page) {
   await page.getByRole("button", { name: "Account menu" }).click()
   await page.getByRole("menuitem", { name: "Sign out" }).click()
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible({
+    timeout: 20_000,
+  })
 }
 
 test("unauthenticated visitors cannot open reports", async ({ page }) => {
@@ -155,22 +171,33 @@ test("unauthenticated visitors cannot open reports", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/)
 })
 
-test("godown manager sees dashboard KPIs and inventory without available-to-pick", async ({ page }) => {
+test("godown manager sees dashboard KPIs and inventory without available-to-pick", async ({
+  page,
+}) => {
   await signIn(page, "godown.m4e2e@example.com")
   await expect(page.getByText("Cartons on hand")).toBeVisible()
-  await expect(page.getByText("7").first()).toBeVisible()
+  await expect(page.getByText("7", { exact: true }).first()).toBeVisible()
   await expect(page.getByText("Available to pick")).toBeVisible()
-  await expect(page.getByText(/Lot-aware allocation is inactive/i)).toBeVisible()
-  await expect(page.getByText(/Operational lot cutover is inactive/i)).toBeVisible()
+  await expect(
+    page.getByText(/Lot-aware allocation is inactive/i),
+  ).toBeVisible()
+  await expect(
+    page.getByText(/Operational lot cutover is inactive/i),
+  ).toBeVisible()
   await expect(page.getByText(/include inactive godown stock/i)).toBeVisible()
 
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Reports" })
+    .click()
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible()
   const reportsNav = page.getByRole("navigation", { name: "Reports" })
   await reportsNav.getByRole("link", { name: "Inventory" }).click()
-  await expect(page.getByRole("heading", { name: "Inventory report" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Inventory report" }),
+  ).toBeVisible()
   await expect(page.getByText("M4E2E soap")).toBeVisible()
-  await expect(page.getByText("7").first()).toBeVisible()
+  await expect(page.getByText("7", { exact: true }).first()).toBeVisible()
   await expect(page.getByText(/include inactive godown stock/i)).toBeVisible()
 
   const downloadPromise = page.waitForEvent("download")
@@ -182,51 +209,94 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   await expect(page.getByText("No lot balances")).toBeVisible()
 
   await reportsNav.getByRole("link", { name: "Movements" }).click()
-  await expect(page.getByRole("heading", { name: "Stock movement report" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Stock movement report" }),
+  ).toBeVisible()
   await expect(page.getByText("OPENING_STOCK").first()).toBeVisible()
 
   await reportsNav.getByRole("link", { name: "Orders & picking" }).click()
-  await expect(page.getByRole("heading", { name: "Orders and picking report" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Orders and picking report" }),
+  ).toBeVisible()
   await expect(page.getByText("No orders")).toBeVisible()
 
   await reportsNav.getByRole("link", { name: "Dispatch & delivery" }).click()
-  await expect(page.getByRole("heading", { name: "Dispatch and delivery report" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Dispatch and delivery report" }),
+  ).toBeVisible()
   await expect(page.getByText("No dispatch rows")).toBeVisible()
 
   await reportsNav.getByRole("link", { name: "Exceptions" }).click()
-  await expect(page.getByRole("heading", { name: "Operational exceptions" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Operational exceptions" }),
+  ).toBeVisible()
   await signOut(page)
 })
 
 test("inventory report stays usable at tablet width", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 })
   await signIn(page, "godown.m4e2e@example.com")
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
-  await page.getByRole("navigation", { name: "Reports" }).getByRole("link", { name: "Inventory" }).click()
-  await expect(page.getByRole("heading", { name: "Inventory report" })).toBeVisible()
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Reports" })
+    .click()
+  await page
+    .getByRole("navigation", { name: "Reports" })
+    .getByRole("link", { name: "Inventory" })
+    .click()
+  await expect(
+    page.getByRole("heading", { name: "Inventory report" }),
+  ).toBeVisible()
   await expect(page.getByText("M4E2E soap")).toBeVisible()
   await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible()
   await signOut(page)
 })
 
-test("admin reports include labeled inactive godown stock", async ({ page }) => {
+test("admin reports include labeled inactive godown stock", async ({
+  page,
+}) => {
   await signIn(page, "admin.m4e2e@example.com")
   await expect(page.getByText("Cartons on hand")).toBeVisible()
   // Scope to the KPI card. A global getByText("9") matches leftover branch codes.
   await expect(
-    page.locator("article").filter({ has: page.getByRole("heading", { name: "Cartons on hand" }) }),
+    page
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name: "Cartons on hand" }) }),
   ).toBeVisible()
   await expect(page.getByText("Inactive (historical)").first()).toBeVisible()
-  await expect(page.locator("optgroup[label='Inactive / Historical'] option").first()).toBeAttached()
-  await expect(page.getByRole("option", { name: /M4E2E historical \(.*\) \(inactive\)/ }).first()).toBeAttached()
+  await expect(
+    page.locator("optgroup[label='Inactive / Historical'] option").first(),
+  ).toBeAttached()
+  await expect(
+    page
+      .getByRole("option", { name: /M4E2E historical \(.*\) \(inactive\)/ })
+      .first(),
+  ).toBeAttached()
 
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Opening stock" }).click()
-  await expect(page.getByRole("heading", { name: "Opening stock" })).toBeVisible()
-  await expect(page.getByRole("option", { name: "M4E2E historical" })).toHaveCount(0)
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Opening stock" })
+    .click()
+  await expect(
+    page.getByRole("heading", { name: "Opening stock" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("option", { name: "M4E2E historical" }),
+  ).toHaveCount(0)
 
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
-  await page.getByRole("navigation", { name: "Reports" }).getByRole("link", { name: "Inventory" }).click()
-  await expect(page.getByRole("option", { name: /M4E2E historical .* \(inactive\)/ }).first()).toBeAttached()
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Reports" })
+    .click()
+  await page
+    .getByRole("navigation", { name: "Reports" })
+    .getByRole("link", { name: "Inventory" })
+    .click()
+  await expect(
+    page
+      .getByRole("option", { name: /M4E2E historical .* \(inactive\)/ })
+      .first(),
+  ).toBeAttached()
   await signOut(page)
 })
 
@@ -234,6 +304,8 @@ test("delivery person cannot open inventory reports", async ({ page }) => {
   await signIn(page, "driver.m4e2e@example.com")
   await expect(page.getByText("Assigned deliveries")).toBeVisible()
   await page.goto("/reports/inventory")
-  await expect(page.getByText("You do not have access to this page")).toBeVisible()
+  await expect(
+    page.getByText("You do not have access to this page"),
+  ).toBeVisible()
   await signOut(page)
 })

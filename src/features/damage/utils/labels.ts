@@ -10,6 +10,21 @@ export const damageScenarioLabels: Record<DamageScenario, string> = {
   shop_return: "Shop return",
 }
 
+export const damageScenarioDescriptions: Record<DamageScenario, string> = {
+  refill_supply:
+    "DMG-01. Damaged cases recorded on a posted supplier or refill receipt. Accepted stock is not reduced.",
+  unloading:
+    "DMG-02. Unloading damage against a posted receiving document. Uses remaining receipt damaged cases.",
+  storage:
+    "DMG-03. Damage found in an authorized godown crate. Submission isolates on-hand stock when isolation is ready.",
+  loading:
+    "DMG-04. Damage against an eligible picking allocation before dispatch is consumed. Converts the reservation when isolation is ready.",
+  transit:
+    "DMG-05. Damage on an assigned consumed dispatch. Delivery Persons may report only their assigned runs.",
+  shop_return:
+    "DMG-06. Shop, expired, or returned-goods damage. Physical custody confirmation is a later authorized workflow.",
+}
+
 export const damageStatusLabels: Record<DamageStatus, string> = {
   draft: "Draft",
   submitted: "Submitted",

@@ -106,6 +106,16 @@ export const DamageReportDetailPage = lazy(() =>
     default: m.DamageReportDetailPage,
   })),
 )
+export const NewDamageReportPage = lazy(() =>
+  import("@/features/damage/DamageReportEditorPage").then((m) => ({
+    default: m.NewDamageReportPage,
+  })),
+)
+export const EditDamageReportPage = lazy(() =>
+  import("@/features/damage/DamageReportEditorPage").then((m) => ({
+    default: m.EditDamageReportPage,
+  })),
+)
 export const ReceivingPage = lazy(() =>
   import("@/features/receiving/ReceivingPage").then((m) => ({
     default: m.ReceivingPage,

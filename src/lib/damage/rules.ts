@@ -1,7 +1,16 @@
 /**
  * Damage-management lifecycle constants.
- * Holds and disposition posting are M5.3 RPCs. M5.4A is read-only UI over those contracts.
+ * Holds and disposition posting are M5.3 RPCs. M5.4B drafts and submit use
+ * the existing create/update/submit/photo contracts; isolation stays fail-closed.
  */
+
+/** Private bucket limits from storage.buckets.stock-damage-evidence. */
+export const damagePhotoMaxBytes = 10 * 1024 * 1024
+export const damagePhotoMimeTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const
 
 export const damageScenarios = [
   "refill_supply",
@@ -70,6 +79,12 @@ export const damageNavPermissions = [
   "deliveries.execute",
 ] as const
 
+/** Create/edit routes. Admin monitor-only accounts are excluded. */
+export const damageCreatePermissions = [
+  "damage.record",
+  "deliveries.execute",
+] as const
+
 export function scenarioRequiresStockHold(scenario: string) {
   return (stockHoldScenarios as readonly string[]).includes(scenario)
 }
@@ -89,4 +104,41 @@ export function isTerminalDamageStatus(status: DamageStatus) {
   return (
     status === "verified" || status === "cancelled" || status === "rejected"
   )
+}
+
+/**
+ * UX-only scenario enablement. Backend assert_damage_create_auth remains
+ * authoritative and may still reject a selected scenario.
+ */
+export function scenariosAvailableForPermissions(
+  can: (permission: string) => boolean,
+): DamageScenario[] {
+  const available: DamageScenario[] = []
+  const recorder = can("damage.record")
+  const verifier = can("damage.verify")
+  if (recorder && (can("receiving.execute") || verifier)) {
+    available.push("refill_supply", "unloading")
+  }
+  if (recorder && verifier) {
+    available.push("storage")
+  }
+  if (recorder && (can("loading.assist") || verifier)) {
+    available.push("loading")
+  }
+  if (recorder || can("deliveries.execute")) {
+    available.push("transit")
+  }
+  if (recorder && verifier) {
+    available.push("shop_return")
+  }
+  return available
+}
+
+export function canOpenDamageCreate(can: (permission: string) => boolean) {
+  return can("damage.record") || can("deliveries.execute")
+}
+
+export function isSupportedDamagePhotoMime(mime: string) {
+  const normalized = mime.toLowerCase() === "image/jpg" ? "image/jpeg" : mime
+  return (damagePhotoMimeTypes as readonly string[]).includes(normalized)
 }

@@ -376,8 +376,8 @@ begin
   end;
 end $$;
 
--- Finalized evidence locator requires report ACL. Draft evidence is omitted
--- from payload and rejected by get_damage_photo_url.
+-- Evidence metadata includes unfinalized rows without storage_path.
+-- Preview locator still requires verified_at.
 select pg_temp.as_user('godown');
 do $$
 declare
@@ -385,15 +385,22 @@ declare
   finalized uuid;
   draft uuid;
   located jsonb;
+  finalized_count integer;
+  draft_count integer;
 begin
   payload := public.get_damage_report(current_setting('sherlyos.store_id')::uuid);
-  if jsonb_array_length(coalesce(payload -> 'evidence', '[]'::jsonb)) is distinct from 1 then
-    raise exception 'payload must expose finalized evidence only: %', payload -> 'evidence';
+  select count(*) into finalized_count
+  from jsonb_array_elements(coalesce(payload -> 'evidence', '[]'::jsonb)) ev
+  where ev ->> 'finalized' = 'true';
+  select count(*) into draft_count
+  from jsonb_array_elements(coalesce(payload -> 'evidence', '[]'::jsonb)) ev
+  where ev ->> 'finalized' = 'false';
+  if finalized_count is distinct from 1 or draft_count is distinct from 1 then
+    raise exception 'payload must expose finalized and draft evidence metadata: %', payload -> 'evidence';
   end if;
-  if payload -> 'evidence' -> 0 ->> 'finalized' is distinct from 'true' then
-    raise exception 'payload evidence must be finalized';
-  end if;
-  if payload -> 'evidence' -> 0 ? 'storage_path' then
+  if payload -> 'evidence' -> 0 ? 'storage_path'
+    or payload -> 'evidence' -> 1 ? 'storage_path'
+  then
     raise exception 'payload must not include storage_path';
   end if;
 

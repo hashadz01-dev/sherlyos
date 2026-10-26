@@ -1,5 +1,9 @@
 import { useAccess } from "@/lib/access/use-access"
-import { damageNavPermissions } from "@/lib/damage/rules"
+import {
+  canOpenDamageCreate,
+  damageNavPermissions,
+  scenariosAvailableForPermissions,
+} from "@/lib/damage/rules"
 
 /** UX-only damage capability flags. Backend RPCs remain authoritative. */
 export function useDamageAccess() {
@@ -12,6 +16,8 @@ export function useDamageAccess() {
   const canRecord = can("damage.record")
   const canVerify = can("damage.verify")
   const canMonitor = can("operations.monitor")
+  const canCreate = canOpenDamageCreate(can)
+  const availableScenarios = scenariosAvailableForPermissions(can)
   const canTransitOnly =
     can("deliveries.execute") && !canRead && !canRecord && !canVerify
   const isAdminMonitor = canMonitor && !canVerify
@@ -25,6 +31,8 @@ export function useDamageAccess() {
     roles: access.roles,
     can,
     canOpenDamage,
+    canCreate,
+    availableScenarios,
     canRead,
     canRecord,
     canVerify,

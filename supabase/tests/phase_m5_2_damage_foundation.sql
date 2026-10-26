@@ -90,25 +90,23 @@ $$;
 create or replace function pg_temp.attach_photo(target uuid)
 returns void
 language plpgsql
+security definer
+set search_path = public, pg_temp
 as $$
 declare
   created jsonb;
   payload bytea := decode('ffd8ffd9', 'hex');
 begin
   created := public.create_damage_photo_upload(target, 'count sheet');
-  insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-  values (
-    'stock-damage-evidence',
-    created ->> 'path',
-    auth.uid(),
-    auth.uid()::text,
-    jsonb_build_object(
-      'size', octet_length(payload),
-      'mimetype', 'image/jpeg',
-      'eTag', encode(extensions.digest(payload, 'md5'), 'hex')
-    )
-  );
-  perform public.finalize_damage_photo_upload((created ->> 'id')::uuid, encode(payload, 'base64'));
+  -- SQL sessions have no caller JWT, so production finalize cannot fetch
+  -- Storage bytes here. Stamp verified_at as a fixture only.
+  perform set_config('app.damage_write', 'on', true);
+  update public.damage_evidence
+  set
+    mime_type = 'image/jpeg',
+    file_size = octet_length(payload),
+    verified_at = clock_timestamp()
+  where id = (created ->> 'id')::uuid;
 end;
 $$;
 
@@ -916,7 +914,6 @@ do $$
 declare
   created jsonb;
   payload bytea := decode('ffd8ffd9', 'hex');
-  stored jsonb;
 begin
   created := public.create_damage_photo_upload(
     current_setting('sherlyos.dmg03')::uuid, 'spoofed catalog'
@@ -929,20 +926,17 @@ begin
     auth.uid()::text,
     jsonb_build_object('size', 999, 'mimetype', 'image/png', 'eTag', 'deadbeef')
   );
-  perform public.finalize_damage_photo_upload(
-    (created ->> 'id')::uuid, encode(payload, 'base64')
-  );
-  select storage.objects.metadata
-  into stored
-  from storage.objects
-  where storage.objects.bucket_id = 'stock-damage-evidence'
-    and storage.objects.name = created ->> 'path';
-  if stored ->> 'mimetype' is distinct from 'image/jpeg'
-    or (stored ->> 'size')::bigint is distinct from octet_length(payload)
-    or stored ->> 'eTag' is distinct from encode(extensions.digest(payload, 'md5'), 'hex')
-  then
-    raise exception 'finalize must rewrite spoofed storage metadata';
-  end if;
+  begin
+    perform public.finalize_damage_photo_upload(
+      (created ->> 'id')::uuid, encode(payload, 'base64')
+    );
+    raise exception 'spoofed storage catalog must not finalize';
+  exception
+    when sqlstate '23514' then
+      if sqlerrm not like '%could not be verified%' then
+        raise;
+      end if;
+  end;
 end $$;
 
 -- Authenticated clients cannot DML the hold flag.

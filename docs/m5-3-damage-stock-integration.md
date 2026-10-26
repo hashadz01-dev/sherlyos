@@ -6,13 +6,13 @@ M5.4 will replace the empty `/damage` placeholder. This phase is backend isolati
 
 ## Schema
 
-| Object | Purpose |
-|---|---|
-| `zones.location_role` / `crates.location_role` | `storage` (default) or `quarantine`. One quarantine zone/crate per godown. |
-| `damage_stock_holds` | Isolation rows. No parallel balance table. |
-| `damage_exceptional_requests` | Admin approval for supplier return / destroy. |
-| `stock_transactions.damage_report_id` + `damage_posting_kind` | Exact-once linkage. Types remain `ADJUSTMENT` / `CRATE_TRANSFER`. |
-| `damage_reports.physical_custody_confirmed_*` | Shop-return goods must be confirmed in godown custody before submit. |
+| Object                                                        | Purpose                                                                    |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `zones.location_role` / `crates.location_role`                | `storage` (default) or `quarantine`. One quarantine zone/crate per godown. |
+| `damage_stock_holds`                                          | Isolation rows. No parallel balance table.                                 |
+| `damage_exceptional_requests`                                 | Admin approval for supplier return / destroy.                              |
+| `stock_transactions.damage_report_id` + `damage_posting_kind` | Exact-once linkage. Types remain `ADJUSTMENT` / `CRATE_TRANSFER`.          |
+| `damage_reports.physical_custody_confirmed_*`                 | Shop-return goods must be confirmed in godown custody before submit.       |
 
 Hold kinds: `on_hand_deduction`, `reservation_conversion`, `quarantine_intake`.
 
@@ -24,18 +24,18 @@ FORCE RLS, SELECT-only, trusted writer GUC `app.damage_write`. Stock posts also 
 
 Submit still always calls `app_private.apply_damage_stock_isolation`. The hold-ready flag may **block** that function; it cannot skip isolation once ready.
 
-| RPC | Actor | Effect |
-|---|---|---|
-| `confirm_shop_return_custody` | `damage.record` at the godown | Records physical custody. Required before shop-return submit. |
-| `submit_damage_report` | reporter | Calls isolation in the same transaction. |
-| `verify_damage_report` | GM `damage.verify`, not the reporter | Evidence required. Hold qty must match lines for hold scenarios. |
-| `return_damage_report` | GM | Releases on-hand / loading holds. **Denied** for submitted shop-return. |
-| `reject_damage_report` | GM, not the reporter | Releases on-hand / loading holds. Shop-return stays quarantined. |
-| `post_ordinary_damage_writeoff` | GM `damage.verify` | Tagged `ADJUSTMENT`. Admin cannot post. |
-| `request_exceptional_damage_disposition` | GM | `return_supplier` or `destroy`. No stock. |
-| `approve_exceptional_damage_disposition` / `reject_exceptional_damage_disposition` | Admin `damage.dispose` | Approval only. |
-| `post_exceptional_damage_disposition` | GM after approval | Tagged `ADJUSTMENT`. |
-| `transfer_verified_damage_to_quarantine` | GM | `CRATE_TRANSFER` of verified storage holds. Hold stays effective in the same TX. |
+| RPC                                                                                | Actor                                | Effect                                                                           |
+| ---------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
+| `confirm_shop_return_custody`                                                      | `damage.record` at the godown        | Records physical custody. Required before shop-return submit.                    |
+| `submit_damage_report`                                                             | reporter                             | Calls isolation in the same transaction.                                         |
+| `verify_damage_report`                                                             | GM `damage.verify`, not the reporter | Evidence required. Hold qty must match lines for hold scenarios.                 |
+| `return_damage_report`                                                             | GM                                   | Releases on-hand / loading holds. **Denied** for submitted shop-return.          |
+| `reject_damage_report`                                                             | GM, not the reporter                 | Releases on-hand / loading holds. Shop-return stays quarantined.                 |
+| `post_ordinary_damage_writeoff`                                                    | GM `damage.verify`                   | Tagged `ADJUSTMENT`. Admin cannot post.                                          |
+| `request_exceptional_damage_disposition`                                           | GM                                   | `return_supplier` or `destroy`. No stock.                                        |
+| `approve_exceptional_damage_disposition` / `reject_exceptional_damage_disposition` | Admin `damage.dispose`               | Approval only.                                                                   |
+| `post_exceptional_damage_disposition`                                              | GM after approval                    | Tagged `ADJUSTMENT`.                                                             |
+| `transfer_verified_damage_to_quarantine`                                           | GM                                   | `CRATE_TRANSFER` of verified storage holds. Hold stays effective in the same TX. |
 
 ## Hold lifecycle
 
@@ -96,14 +96,15 @@ Nullable `lot_id` when dual-write is off. Dual-write storage/loading isolation r
 1. Cutover shared `(88104301, 1)`
 2. Damage report
 3. Source documents (order / picking / dispatch / reservations as needed)
-4. Active-branch guard
-5. Products
-6. `prepare_stock_locations` (zones → crates → branch)
-7. Lots
-8. Lot balances
-9. Aggregate balances
-10. Hold rows
-11. Transactions / ledger
+4. Products
+5. `prepare_stock_locations` (zones → crates → branch; inactive godown fails here)
+6. Lots
+7. Lot balances
+8. Aggregate balances
+9. Hold rows
+10. Transactions / ledger
+
+`assert_damage_create_auth` must not `FOR UPDATE` the branch for loading/storage/shop-return. That inverted `confirm_dispatch` (documents → products → locations) and deadlocked M5.3 race C. Inbound still locks the branch because it does not take picking/dispatch/product locks.
 
 Reservation conversion also takes `app.picking_write` / `app.dispatch_write`.
 

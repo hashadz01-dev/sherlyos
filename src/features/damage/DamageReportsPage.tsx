@@ -116,9 +116,16 @@ export function DamageReportsPage() {
         title="Damage reports"
         description="Server-filtered damage history for godowns and transit assignments you are authorized to see."
         action={
-          <Button asChild variant="outline">
-            <Link to="/damage">Dashboard</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {access.canCreate ? (
+              <Button asChild>
+                <Link to="/damage/new">New report</Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link to="/damage">Dashboard</Link>
+            </Button>
+          </div>
         }
       />
 

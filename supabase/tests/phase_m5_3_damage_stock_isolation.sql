@@ -82,19 +82,25 @@ end;
 $$;
 
 create or replace function pg_temp.attach_photo(target uuid)
-returns void language plpgsql as $$
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
 declare
   created jsonb;
   payload bytea := decode('ffd8ffd9', 'hex');
 begin
   created := public.create_damage_photo_upload(target, 'count sheet');
-  insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-  values (
-    'stock-damage-evidence', created ->> 'path', auth.uid(), auth.uid()::text,
-    jsonb_build_object('size', octet_length(payload), 'mimetype', 'image/jpeg',
-      'eTag', encode(extensions.digest(payload, 'md5'), 'hex'))
-  );
-  perform public.finalize_damage_photo_upload((created ->> 'id')::uuid, encode(payload, 'base64'));
+  -- SQL sessions have no caller JWT, so production finalize cannot fetch
+  -- Storage bytes here. Stamp verified_at as a fixture only.
+  perform set_config('app.damage_write', 'on', true);
+  update public.damage_evidence
+  set
+    mime_type = 'image/jpeg',
+    file_size = octet_length(payload),
+    verified_at = clock_timestamp()
+  where id = (created ->> 'id')::uuid;
 end;
 $$;
 

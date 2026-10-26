@@ -93,7 +93,64 @@ export type DamageReportDetail = DamageReportSummary & {
     finalized: boolean
     mime_type: string | null
     uploaded_at: string
+    note?: string | null
   }[]
+}
+
+export type DamageSourceLine = {
+  receipt_line_id?: string
+  product_id: string
+  product_sku: string
+  product_name: string
+  crate_id?: string | null
+  crate_code?: string | null
+  lot_id?: string | null
+  damaged_cases?: number
+  already_reported?: number
+  remaining_cases?: number
+  reserved_cases?: number
+}
+
+export type DamageSourceItem = {
+  id: string
+  kind: "receipt" | "godown" | "picking" | "dispatch_consumed" | "shop"
+  label: string
+  godown_id: string
+  receipt_id?: string | null
+  picking_request_id?: string | null
+  dispatch_id?: string | null
+  order_id?: string | null
+  shop_id?: string | null
+  supplier_name?: string | null
+  received_date?: string | null
+  status?: string | null
+  assigned_to?: string | null
+  lines?: DamageSourceLine[]
+}
+
+export type DamageSourceCatalogs = {
+  crates?: {
+    id: string
+    code: string
+    name: string | null
+    zone_code: string
+  }[]
+  products?: { id: string; sku: string; name: string }[]
+  products_total?: number
+  products_page?: number
+  balances?: {
+    crate_id: string
+    product_id: string
+    on_hand_cases: number
+  }[]
+}
+
+export type DamageSourceList = {
+  total: number
+  page: number
+  page_size: number
+  items: DamageSourceItem[]
+  catalogs: DamageSourceCatalogs
 }
 
 export type DamageQueueItem = {
@@ -222,6 +279,26 @@ export async function damagePhotoPreview(evidenceId: string) {
   return signed.data.signedUrl
 }
 
+export function listDamageReportSources(input: {
+  scenario: DamageScenario
+  targetGodown: string
+  search?: string | null
+  page?: number
+  pageSize?: number
+  catalogSearch?: string | null
+  catalogPage?: number
+}) {
+  return callRpc<DamageSourceList>("list_damage_report_sources", {
+    scenario: input.scenario,
+    target_godown: input.targetGodown,
+    search_text: input.search ?? null,
+    page: input.page ?? 1,
+    page_size: input.pageSize ?? 50,
+    catalog_search: input.catalogSearch ?? null,
+    catalog_page: input.catalogPage ?? 1,
+  })
+}
+
 export function createDamageReport(input: {
   scenario: DamageScenario
   targetGodown: string
@@ -246,6 +323,88 @@ export function createDamageReport(input: {
     order_id: input.orderId ?? null,
     shop_id: input.shopId ?? null,
   })
+}
+
+export function updateDamageReport(input: {
+  targetReport: string
+  expectedVersion: number
+  reportLines: DamageReportLineInput[]
+  notes?: string | null
+  receiptId?: string | null
+  pickingRequestId?: string | null
+  dispatchId?: string | null
+  orderId?: string | null
+  shopId?: string | null
+}) {
+  return callRpc<DamageReportDetail>("update_damage_report", {
+    target_report: input.targetReport,
+    expected_version: input.expectedVersion,
+    report_lines: input.reportLines,
+    notes: input.notes ?? null,
+    receipt_id: input.receiptId ?? null,
+    picking_request_id: input.pickingRequestId ?? null,
+    dispatch_id: input.dispatchId ?? null,
+    order_id: input.orderId ?? null,
+    shop_id: input.shopId ?? null,
+  })
+}
+
+export function submitDamageReport(
+  targetReport: string,
+  expectedVersion: number,
+  idempotencyKey: string,
+) {
+  return callRpc<DamageReportDetail>("submit_damage_report", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+    idempotency_key: idempotencyKey,
+  })
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = ""
+  const chunk = 0x8000
+  for (let index = 0; index < bytes.length; index += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunk))
+  }
+  return btoa(binary)
+}
+
+/**
+ * Create catalog row, upload bytes to the private bucket, then finalize through
+ * the trusted RPC. Browser upload success is never treated as finalization.
+ */
+export async function uploadDamagePhoto(
+  reportId: string,
+  file: File,
+  note: string,
+  onStatus?: (status: "uploading" | "finalizing") => void,
+) {
+  const created = await callRpc<{ id: string; bucket: string; path: string }>(
+    "create_damage_photo_upload",
+    {
+      target_report: reportId,
+      photo_note: note.trim(),
+    },
+  )
+  const supabase = getSupabaseBrowserClient()
+  if (!supabase) {
+    throw new Error("Supabase is not configured.")
+  }
+  onStatus?.("uploading")
+  const uploaded = await supabase.storage
+    .from(created.bucket)
+    .upload(created.path, file, { contentType: file.type, upsert: false })
+  if (uploaded.error) {
+    throw new Error(uploaded.error.message)
+  }
+  onStatus?.("finalizing")
+  const payload = new Uint8Array(await file.arrayBuffer())
+  await callRpc<null>("finalize_damage_photo_upload", {
+    target_evidence: created.id,
+    image_base64: bytesToBase64(payload),
+  })
+  return created.id
 }
 
 export function confirmShopReturnCustody(

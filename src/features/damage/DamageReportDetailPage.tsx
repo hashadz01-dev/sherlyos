@@ -7,8 +7,11 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { DamageActivityTimeline } from "@/features/damage/components/DamageActivityTimeline"
 import { DamageEvidencePanel } from "@/features/damage/components/DamageEvidencePanel"
+import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import { DamageHoldsPanel } from "@/features/damage/components/DamageHoldsPanel"
 import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
+import { useAuth } from "@/hooks/use-auth"
+import { isEditableDamageStatus } from "@/lib/damage/rules"
 import {
   damageStatusTone,
   formatCases,
@@ -37,6 +40,8 @@ function DetailSection({
 export function DamageReportDetailPage() {
   const { reportId = "" } = useParams()
   const access = useDamageAccess()
+  const { session } = useAuth()
+  const userId = session?.user.id
   const detail = useQuery({
     queryKey: ["damage-report", reportId],
     queryFn: () => getDamageReport(reportId),
@@ -50,9 +55,17 @@ export function DamageReportDetailPage() {
     <section className="min-w-0">
       <PageHeader
         title={report?.report_number ?? "Damage report"}
-        description="Read-only damage report detail. Verification and disposition actions arrive in later phases."
+        description="Damage report detail. Verification and disposition actions arrive in later phases."
         action={
           <div className="flex flex-wrap gap-2">
+            {report &&
+            access.canCreate &&
+            report.reporter_user_id === userId &&
+            isEditableDamageStatus(report.status) ? (
+              <Button asChild>
+                <Link to={`/damage/${report.id}/edit`}>Edit draft</Link>
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <Link to="/damage/reports">Back to list</Link>
             </Button>
@@ -231,7 +244,15 @@ export function DamageReportDetailPage() {
           ) : null}
 
           <DetailSection title="Evidence">
-            <DamageEvidencePanel evidence={report.evidence} />
+            {report.status === "submitted" &&
+            (report.reporter_user_id === userId || access.canVerify) ? (
+              <DamageEvidenceUploader
+                report={report}
+                onUploaded={() => void detail.refetch()}
+              />
+            ) : (
+              <DamageEvidencePanel evidence={report.evidence} />
+            )}
           </DetailSection>
 
           <DetailSection title="Activity">

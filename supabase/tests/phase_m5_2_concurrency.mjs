@@ -11,7 +11,19 @@ function psql(sql) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       "docker",
-      ["exec", "-i", "supabase_db_sherlyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"],
+      [
+        "exec",
+        "-i",
+        "supabase_db_sherlyos",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-tA",
+      ],
       { stdio: ["pipe", "pipe", "pipe"] },
     )
     let output = ""
@@ -178,38 +190,54 @@ async function setup() {
         true
       );
       created := public.create_damage_photo_upload(report_id, 'sheet');
-      insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-      values (
-        'stock-damage-evidence',
-        created ->> 'path',
-        godown_id,
-        godown_id::text,
-        jsonb_build_object(
-          'size', octet_length(payload),
-          'mimetype', 'image/jpeg',
-          'eTag', encode(extensions.digest(payload, 'md5'), 'hex')
-        )
-      );
-      perform public.finalize_damage_photo_upload((created ->> 'id')::uuid, encode(payload, 'base64'));
+      perform set_config('app.damage_write', 'on', true);
+      update public.damage_evidence
+      set
+        mime_type = 'image/jpeg',
+        file_size = octet_length(payload),
+        verified_at = clock_timestamp()
+      where id = (created ->> 'id')::uuid;
     end $$;
   `)
-  ids.godown = lastLine(await psql(`select id from auth.users where email = 'godown.${PREFIX}@example.com'`))
-  ids.report = lastLine(await psql(`
+  ids.godown = lastLine(
+    await psql(
+      `select id from auth.users where email = 'godown.${PREFIX}@example.com'`,
+    ),
+  )
+  ids.report = lastLine(
+    await psql(`
     select id from public.damage_reports
     where idempotency_key = '${PREFIX}-dmg'
-  `))
-  ids.product = lastLine(await psql(`select id from public.products where sku = '${PREFIX}-sku'`))
-  ids.ledger = lastLine(await psql(`
+  `),
+  )
+  ids.product = lastLine(
+    await psql(`select id from public.products where sku = '${PREFIX}-sku'`),
+  )
+  ids.ledger = lastLine(
+    await psql(`
     select count(*) from public.stock_ledger
     where product_id = '${ids.product}'::uuid
-  `))
+  `),
+  )
 }
 
 function verifySession(label) {
   return new Promise((resolve) => {
     const child = spawn(
       "docker",
-      ["exec", "-i", "supabase_db_sherlyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"],
+      [
+        "exec",
+        "-i",
+        "supabase_db_sherlyos",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-tA",
+      ],
       { stdio: ["pipe", "pipe", "pipe"] },
     )
     let output = ""
@@ -240,26 +268,39 @@ function verifySession(label) {
 
 try {
   await setup()
-  if (!ids.godown || !ids.report) throw new Error(`setup missing ids ${JSON.stringify(ids)}`)
+  if (!ids.godown || !ids.report)
+    throw new Error(`setup missing ids ${JSON.stringify(ids)}`)
 
   const [a, b] = await Promise.all([verifySession("a"), verifySession("b")])
   const texts = [a, b]
   const wins = texts.filter((row) => row.code === 0)
   const losses = texts.filter((row) => row.code !== 0)
   if (wins.length !== 1 || losses.length !== 1) {
-    throw new Error(`expected one verify win and one conflict: ${JSON.stringify(texts)}`)
+    throw new Error(
+      `expected one verify win and one conflict: ${JSON.stringify(texts)}`,
+    )
   }
-  if (!/changed by someone else|cannot be verified|PT409/i.test(losses[0].text)) {
+  if (
+    !/changed by someone else|cannot be verified|PT409/i.test(losses[0].text)
+  ) {
     throw new Error(`loser was not a conflict: ${losses[0].text}`)
   }
-  const status = lastLine(await psql(`select status from public.damage_reports where id = '${ids.report}'`))
+  const status = lastLine(
+    await psql(
+      `select status from public.damage_reports where id = '${ids.report}'`,
+    ),
+  )
   if (status !== "verified") throw new Error(`expected verified, got ${status}`)
   const ledgerBefore = Number(ids.ledger || 0)
-  const ledgerAfter = Number(await psql(`
+  const ledgerAfter = Number(
+    await psql(`
     select count(*) from public.stock_ledger where product_id = '${ids.product}'::uuid
-  `))
+  `),
+  )
   if (ledgerAfter !== ledgerBefore) {
-    throw new Error(`verify must not write ledger ${ledgerBefore} -> ${ledgerAfter}`)
+    throw new Error(
+      `verify must not write ledger ${ledgerBefore} -> ${ledgerAfter}`,
+    )
   }
   console.log("PASS concurrent verify serializes to a single verified report")
 } finally {

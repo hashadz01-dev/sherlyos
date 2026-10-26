@@ -22,12 +22,28 @@ function psql(sql) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       "docker",
-      ["exec", "-i", "supabase_db_sherlyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"],
+      [
+        "exec",
+        "-i",
+        "supabase_db_sherlyos",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-tA",
+      ],
       { stdio: ["pipe", "pipe", "pipe"] },
     )
     let output = ""
-    child.stdout.on("data", (chunk) => { output += chunk })
-    child.stderr.on("data", (chunk) => { output += chunk })
+    child.stdout.on("data", (chunk) => {
+      output += chunk
+    })
+    child.stderr.on("data", (chunk) => {
+      output += chunk
+    })
     child.on("close", (code) => {
       const text = output.trim()
       if (code === 0) resolve(text)
@@ -41,12 +57,28 @@ function session(sql) {
   return new Promise((resolve) => {
     const child = spawn(
       "docker",
-      ["exec", "-i", "supabase_db_sherlyos", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-tA"],
+      [
+        "exec",
+        "-i",
+        "supabase_db_sherlyos",
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-tA",
+      ],
       { stdio: ["pipe", "pipe", "pipe"] },
     )
     let output = ""
-    child.stdout.on("data", (chunk) => { output += chunk })
-    child.stderr.on("data", (chunk) => { output += chunk })
+    child.stdout.on("data", (chunk) => {
+      output += chunk
+    })
+    child.stderr.on("data", (chunk) => {
+      output += chunk
+    })
     child.on("close", (code) => resolve({ code, text: output.trim() }))
     child.stdin.end(sql)
   })
@@ -101,7 +133,9 @@ async function raceTwo(name, sqlA, sqlB) {
     session(`begin;\n${sqlB}\ncommit;`),
   ])
   await delay(800)
-  await psql(`update public.phase_m53_barrier set open = true where race = '${name}';`)
+  await psql(
+    `update public.phase_m53_barrier set open = true where race = '${name}';`,
+  )
   return pending
 }
 
@@ -259,26 +293,31 @@ function seedProductSql(key, qty) {
 function attachPhotoSql(userKey, reportKey) {
   return `
     begin;
-    ${asUser(userKey, `
-      do $$
-      declare
-        created jsonb;
-        payload bytea := decode('ffd8ffd9', 'hex');
-        target uuid := (select value::uuid from public.phase_m53_race_target where name = '${reportKey}');
-      begin
-        created := public.create_damage_photo_upload(target, 'count sheet');
-        insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-        values (
-          'stock-damage-evidence', created ->> 'path', auth.uid(), auth.uid()::text,
-          jsonb_build_object(
-            'size', octet_length(payload),
-            'mimetype', 'image/jpeg',
-            'eTag', encode(extensions.digest(payload, 'md5'), 'hex')
-          )
-        );
-        perform public.finalize_damage_photo_upload((created ->> 'id')::uuid, encode(payload, 'base64'));
-      end $$;
-    `)}
+    set local statement_timeout = '15s';
+    select set_config('request.jwt.claim.sub', (select value from public.phase_m53_race_target where name = '${userKey}'), true);
+    select set_config(
+      'request.jwt.claims',
+      jsonb_build_object(
+        'sub', (select value::uuid from public.phase_m53_race_target where name = '${userKey}'),
+        'role', 'authenticated'
+      )::text,
+      true
+    );
+    do $$
+    declare
+      created jsonb;
+      payload bytea := decode('ffd8ffd9', 'hex');
+      target uuid := (select value::uuid from public.phase_m53_race_target where name = '${reportKey}');
+    begin
+      created := public.create_damage_photo_upload(target, 'count sheet');
+      perform set_config('app.damage_write', 'on', true);
+      update public.damage_evidence
+      set
+        mime_type = 'image/jpeg',
+        file_size = octet_length(payload),
+        verified_at = clock_timestamp()
+      where id = (created ->> 'id')::uuid;
+    end $$;
     commit;
   `
 }
@@ -396,35 +435,48 @@ async function raceA() {
   `)
   const [x, y] = await raceTwo(
     "A",
-    asUser("godown", `
+    asUser(
+      "godown",
+      `
       ${waitBarrier("A")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_a'),
         1, '${PREFIX}-sa'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("A")}
       select public.reserve_order_allocation(
         (select value::uuid from public.phase_m53_race_target where name = 'order_a'),
         3, '${PREFIX}-res-a'
       );
-    `),
+    `,
+    ),
   )
   const wins = [x, y].filter((row) => row.code === 0).length
-  if (wins < 1) throw new Error(`A: expected at least one winner ${JSON.stringify([x, y])}`)
-  const held = Number(await psql(`
+  if (wins < 1)
+    throw new Error(`A: expected at least one winner ${JSON.stringify([x, y])}`)
+  const held = Number(
+    await psql(`
     select coalesce(sum(quantity_cases),0) from public.damage_stock_holds
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_a')
       and status = 'active'
-  `))
-  const reserved = Number(await psql(`
+  `),
+  )
+  const reserved = Number(
+    await psql(`
     select coalesce(sum(reserved_cases),0) from public.stock_reservations
     where order_id = (select value::uuid from public.phase_m53_race_target where name = 'order_a')
       and status = 'active'
-  `))
+  `),
+  )
   if (held + reserved !== 1) {
-    throw new Error(`A: oversubscription hold=${held} reserved=${reserved} sessions=${JSON.stringify([x, y])}`)
+    throw new Error(
+      `A: oversubscription hold=${held} reserved=${reserved} sessions=${JSON.stringify([x, y])}`,
+    )
   }
   await assertNoNegative("product_a")
   ok("A storage submit vs picking reservation")
@@ -466,20 +518,26 @@ async function raceB() {
   `)
   const [x, y] = await raceTwo(
     "B",
-    asUser("godown", `
+    asUser(
+      "godown",
+      `
       ${waitBarrier("B")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_b1'),
         1, '${PREFIX}-sb1'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("B")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_b2'),
         1, '${PREFIX}-sb2'
       );
-    `),
+    `,
+    ),
   )
   const wins = [x, y].filter((row) => row.code === 0)
   const losses = [x, y].filter((row) => row.code !== 0)
@@ -489,13 +547,15 @@ async function raceB() {
   if (!/insufficient unreserved stock/i.test(losses[0].text)) {
     throw new Error(`B: loser was not a stock conflict: ${losses[0].text}`)
   }
-  const held = Number(await psql(`
+  const held = Number(
+    await psql(`
     select coalesce(sum(quantity_cases),0) from public.damage_stock_holds
     where damage_report_id in (
       (select value::uuid from public.phase_m53_race_target where name = 'report_b1'),
       (select value::uuid from public.phase_m53_race_target where name = 'report_b2')
     ) and status = 'active'
-  `))
+  `),
+  )
   if (held !== 1) throw new Error(`B: expected one active hold, got ${held}`)
   await assertNoNegative("product_b")
   ok("B two storage submits on one carton")
@@ -531,43 +591,62 @@ async function raceC() {
   `)
   const [x, y] = await raceTwo(
     "C",
-    asUser("godown", `
+    asUser(
+      "godown",
+      `
       ${waitBarrier("C")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_c'),
         1, '${PREFIX}-sc'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("C")}
       select public.confirm_dispatch(
         (select value::uuid from public.phase_m53_race_target where name = 'dispatch_c'),
         (select value::integer from public.phase_m53_race_target where name = 'dispatch_ver_c'),
         '${PREFIX}-cfm-c'
       );
-    `),
+    `,
+    ),
   )
-  const dispatchCount = Number(await psql(`
+  const dispatchCount = Number(
+    await psql(`
     select count(*) from public.stock_transactions
     where dispatch_request_id = (select value::uuid from public.phase_m53_race_target where name = 'dispatch_c')
       and transaction_type = 'DISPATCH'
-  `))
-  if (dispatchCount > 1) throw new Error(`C: double DISPATCH ${dispatchCount} ${JSON.stringify([x, y])}`)
-  const held = Number(await psql(`
+  `),
+  )
+  if (dispatchCount > 1)
+    throw new Error(
+      `C: double DISPATCH ${dispatchCount} ${JSON.stringify([x, y])}`,
+    )
+  const held = Number(
+    await psql(`
     select coalesce(sum(quantity_cases),0) from public.damage_stock_holds
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_c')
       and status in ('active', 'written_off', 'transferred')
-  `))
-  const consumed = Number(await psql(`
+  `),
+  )
+  const consumed = Number(
+    await psql(`
     select coalesce(sum(reserved_cases),0) from public.stock_reservations
     where picking_request_id = (select value::uuid from public.phase_m53_race_target where name = 'picking_c')
       and status = 'consumed'
-  `))
+  `),
+  )
   if (held + consumed !== 2 && !(held === 0 && consumed === 2)) {
-    throw new Error(`C: qty mismatch hold=${held} consumed=${consumed} sessions=${JSON.stringify([x, y])}`)
+    throw new Error(
+      `C: qty mismatch hold=${held} consumed=${consumed} sessions=${JSON.stringify([x, y])}`,
+    )
   }
   if (held === 1 && consumed !== 1 && dispatchCount !== 1) {
-    throw new Error(`C: partial loading must leave one DISPATCH of remaining qty`)
+    throw new Error(
+      `C: partial loading must leave one DISPATCH of remaining qty`,
+    )
   }
   await assertNoNegative("product_c")
   ok("C loading hold conversion vs confirm_dispatch")
@@ -606,18 +685,23 @@ async function raceD() {
   await psql(attachPhotoSql("verifier", "report_d"))
   await psql(`
     begin;
-    ${asUser("verifier", `
+    ${asUser(
+      "verifier",
+      `
       select public.verify_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_d'),
         (select version from public.damage_reports
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_d'))
       );
-    `)}
+    `,
+    )}
     commit;
   `)
   const [x, y] = await raceTwo(
     "D",
-    asUser("verifier", `
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("D")}
       select public.post_ordinary_damage_writeoff(
         (select value::uuid from public.phase_m53_race_target where name = 'report_d'),
@@ -625,8 +709,11 @@ async function raceD() {
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_d')),
         '${PREFIX}-wo-d1'
       );
-    `),
-    asUser("verifier", `
+    `,
+    ),
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("D")}
       select public.post_ordinary_damage_writeoff(
         (select value::uuid from public.phase_m53_race_target where name = 'report_d'),
@@ -634,16 +721,23 @@ async function raceD() {
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_d')),
         '${PREFIX}-wo-d2'
       );
-    `),
+    `,
+    ),
   )
   const wins = [x, y].filter((row) => row.code === 0).length
-  if (wins < 1) throw new Error(`D: no write-off succeeded ${JSON.stringify([x, y])}`)
-  const posted = Number(await psql(`
+  if (wins < 1)
+    throw new Error(`D: no write-off succeeded ${JSON.stringify([x, y])}`)
+  const posted = Number(
+    await psql(`
     select count(*) from public.stock_transactions
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_d')
       and damage_posting_kind = 'ordinary_writeoff'
-  `))
-  if (posted !== 1) throw new Error(`D: expected exact-once write-off, got ${posted} ${JSON.stringify([x, y])}`)
+  `),
+  )
+  if (posted !== 1)
+    throw new Error(
+      `D: expected exact-once write-off, got ${posted} ${JSON.stringify([x, y])}`,
+    )
   await assertNoNegative("product_d")
   ok("D two ordinary write-offs for the same report")
 }
@@ -681,7 +775,9 @@ async function raceE() {
   await psql(attachPhotoSql("verifier", "report_e"))
   await psql(`
     begin;
-    ${asUser("verifier", `
+    ${asUser(
+      "verifier",
+      `
       select public.verify_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_e'),
         (select version from public.damage_reports
@@ -693,24 +789,30 @@ async function raceE() {
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_e')),
         'destroy', 'destroy leaking carton', '${PREFIX}-ex-req'
       );
-    `)}
+    `,
+    )}
     commit;
   `)
   await psql(`
     begin;
-    ${asUser("admin", `
+    ${asUser(
+      "admin",
+      `
       select public.approve_exceptional_damage_disposition(
         (select id from public.damage_exceptional_requests
           where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_e')
           order by requested_at desc limit 1),
         1
       );
-    `)}
+    `,
+    )}
     commit;
   `)
   const [x, y] = await raceTwo(
     "E",
-    asUser("verifier", `
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("E")}
       select public.post_exceptional_damage_disposition(
         (select id from public.damage_exceptional_requests
@@ -721,8 +823,11 @@ async function raceE() {
           order by requested_at desc limit 1),
         '${PREFIX}-ex-post-1'
       );
-    `),
-    asUser("verifier", `
+    `,
+    ),
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("E")}
       select public.post_exceptional_damage_disposition(
         (select id from public.damage_exceptional_requests
@@ -733,14 +838,20 @@ async function raceE() {
           order by requested_at desc limit 1),
         '${PREFIX}-ex-post-2'
       );
-    `),
+    `,
+    ),
   )
-  const posted = Number(await psql(`
+  const posted = Number(
+    await psql(`
     select count(*) from public.stock_transactions
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_e')
       and damage_posting_kind = 'exceptional_writeoff'
-  `))
-  if (posted !== 1) throw new Error(`E: expected exact-once exceptional post, got ${posted} ${JSON.stringify([x, y])}`)
+  `),
+  )
+  if (posted !== 1)
+    throw new Error(
+      `E: expected exact-once exceptional post, got ${posted} ${JSON.stringify([x, y])}`,
+    )
   await assertNoNegative("product_e")
   ok("E two exceptional postings for the same approval")
 }
@@ -772,29 +883,43 @@ async function raceF() {
   `)
   const [x, y] = await raceTwo(
     "F",
-    asUser("godown", `
+    asUser(
+      "godown",
+      `
       ${waitBarrier("F")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_f'),
         2, '${PREFIX}-sf'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("F")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_f'),
         2, '${PREFIX}-sf'
       );
-    `),
+    `,
+    ),
   )
   const wins = [x, y].filter((row) => row.code === 0).length
-  if (wins < 1) throw new Error(`F: no shop-return submit succeeded ${JSON.stringify([x, y])}`)
-  const intake = Number(await psql(`
+  if (wins < 1)
+    throw new Error(
+      `F: no shop-return submit succeeded ${JSON.stringify([x, y])}`,
+    )
+  const intake = Number(
+    await psql(`
     select count(*) from public.stock_transactions
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_f')
       and damage_posting_kind = 'quarantine_intake'
-  `))
-  if (intake !== 1) throw new Error(`F: expected one quarantine intake, got ${intake} ${JSON.stringify([x, y])}`)
+  `),
+  )
+  if (intake !== 1)
+    throw new Error(
+      `F: expected one quarantine intake, got ${intake} ${JSON.stringify([x, y])}`,
+    )
   await assertNoNegative("product_f")
   ok("F shop-return intake replay with identical idempotency key")
 }
@@ -829,18 +954,23 @@ async function raceG() {
   await psql(attachPhotoSql("verifier", "report_g"))
   await psql(`
     begin;
-    ${asUser("verifier", `
+    ${asUser(
+      "verifier",
+      `
       select public.verify_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_g'),
         (select version from public.damage_reports
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_g'))
       );
-    `)}
+    `,
+    )}
     commit;
   `)
   const [x, y] = await raceTwo(
     "G",
-    asUser("verifier", `
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("G")}
       select public.post_ordinary_damage_writeoff(
         (select value::uuid from public.phase_m53_race_target where name = 'report_g'),
@@ -848,8 +978,11 @@ async function raceG() {
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_g')),
         '${PREFIX}-wo-g'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("G")}
       select public.post_crate_transfer(
         (select value::uuid from public.phase_m53_race_target where name = 'product_g'),
@@ -861,20 +994,31 @@ async function raceG() {
           'quantity', 1
         ))
       );
-    `),
+    `,
+    ),
   )
-  const writeoffs = Number(await psql(`
+  const writeoffs = Number(
+    await psql(`
     select count(*) from public.stock_transactions
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_g')
       and damage_posting_kind = 'ordinary_writeoff'
-  `))
-  const dest = Number(await psql(`
+  `),
+  )
+  const dest = Number(
+    await psql(`
     select coalesce(sum(quantity),0) from public.stock_balances
     where crate_id = (select value::uuid from public.phase_m53_race_target where name = 'crate_b')
       and product_id = (select value::uuid from public.phase_m53_race_target where name = 'product_g')
-  `))
-  if (writeoffs !== 1) throw new Error(`G: write-off not exact-once (${writeoffs}) ${JSON.stringify([x, y])}`)
-  if (dest !== 0) throw new Error(`G: held carton must not transfer, dest=${dest} ${JSON.stringify([x, y])}`)
+  `),
+  )
+  if (writeoffs !== 1)
+    throw new Error(
+      `G: write-off not exact-once (${writeoffs}) ${JSON.stringify([x, y])}`,
+    )
+  if (dest !== 0)
+    throw new Error(
+      `G: held carton must not transfer, dest=${dest} ${JSON.stringify([x, y])}`,
+    )
   await assertNoNegative("product_g")
   ok("G hold release vs ordinary stock writer")
 }
@@ -922,18 +1066,23 @@ async function raceH() {
   await psql(attachPhotoSql("verifier", "report_h"))
   await psql(`
     begin;
-    ${asUser("verifier", `
+    ${asUser(
+      "verifier",
+      `
       select public.verify_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_h'),
         (select version from public.damage_reports
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_h'))
       );
-    `)}
+    `,
+    )}
     commit;
   `)
   const [x, y] = await raceTwo(
     "H",
-    asUser("verifier", `
+    asUser(
+      "verifier",
+      `
       ${waitBarrier("H")}
       select public.transfer_verified_damage_to_quarantine(
         (select value::uuid from public.phase_m53_race_target where name = 'report_h'),
@@ -941,31 +1090,44 @@ async function raceH() {
           where id = (select value::uuid from public.phase_m53_race_target where name = 'report_h')),
         '${PREFIX}-qrn-h'
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("H")}
       select public.reserve_order_allocation(
         (select value::uuid from public.phase_m53_race_target where name = 'order_h'),
         3, '${PREFIX}-res-h'
       );
-    `),
+    `,
+    ),
   )
-  const reserved = Number(await psql(`
+  const reserved = Number(
+    await psql(`
     select coalesce(sum(reserved_cases),0) from public.stock_reservations
     where order_id = (select value::uuid from public.phase_m53_race_target where name = 'order_h')
       and status = 'active'
-  `))
-  if (reserved > 1) throw new Error(`H: reserved held stock reserved=${reserved} ${JSON.stringify([x, y])}`)
-  const qrn = Number(await psql(`
+  `),
+  )
+  if (reserved > 1)
+    throw new Error(
+      `H: reserved held stock reserved=${reserved} ${JSON.stringify([x, y])}`,
+    )
+  const qrn = Number(
+    await psql(`
     select coalesce(sum(sb.quantity),0)
     from public.stock_balances sb
     join public.crates c on c.id = sb.crate_id
     where sb.product_id = (select value::uuid from public.phase_m53_race_target where name = 'product_h')
       and c.location_role = 'quarantine'
-  `))
+  `),
+  )
   const transferWon = y.code === 0 || x.code === 0
   if (!transferWon && qrn === 0 && reserved === 0) {
-    throw new Error(`H: neither transfer nor reserve succeeded ${JSON.stringify([x, y])}`)
+    throw new Error(
+      `H: neither transfer nor reserve succeeded ${JSON.stringify([x, y])}`,
+    )
   }
   if (qrn > 1) throw new Error(`H: quarantine over-intake ${qrn}`)
   await assertNoNegative("product_h")
@@ -1000,70 +1162,99 @@ async function raceI() {
   `)
   const [x, y] = await raceTwo(
     "I",
-    asUser("admin", `
+    asUser(
+      "admin",
+      `
       ${waitBarrier("I")}
       select public.set_branch_active(
         (select value::uuid from public.phase_m53_race_target where name = 'branch'),
         false
       );
-    `),
-    asUser("godown", `
+    `,
+    ),
+    asUser(
+      "godown",
+      `
       ${waitBarrier("I")}
       select public.submit_damage_report(
         (select value::uuid from public.phase_m53_race_target where name = 'report_i'),
         1, '${PREFIX}-si'
       );
-    `),
+    `,
+    ),
   )
-  const held = Number(await psql(`
+  const held = Number(
+    await psql(`
     select coalesce(sum(quantity_cases),0) from public.damage_stock_holds
     where damage_report_id = (select value::uuid from public.phase_m53_race_target where name = 'report_i')
       and status = 'active'
-  `))
-  const active = lastLine(await psql(`
+  `),
+  )
+  const active = lastLine(
+    await psql(`
     select is_active::text from public.branches
     where id = (select value::uuid from public.phase_m53_race_target where name = 'branch')
-  `))
+  `),
+  )
   if (held > 1) throw new Error(`I: hold oversubscription ${held}`)
   if (active === "f" && held === 1 && y.code === 0 && x.code === 0) {
     // Submit committed first, then deactivate. Hold is valid because the godown
     // was active at isolation time.
   } else if (held === 1 && y.code !== 0) {
-    throw new Error(`I: hold exists but submit reported failure ${JSON.stringify([x, y])}`)
+    throw new Error(
+      `I: hold exists but submit reported failure ${JSON.stringify([x, y])}`,
+    )
   } else if (held === 0 && y.code === 0) {
-    throw new Error(`I: submit succeeded without a hold ${JSON.stringify([x, y])}`)
+    throw new Error(
+      `I: submit succeeded without a hold ${JSON.stringify([x, y])}`,
+    )
   }
   await assertNoNegative("product_i")
   await psql(`
     begin;
-    ${asUser("admin", `
+    ${asUser(
+      "admin",
+      `
       select public.set_branch_active(
         (select value::uuid from public.phase_m53_race_target where name = 'branch'),
         true
       );
-    `)}
+    `,
+    )}
     commit;
   `).catch(() => undefined)
   ok("I godown deactivation vs damage stock posting")
 }
 
+const onlyRace = process.env.M53_ONLY || ""
+
 let productFilter = "00000000-0000-0000-0000-000000000000"
 try {
   await setupShared()
-  await raceA()
-  await raceB()
-  await raceC()
-  await raceD()
-  await raceE()
-  await raceF()
-  await raceG()
-  await raceH()
-  await raceI()
-  productFilter = lastLine(await psql(`
+  if (onlyRace === "C") {
+    await raceC()
+  } else {
+    await raceA()
+    await raceB()
+    await raceC()
+    await raceD()
+    await raceE()
+    await raceF()
+    await raceG()
+    await raceH()
+    await raceI()
+  }
+  productFilter = lastLine(
+    await psql(`
     select coalesce(string_agg(id::text, ''','''), '${productFilter}')
     from public.products where sku like '${PREFIX}-%'
-  `))
-  console.log(`M5.3 concurrency passed ${passed.length}/9 races`)
+  `),
+  )
+  if (onlyRace === "C") {
+    console.log("M5.3 race C passed")
+  } else {
+    console.log(`M5.3 concurrency passed ${passed.length}/9 races`)
+  }
 } catch (error) {
   console.error(error)
   process.exitCode = 1

@@ -68,7 +68,7 @@ export function DamageHoldsPanel({
 
   return (
     <div className="grid gap-4">
-      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl bg-muted/40 p-3">
           <dt className="text-xs text-muted-foreground">Reported</dt>
           <dd className="text-lg font-semibold">
@@ -92,6 +92,20 @@ export function DamageHoldsPanel({
           <p className="mt-1 text-xs text-muted-foreground">
             Physically segregated unavailable stock.
           </p>
+        </div>
+        <div className="rounded-xl bg-muted/40 p-3">
+          <dt className="text-xs text-muted-foreground">
+            Reservation converted
+          </dt>
+          <dd className="text-lg font-semibold">
+            {formatCases(breakdown.reservationConvertedCases)}
+          </dd>
+        </div>
+        <div className="rounded-xl bg-muted/40 p-3">
+          <dt className="text-xs text-muted-foreground">Transferred</dt>
+          <dd className="text-lg font-semibold">
+            {formatCases(breakdown.transferredCases)}
+          </dd>
         </div>
         <div className="rounded-xl bg-muted/40 p-3">
           <dt className="text-xs text-muted-foreground">Written off</dt>

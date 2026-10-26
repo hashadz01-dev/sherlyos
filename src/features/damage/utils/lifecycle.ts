@@ -4,10 +4,13 @@ import type { DamageReportDetail } from "@/lib/damage/api"
 export type DamageLifecycleStageId =
   | "draft"
   | "submitted"
+  | "returned"
+  | "rejected"
   | "custody_confirmed"
   | "stock_isolated"
   | "evidence_finalized"
   | "verified"
+  | "ordinary_writeoff"
   | "quarantined"
   | "disposition_pending"
   | "resolved"
@@ -98,6 +101,35 @@ export function damageLifecycleStages(
       at: submitted || verified || rejected ? submittedAt : null,
     },
     {
+      id: "returned",
+      label: "Returned",
+      description: "Returned for correction. The reporter can edit again.",
+      applicable: report.status === "returned",
+      complete: report.status === "returned",
+      at:
+        report.status === "returned"
+          ? (eventAt(report, "returned") ??
+            report.returned_at ??
+            report.updated_at ??
+            null)
+          : null,
+    },
+    {
+      id: "rejected",
+      label: "Rejected",
+      description:
+        "Formal rejection. Shop-return quarantine intake is not released.",
+      applicable: report.status === "rejected",
+      complete: report.status === "rejected",
+      at:
+        report.status === "rejected"
+          ? (eventAt(report, "rejected") ??
+            report.rejected_at ??
+            report.updated_at ??
+            null)
+          : null,
+    },
+    {
       id: "custody_confirmed",
       label: "Custody confirmed",
       description: "Physical goods confirmed present at the receiving godown.",
@@ -124,11 +156,25 @@ export function damageLifecycleStages(
     {
       id: "verified",
       label: "Verified",
-      description: "Godown verification accepted quantities and evidence.",
+      description: "Godown Manager accepted quantities and evidence.",
       applicable: true,
       complete: verified,
       at: verified
-        ? (eventAt(report, "verify", "verified") ?? report.updated_at ?? null)
+        ? (eventAt(report, "verify", "verified") ??
+          report.verified_at ??
+          report.updated_at ??
+          null)
+        : null,
+    },
+    {
+      id: "ordinary_writeoff",
+      label: "Ordinary write-off posted",
+      description:
+        "Trusted ledger adjustment consumed remaining isolated cases. Separate from verification.",
+      applicable: writtenOff || (verified && remainingIsolation),
+      complete: writtenOff,
+      at: writtenOff
+        ? (eventAt(report, "ordinary_writeoff") ?? report.updated_at ?? null)
         : null,
     },
     {
@@ -145,7 +191,9 @@ export function damageLifecycleStages(
       label: "Disposition pending",
       description: rejected
         ? "Rejected shop-return stock stays quarantined until authorized resolution."
-        : "Verified holds await write-off, return, or destroy posting.",
+        : writtenOff
+          ? "Ordinary write-off posted. Remaining isolation is shown separately."
+          : "Verified holds await write-off, return, or destroy posting.",
       applicable: remainingIsolation || exceptionalOpen || rejected,
       complete: remainingIsolation || exceptionalOpen,
       at:

@@ -3,6 +3,7 @@ import {
   canOpenDamageCreate,
   damageNavPermissions,
   damageQuarantinePermissions,
+  damageVerificationPermissions,
   scenariosAvailableForPermissions,
 } from "@/lib/damage/rules"
 
@@ -31,6 +32,9 @@ export function useDamageAccess() {
   )
   const canConfirmCustody = canRecord && canVerify
   const canTransferQuarantine = canVerify
+  const canViewVerification = damageVerificationPermissions.some((permission) =>
+    can(permission),
+  )
 
   return {
     loading: access.loading,
@@ -51,5 +55,6 @@ export function useDamageAccess() {
     canViewQuarantine,
     canConfirmCustody,
     canTransferQuarantine,
+    canViewVerification,
   }
 }

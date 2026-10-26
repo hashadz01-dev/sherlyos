@@ -10,6 +10,7 @@ import {
   DamageQuarantinePage,
   DamageReportDetailPage,
   DamageReportsPage,
+  DamageVerificationPage,
   EditDamageReportPage,
   NewDamageReportPage,
   DeliveriesPage,
@@ -67,6 +68,7 @@ import {
   damageCreatePermissions,
   damageNavPermissions,
   damageQuarantinePermissions,
+  damageVerificationPermissions,
 } from "@/lib/damage/rules"
 import {
   dispatchReportPermissions,
@@ -318,6 +320,16 @@ export const appRouteObjects: RouteObject[] = [
                 permissions={[...damageQuarantinePermissions]}
               >
                 <DamageQuarantinePage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "damage/verification",
+            element: (
+              <RequireAnyPermission
+                permissions={[...damageVerificationPermissions]}
+              >
+                <DamageVerificationPage />
               </RequireAnyPermission>
             ),
           },

@@ -38,6 +38,7 @@ const accessState = {
   canViewQuarantine: true,
   canConfirmCustody: true,
   canTransferQuarantine: true,
+  canViewVerification: true,
 }
 
 vi.mock("@/lib/damage/api", () => ({

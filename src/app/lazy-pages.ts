@@ -106,6 +106,11 @@ export const DamageQuarantinePage = lazy(() =>
     default: m.DamageQuarantinePage,
   })),
 )
+export const DamageVerificationPage = lazy(() =>
+  import("@/features/damage/DamageVerificationPage").then((m) => ({
+    default: m.DamageVerificationPage,
+  })),
+)
 export const DamageReportDetailPage = lazy(() =>
   import("@/features/damage/DamageReportDetailPage").then((m) => ({
     default: m.DamageReportDetailPage,

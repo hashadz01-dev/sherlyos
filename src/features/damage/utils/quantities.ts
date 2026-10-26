@@ -4,7 +4,10 @@ export type DamageQuantityBreakdown = {
   reportedCases: number
   heldCases: number
   quarantinedCases: number
+  reservationConvertedCases: number
+  transferredCases: number
   writtenOffCases: number
+  remainingHoldCases: number
 }
 
 function sumHolds(
@@ -44,11 +47,27 @@ export function damageQuantityBreakdown(
     report.holds,
     (hold) => hold.status === "written_off",
   )
+  const reservationConvertedCases = sumHolds(
+    report.holds,
+    (hold) =>
+      hold.status === "active" && hold.hold_kind === "reservation_conversion",
+  )
+  const transferredCases = sumHolds(
+    report.holds,
+    (hold) => hold.status === "transferred",
+  )
+  const remainingHoldCases = sumHolds(
+    report.holds,
+    (hold) => hold.status === "active" || hold.status === "transferred",
+  )
 
   return {
     reportedCases,
     heldCases,
     quarantinedCases,
+    reservationConvertedCases,
+    transferredCases,
     writtenOffCases,
+    remainingHoldCases,
   }
 }

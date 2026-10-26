@@ -19,7 +19,17 @@ export type SubmitBlocker = {
 }
 
 export type DamageMutationKind =
-  "save" | "submit" | "upload" | "finalize" | "network" | "custody" | "transfer"
+  | "save"
+  | "submit"
+  | "upload"
+  | "finalize"
+  | "network"
+  | "custody"
+  | "transfer"
+  | "verify"
+  | "return"
+  | "reject"
+  | "writeoff"
 
 /**
  * Frontend submit gates. Isolation and custody remain backend-enforced.
@@ -142,6 +152,30 @@ export function mapDamageMutationError(
   ) {
     return "This quarantine transfer was already posted. Refresh the report."
   }
+  if (/the reporter cannot verify this damage report/i.test(raw)) {
+    return "The reporter cannot verify or reject this damage report."
+  }
+  if (/damage report cannot be verified/i.test(raw)) {
+    return "This report cannot be verified in its current status."
+  }
+  if (/submitted shop-return damage cannot return to draft/i.test(raw)) {
+    return "Submitted shop-return damage cannot return to draft."
+  }
+  if (/damage report cannot be returned/i.test(raw)) {
+    return "This report cannot be returned in its current status."
+  }
+  if (/damage report cannot be rejected/i.test(raw)) {
+    return "This report cannot be rejected in its current status."
+  }
+  if (/this damage report has no on-hand stock to post/i.test(raw)) {
+    return "This damage report has no on-hand stock to write off."
+  }
+  if (/an exceptional disposition is already open/i.test(raw)) {
+    return "An exceptional disposition is already open."
+  }
+  if (/a reason is required/i.test(raw)) {
+    return "A reason is required."
+  }
   if (/photographic evidence is required/i.test(raw)) {
     return "Finalized photographic evidence is required."
   }
@@ -152,13 +186,29 @@ export function mapDamageMutationError(
     return raw
   }
   if (/failed to fetch|networkerror|load failed|aborted/i.test(raw)) {
-    if (kind === "submit" || kind === "transfer" || kind === "custody") {
+    if (
+      kind === "submit" ||
+      kind === "transfer" ||
+      kind === "custody" ||
+      kind === "verify" ||
+      kind === "return" ||
+      kind === "reject" ||
+      kind === "writeoff"
+    ) {
       return "The request may have been received. Refresh the report before retrying."
     }
     return "The connection was interrupted. Refresh and try again."
   }
   if (!raw) {
-    if (kind === "submit" || kind === "transfer" || kind === "custody") {
+    if (
+      kind === "submit" ||
+      kind === "transfer" ||
+      kind === "custody" ||
+      kind === "verify" ||
+      kind === "return" ||
+      kind === "reject" ||
+      kind === "writeoff"
+    ) {
       return "The request may have been received. Refresh the report before retrying."
     }
     return "The request could not be completed. Try again or ask an administrator."
@@ -168,4 +218,23 @@ export function mapDamageMutationError(
 
 export function reportHasFinalizedEvidence(report: DamageReportDetail | null) {
   return (report?.evidence ?? []).some((row) => row.finalized)
+}
+
+/**
+ * Identify a completed ordinary write-off from the trusted report payload.
+ * Used after an ambiguous mutation failure so the UI does not post again.
+ */
+export function reportHasCompletedOrdinaryWriteoff(
+  report: DamageReportDetail | null | undefined,
+) {
+  if (!report) return false
+  const holds = report.holds ?? []
+  const remaining = holds.filter(
+    (hold) => hold.status === "active" || hold.status === "transferred",
+  )
+  const written = holds.some((hold) => hold.status === "written_off")
+  const event = (report.events ?? []).some(
+    (row) => row.action === "ordinary_writeoff",
+  )
+  return event || (written && remaining.length === 0)
 }

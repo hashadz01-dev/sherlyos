@@ -130,6 +130,11 @@ export function DamageReportsPage() {
                 <Link to="/damage/quarantine">Quarantine</Link>
               </Button>
             ) : null}
+            {access.canViewVerification ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/verification">Verification</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />

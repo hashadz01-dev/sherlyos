@@ -53,12 +53,22 @@ export function DamageEvidencePanel({
   evidence: DamageReportDetail["evidence"]
 }) {
   const finalized = evidence.filter((row) => row.finalized)
+  const pending = evidence.filter((row) => !row.finalized)
 
   if (finalized.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No finalized evidence is available for this report.
-      </p>
+      <div className="grid gap-2">
+        <p className="text-sm text-muted-foreground">
+          No finalized evidence is available for this report.
+        </p>
+        {pending.length > 0 ? (
+          <p role="status" className="text-sm text-destructive">
+            {pending.length} unfinalized photo
+            {pending.length === 1 ? "" : "s"} cannot be treated as verified
+            evidence.
+          </p>
+        ) : null}
+      </div>
     )
   }
 

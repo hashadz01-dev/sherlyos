@@ -175,7 +175,10 @@ describe("damage display helpers", () => {
       reportedCases: 5,
       heldCases: 3,
       quarantinedCases: 2,
+      reservationConvertedCases: 0,
+      transferredCases: 2,
       writtenOffCases: 1,
+      remainingHoldCases: 5,
     })
   })
 })

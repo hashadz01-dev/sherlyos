@@ -29,6 +29,10 @@ export type DamageReportSummary = {
   shop_id?: string | null
   shop_name?: string | null
   physical_custody_confirmed?: boolean
+  reporter_user_id?: string | null
+  godown_active?: boolean
+  has_finalized_evidence?: boolean
+  finalized_evidence_count?: number
   total_cases?: number
   active_hold_cases?: number
   exceptional_open?: boolean
@@ -76,6 +80,18 @@ export type DamageReportDetail = DamageReportSummary & {
   physical_custody_confirmed_at?: string | null
   physical_custody_confirmed_by?: string | null
   physical_custody_confirmed_by_name?: string | null
+  verifier_user_id?: string | null
+  verifier_name?: string | null
+  verified_at?: string | null
+  returned_at?: string | null
+  returned_by?: string | null
+  returned_by_name?: string | null
+  return_reason?: string | null
+  rejected_at?: string | null
+  rejected_by?: string | null
+  rejected_by_name?: string | null
+  rejection_reason?: string | null
+  godown_active?: boolean
   updated_at?: string
   holds?: DamageHoldRow[]
   exceptional_requests?: DamageExceptionalRequest[]
@@ -499,6 +515,40 @@ export async function uploadDamagePhoto(
     image_base64: bytesToBase64(payload),
   })
   return created.id
+}
+
+export function verifyDamageReport(
+  targetReport: string,
+  expectedVersion: number,
+) {
+  return callRpc<DamageReportDetail>("verify_damage_report", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+  })
+}
+
+export function returnDamageReport(
+  targetReport: string,
+  expectedVersion: number,
+  reason: string,
+) {
+  return callRpc<DamageReportDetail>("return_damage_report", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+    reason,
+  })
+}
+
+export function rejectDamageReport(
+  targetReport: string,
+  expectedVersion: number,
+  reason: string,
+) {
+  return callRpc<DamageReportDetail>("reject_damage_report", {
+    target_report: targetReport,
+    expected_version: expectedVersion,
+    reason,
+  })
 }
 
 export function confirmShopReturnCustody(

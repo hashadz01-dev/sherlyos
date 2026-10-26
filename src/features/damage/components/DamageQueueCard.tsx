@@ -14,15 +14,25 @@ export function DamageQueueCard({
   title,
   description,
   items,
+  href,
 }: {
   title: string
   description: string
   items: DamageQueueItem[]
+  href?: string
 }) {
   return (
     <section className="rounded-2xl bg-card p-4 ring-1 ring-border">
       <header className="mb-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <h2 className="text-sm font-semibold">
+          {href ? (
+            <Link className="underline-offset-2 hover:underline" to={href}>
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </h2>
         <p className="text-xs text-muted-foreground">{description}</p>
       </header>
       {items.length === 0 ? (

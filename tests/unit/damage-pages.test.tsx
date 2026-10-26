@@ -18,6 +18,11 @@ vi.mock("@/lib/damage/api", () => ({
   confirmShopReturnCustody: vi.fn(),
   transferVerifiedDamageToQuarantine: vi.fn(),
   listDamageQuarantineInventory: vi.fn(),
+  getDamageStockHoldReadyStatus: vi.fn(),
+  verifyDamageReport: vi.fn(),
+  returnDamageReport: vi.fn(),
+  rejectDamageReport: vi.fn(),
+  postOrdinaryDamageWriteoff: vi.fn(),
   damagePhotoPreview: vi.fn(),
 }))
 
@@ -56,6 +61,7 @@ vi.mock("@/features/damage/hooks/use-damage-access", () => ({
     canViewQuarantine: true,
     canConfirmCustody: true,
     canTransferQuarantine: true,
+    canViewVerification: true,
   }),
 }))
 

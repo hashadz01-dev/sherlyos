@@ -52,6 +52,11 @@ export function DamagePage() {
                 <Link to="/damage/quarantine">Quarantine inventory</Link>
               </Button>
             ) : null}
+            {access.canViewVerification ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/verification">Verification queue</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -152,6 +157,7 @@ export function DamagePage() {
               title="Awaiting verification"
               description="Oldest submitted reports first."
               items={queues.awaiting_verification}
+              href="/damage/verification"
             />
           ) : null}
           {access.showDispositionQueues ? (

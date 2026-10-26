@@ -11,6 +11,9 @@ import { DamageEvidencePanel } from "@/features/damage/components/DamageEvidence
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import { DamageHoldsPanel } from "@/features/damage/components/DamageHoldsPanel"
 import { DamageLifecycleTimeline } from "@/features/damage/components/DamageLifecycleTimeline"
+import { DamageOrdinaryWriteoffPanel } from "@/features/damage/components/DamageOrdinaryWriteoffPanel"
+import { DamageVerificationHistory } from "@/features/damage/components/DamageVerificationHistory"
+import { DamageVerificationPanel } from "@/features/damage/components/DamageVerificationPanel"
 import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
 import { useAuth } from "@/hooks/use-auth"
 import { isEditableDamageStatus } from "@/lib/damage/rules"
@@ -66,6 +69,11 @@ export function DamageReportDetailPage() {
             isEditableDamageStatus(report.status) ? (
               <Button asChild>
                 <Link to={`/damage/${report.id}/edit`}>Edit draft</Link>
+              </Button>
+            ) : null}
+            {access.canViewVerification ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/verification">Verification queue</Link>
               </Button>
             ) : null}
             <Button asChild variant="outline">
@@ -181,6 +189,13 @@ export function DamageReportDetailPage() {
             />
           ) : null}
 
+          {access.canViewVerification ? (
+            <DamageVerificationPanel
+              report={report}
+              onChanged={() => void detail.refetch()}
+            />
+          ) : null}
+
           <DetailSection title="Lifecycle">
             <DamageLifecycleTimeline report={report} />
           </DetailSection>
@@ -237,6 +252,13 @@ export function DamageReportDetailPage() {
             />
           </DetailSection>
 
+          {access.canViewVerification ? (
+            <DamageOrdinaryWriteoffPanel
+              report={report}
+              onPosted={() => void detail.refetch()}
+            />
+          ) : null}
+
           {(report.exceptional_requests?.length ?? 0) > 0 ? (
             <DetailSection title="Exceptional disposition">
               <ul className="grid gap-2 text-sm">
@@ -270,6 +292,12 @@ export function DamageReportDetailPage() {
               <DamageEvidencePanel evidence={report.evidence} />
             )}
           </DetailSection>
+
+          {access.canViewVerification ? (
+            <DetailSection title="Verification history">
+              <DamageVerificationHistory report={report} />
+            </DetailSection>
+          ) : null}
 
           <DetailSection title="Activity">
             <DamageActivityTimeline events={report.events} />

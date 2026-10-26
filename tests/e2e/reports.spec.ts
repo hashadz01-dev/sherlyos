@@ -212,10 +212,13 @@ test("inventory report stays usable at tablet width", async ({ page }) => {
 test("admin reports include labeled inactive godown stock", async ({ page }) => {
   await signIn(page, "admin.m4e2e@example.com")
   await expect(page.getByText("Cartons on hand")).toBeVisible()
-  await expect(page.getByText("9").first()).toBeVisible()
-  await expect(page.getByText("M4E2E historical")).toBeVisible()
-  await expect(page.getByText("Inactive (historical)")).toBeVisible()
-  await expect(page.getByRole("option", { name: /M4E2E historical \(.*\) \(inactive\)/ })).toBeVisible()
+  // Scope to the KPI card. A global getByText("9") matches leftover branch codes.
+  await expect(
+    page.locator("article").filter({ has: page.getByRole("heading", { name: "Cartons on hand" }) }),
+  ).toBeVisible()
+  await expect(page.getByText("Inactive (historical)").first()).toBeVisible()
+  await expect(page.locator("optgroup[label='Inactive / Historical'] option").first()).toBeAttached()
+  await expect(page.getByRole("option", { name: /M4E2E historical \(.*\) \(inactive\)/ }).first()).toBeAttached()
 
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Opening stock" }).click()
   await expect(page.getByRole("heading", { name: "Opening stock" })).toBeVisible()
@@ -223,7 +226,7 @@ test("admin reports include labeled inactive godown stock", async ({ page }) => 
 
   await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click()
   await page.getByRole("navigation", { name: "Reports" }).getByRole("link", { name: "Inventory" }).click()
-  await expect(page.getByRole("option", { name: /M4E2E historical .* \(inactive\)/ })).toBeVisible()
+  await expect(page.getByRole("option", { name: /M4E2E historical .* \(inactive\)/ }).first()).toBeAttached()
   await signOut(page)
 })
 

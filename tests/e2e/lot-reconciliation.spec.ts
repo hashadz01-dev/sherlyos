@@ -235,15 +235,81 @@ function ensureQaFixtures() {
       perform public.set_product_expiry_policy(oil, 'non_expiring');
       perform public.set_product_expiry_policy(found, 'expiry_controlled');
 
-      if not exists (
-        select 1 from public.stock_balances
-        where crate_id = crate_a1 and product_id = soap and quantity > 0
-      ) then
-        perform public.post_opening_stock(soap, crate_a1, 6, 'm1s2qa-open-soap', null);
-        perform public.post_opening_stock(oil, crate_a1, 4, 'm1s2qa-open-oil', null);
-        perform public.post_opening_stock(soap, crate_a2, 3, 'm1s2qa-open-soap-2', null);
-        perform public.post_opening_stock(soap, crate_b, 2, 'm1s2qa-open-soap-b', null);
-      end if;
+      -- Restock each crate independently. Opening is unique per product+crate.
+      -- Prior HTTP replica cleanup can leave the opening header with no ledger
+      -- or balance; a new opening then fails. Restore those disposable rows.
+      declare
+        need record;
+        current_qty integer;
+        opening public.stock_transactions%rowtype;
+      begin
+        for need in
+          select *
+          from (
+            values
+              (soap, crate_a1, 6, 'm1s2qa-open-soap-'),
+              (oil, crate_a1, 4, 'm1s2qa-open-oil-'),
+              (soap, crate_a2, 3, 'm1s2qa-open-soap-2-'),
+              (soap, crate_b, 2, 'm1s2qa-open-soap-b-')
+          ) as lines(product_id, crate_id, qty, key_prefix)
+        loop
+          select coalesce(quantity, 0) into current_qty
+          from public.stock_balances
+          where crate_id = need.crate_id and product_id = need.product_id;
+          current_qty := coalesce(current_qty, 0);
+          if current_qty >= need.qty then
+            continue;
+          end if;
+
+          select * into opening
+          from public.stock_transactions
+          where transaction_type = 'OPENING_STOCK'
+            and product_id = need.product_id
+            and destination_crate_id = need.crate_id
+          order by posted_at
+          limit 1;
+
+          if opening.id is null then
+            perform public.post_opening_stock(
+              need.product_id,
+              need.crate_id,
+              need.qty,
+              need.key_prefix || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSMS'),
+              null
+            );
+          else
+            reset role;
+            set session_replication_role = replica;
+            if not exists (
+              select 1 from public.stock_ledger where transaction_id = opening.id
+            ) then
+              insert into public.stock_ledger (
+                transaction_id, product_id, crate_id, quantity, actor_id, posted_at
+              )
+              values (
+                opening.id,
+                opening.product_id,
+                opening.destination_crate_id,
+                opening.quantity,
+                opening.actor_id,
+                opening.posted_at
+              );
+            end if;
+            insert into public.stock_balances (crate_id, product_id, quantity)
+            values (need.crate_id, need.product_id, need.qty)
+            on conflict (crate_id, product_id) do update
+              set quantity = excluded.quantity;
+            set session_replication_role = origin;
+            perform set_config('request.jwt.claim.sub', admin_id::text, true);
+            perform set_config(
+              'request.jwt.claims',
+              jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text,
+              true
+            );
+            execute 'set local role authenticated';
+          end if;
+        end loop;
+      end;
     end;
     $$;
     `,

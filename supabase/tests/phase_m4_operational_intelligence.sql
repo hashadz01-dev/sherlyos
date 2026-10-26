@@ -148,8 +148,16 @@ select pg_temp.expect(
 select pg_temp.as_user('admin');
 set local role authenticated;
 
-select set_config('sherlyos.branch', public.create_branch('m4qi_a', 'M4QI A')::text, true);
-select set_config('sherlyos.branch_b', public.create_branch('m4qi_b', 'M4QI B')::text, true);
+select set_config(
+  'sherlyos.branch',
+  public.create_branch('m4qi_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), 'M4QI A')::text,
+  true
+);
+select set_config(
+  'sherlyos.branch_b',
+  public.create_branch('m4qi_b_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), 'M4QI B')::text,
+  true
+);
 select public.assign_user_branch((select id from fixture where name = 'accounts'), current_setting('sherlyos.branch')::uuid);
 select public.assign_user_branch((select id from fixture where name = 'godown'), current_setting('sherlyos.branch')::uuid);
 select public.assign_user_branch((select id from fixture where name = 'keeper'), current_setting('sherlyos.branch')::uuid);
@@ -168,12 +176,14 @@ select public.assign_shop_salesperson(
   (select id from fixture where name = 'sales')
 );
 
--- Empty-ish dashboard before opening stock (unclassified products still count).
+-- Empty-ish dashboard before opening stock. Scope to this fixture godown so
+-- leftover local HTTP/e2e stock cannot inflate totals.
 do $$
 declare
   dash jsonb;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
 begin
-  dash := public.get_operations_dashboard(null);
+  dash := public.get_operations_dashboard(branch);
   perform pg_temp.expect(dash ->> 'timezone' = 'UTC', 'dashboard timezone');
   perform pg_temp.expect((dash -> 'cutover' ->> 'dual_write_enabled')::boolean is false, 'cutover off');
   perform pg_temp.expect(
@@ -207,18 +217,19 @@ declare
   page2 jsonb;
   export jsonb;
   orders jsonb;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
 begin
   select coalesce(sum(quantity), 0) into before_qty from public.stock_balances;
 
-  dash := public.get_operations_dashboard(null);
-  inv := public.list_inventory_report('crate', null, null, null, null, null, null, false, 1, 50);
-  moved := public.list_stock_movement_report(null, null, null, null, null, 1, 50);
-  perform public.list_lot_stock_report(null, null, null, null, null, 1, 50);
-  perform public.list_order_picking_report(null, null, null, null, null, null, null, 1, 50);
-  perform public.list_dispatch_delivery_report(null, null, null, null, 1, 50);
-  perform public.list_operations_exceptions(null, 1, 50);
+  dash := public.get_operations_dashboard(branch);
+  inv := public.list_inventory_report('crate', branch, null, null, null, null, null, false, 1, 50);
+  moved := public.list_stock_movement_report(branch, null, null, null, null, 1, 50);
+  perform public.list_lot_stock_report(branch, null, null, null, null, 1, 50);
+  perform public.list_order_picking_report(branch, null, null, null, null, null, null, 1, 50);
+  perform public.list_dispatch_delivery_report(branch, null, null, null, 1, 50);
+  perform public.list_operations_exceptions(branch, 1, 50);
   export := public.export_operations_report(
-    'inventory', 'crate', null, null, null, null, null, null, false,
+    'inventory', 'crate', branch, null, null, null, null, null, false,
     null, null, null, null, null, null, null, null, null, null
   );
 
@@ -238,8 +249,8 @@ begin
   perform pg_temp.expect(export ->> 'csv' like '%grain%', 'csv header');
   perform pg_temp.expect(export ->> 'csv' like '%''=CMD soap%' or export ->> 'csv' like '%"=CMD soap%', 'csv formula protected');
 
-  page1 := public.list_inventory_report('product', null, null, null, null, null, null, false, 1, 1);
-  page2 := public.list_inventory_report('product', null, null, null, null, null, null, false, 2, 1);
+  page1 := public.list_inventory_report('product', branch, null, null, null, null, null, false, 1, 1);
+  page2 := public.list_inventory_report('product', branch, null, null, null, null, null, false, 2, 1);
   perform pg_temp.expect((page1 ->> 'page_size')::int = 1, 'page size');
   perform pg_temp.expect((page1 ->> 'total_count')::int = 2, 'paged total');
   perform pg_temp.expect(
@@ -249,7 +260,7 @@ begin
 
   -- Future UTC window excludes today's opening.
   moved := public.list_stock_movement_report(
-    null, null, 'OPENING_STOCK',
+    branch, null, 'OPENING_STOCK',
     (date_trunc('day', timezone('UTC', clock_timestamp())) + interval '1 day'),
     (date_trunc('day', timezone('UTC', clock_timestamp())) + interval '2 day'),
     1, 50
@@ -257,7 +268,7 @@ begin
   perform pg_temp.expect((moved ->> 'total_count')::int = 0, 'future window empty');
 
   moved := public.list_stock_movement_report(
-    null, null, 'OPENING_STOCK',
+    branch, null, 'OPENING_STOCK',
     date_trunc('day', timezone('UTC', clock_timestamp())),
     date_trunc('day', timezone('UTC', clock_timestamp())) + interval '1 day',
     1, 50
@@ -279,7 +290,7 @@ begin
   end;
 
   moved := public.list_stock_movement_report(
-    null, null, 'OPENING_STOCK',
+    branch, null, 'OPENING_STOCK',
     date_trunc('day', timezone('UTC', clock_timestamp())) - interval '1 day',
     date_trunc('day', timezone('UTC', clock_timestamp())),
     1, 50
@@ -287,7 +298,7 @@ begin
   perform pg_temp.expect((moved ->> 'total_count')::int = 0, 'previous UTC day exclusive of today');
 
   moved := public.list_stock_movement_report(
-    null, null, 'OPENING_STOCK',
+    branch, null, 'OPENING_STOCK',
     date_trunc('month', timezone('UTC', clock_timestamp())),
     date_trunc('month', timezone('UTC', clock_timestamp())) + interval '1 month',
     1, 50
@@ -295,7 +306,7 @@ begin
   perform pg_temp.expect((moved ->> 'total_count')::int = 2, 'month window includes opening');
 
   moved := public.list_stock_movement_report(
-    null, null, 'OPENING_STOCK',
+    branch, null, 'OPENING_STOCK',
     date_trunc('year', timezone('UTC', clock_timestamp())),
     date_trunc('year', timezone('UTC', clock_timestamp())) + interval '1 year',
     1, 50
@@ -312,7 +323,7 @@ begin
     when insufficient_privilege then null;
   end;
 
-  orders := public.list_order_picking_report(null, null, null, null, null, null, null, 1, 50);
+  orders := public.list_order_picking_report(branch, null, null, null, null, null, null, 1, 50);
   perform pg_temp.expect((orders ->> 'total_count')::int = 0, 'no orders yet');
 end $$;
 
@@ -327,11 +338,12 @@ do $$
 declare
   moved jsonb;
   dash jsonb;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
 begin
-  moved := public.list_stock_movement_report(null, null, 'CRATE_TRANSFER', null, null, 1, 50);
+  moved := public.list_stock_movement_report(branch, null, 'CRATE_TRANSFER', null, null, 1, 50);
   perform pg_temp.expect((moved ->> 'total_count')::int = 1, 'transfer counted once');
   perform pg_temp.expect((moved -> 'summary' ->> 'transfer_cartons')::int = 3, 'transfer quantity once');
-  dash := public.get_operations_dashboard(null);
+  dash := public.get_operations_dashboard(branch);
   perform pg_temp.expect((dash -> 'inventory' ->> 'total_cartons_on_hand')::int = 14, 'transfer does not inflate on-hand');
 end $$;
 
@@ -736,7 +748,7 @@ begin
   perform pg_temp.as_user('godown');
   header := public.confirm_picking_handoff(request_id, (header ->> 'version')::integer, 'm4qi-handoff');
 
-  dash := public.get_operations_dashboard(null);
+  dash := public.get_operations_dashboard(current_setting('sherlyos.branch')::uuid);
   perform pg_temp.expect((dash -> 'inventory' -> 'available_to_pick' ->> 'state') = 'available', 'available when dual-write on');
   perform pg_temp.expect(
     (dash -> 'inventory' ->> 'total_cartons_on_hand')::int
@@ -746,10 +758,10 @@ begin
   );
 
   prepared := public.prepare_dispatch(current_setting('sherlyos.dispatch_order')::uuid, (header ->> 'version')::integer, 'm4qi-prepare');
-  dash := public.get_operations_dashboard(null);
+  dash := public.get_operations_dashboard(current_setting('sherlyos.branch')::uuid);
   perform pg_temp.expect((dash -> 'dispatch' ->> 'preparing')::int >= 1, 'preparing visible');
   perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched')::int = 0, 'preparing is not dispatched');
-  dispatch := public.list_dispatch_delivery_report(null, 'preparing', null, null, 1, 50);
+  dispatch := public.list_dispatch_delivery_report(current_setting('sherlyos.branch')::uuid, 'preparing', null, null, 1, 50);
   perform pg_temp.expect((dispatch -> 'rows' -> 0 ->> 'stock_consumed')::boolean is false, 'preparing unconsumed');
   perform pg_temp.expect((dispatch -> 'rows' -> 0 ->> 'dispatched_cartons')::int = 0, 'no DISPATCH txn yet');
 
@@ -763,11 +775,11 @@ begin
     and transaction_type = 'DISPATCH';
   perform pg_temp.expect(txn_count = 1, 'one DISPATCH transaction');
 
-  dash := public.get_operations_dashboard(null);
+  dash := public.get_operations_dashboard(current_setting('sherlyos.branch')::uuid);
   perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched')::int >= 1, 'consumed dispatch counted');
   perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched_cartons')::int = 2, 'DISPATCH carton total');
 
-  picking := public.list_order_picking_report(null, null, null, null, 'ready_for_dispatch', null, null, 1, 50);
+  picking := public.list_order_picking_report(current_setting('sherlyos.branch')::uuid, null, null, null, 'ready_for_dispatch', null, null, 1, 50);
   perform pg_temp.expect((picking -> 'rows' -> 0 ->> 'picking_status') = 'ready_for_dispatch', 'picking remains handoff');
   perform pg_temp.expect((picking -> 'rows' -> 0 ->> 'stock_dispatched')::boolean, 'stock dispatched from consumed dispatch');
 end $$;

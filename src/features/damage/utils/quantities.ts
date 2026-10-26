@@ -7,6 +7,7 @@ export type DamageQuantityBreakdown = {
   reservationConvertedCases: number
   transferredCases: number
   writtenOffCases: number
+  returnedSupplierCases: number
   remainingHoldCases: number
 }
 
@@ -60,6 +61,10 @@ export function damageQuantityBreakdown(
     report.holds,
     (hold) => hold.status === "active" || hold.status === "transferred",
   )
+  const returnedSupplierCases = sumHolds(
+    report.holds,
+    (hold) => hold.status === "returned_supplier",
+  )
 
   return {
     reportedCases,
@@ -68,6 +73,7 @@ export function damageQuantityBreakdown(
     reservationConvertedCases,
     transferredCases,
     writtenOffCases,
+    returnedSupplierCases,
     remainingHoldCases,
   }
 }

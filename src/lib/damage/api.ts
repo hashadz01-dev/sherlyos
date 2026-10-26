@@ -64,7 +64,54 @@ export type DamageExceptionalRequest = {
   status: string
   version: number
   request_reason?: string | null
+  requested_by?: string | null
+  requested_by_name?: string | null
   requested_at?: string | null
+  decided_by?: string | null
+  decided_by_name?: string | null
+  decided_at?: string | null
+  decision_reason?: string | null
+  posted_by?: string | null
+  posted_by_name?: string | null
+  posted_at?: string | null
+  posted_transaction_id?: string | null
+}
+
+export type ExceptionalRequestSummary = {
+  id: string
+  damage_report_id: string
+  report_number: string
+  report_status: DamageStatus
+  report_version: number
+  scenario: DamageScenario
+  godown_id: string
+  godown_name: string
+  godown_active: boolean
+  kind: string
+  status: string
+  version: number
+  request_reason: string | null
+  requested_by: string | null
+  requested_by_name: string | null
+  requested_at: string
+  decided_by?: string | null
+  decided_by_name?: string | null
+  decided_at?: string | null
+  decision_reason?: string | null
+  posted_by?: string | null
+  posted_by_name?: string | null
+  posted_at?: string | null
+  posted_transaction_id?: string | null
+  has_finalized_evidence?: boolean
+  total_cases?: number
+  remaining_hold_cases?: number
+}
+
+export type ExceptionalRequestList = {
+  total: number
+  page: number
+  page_size: number
+  items: ExceptionalRequestSummary[]
 }
 
 export type DamageReportDetail = DamageReportSummary & {
@@ -333,6 +380,30 @@ export function listDamageReports(
 export function getDamageDashboard(targetGodown?: string | null) {
   return callRpc<DamageDashboard>("get_damage_dashboard", {
     target_godown: targetGodown ?? null,
+  })
+}
+
+export function listExceptionalDamageRequests(input: {
+  page?: number
+  pageSize?: number
+  targetGodown?: string | null
+  status?: string | null
+  kind?: string | null
+  scenario?: string | null
+  search?: string | null
+  fromDate?: string | null
+  toDate?: string | null
+}) {
+  return callRpc<ExceptionalRequestList>("list_exceptional_damage_requests", {
+    page: input.page ?? 1,
+    page_size: input.pageSize ?? 50,
+    target_godown: input.targetGodown ?? null,
+    status_filter: input.status ?? null,
+    kind_filter: input.kind ?? null,
+    scenario_filter: input.scenario ?? null,
+    search_text: input.search ?? null,
+    from_date: rpcDate(input.fromDate),
+    to_date: rpcDate(input.toDate),
   })
 }
 

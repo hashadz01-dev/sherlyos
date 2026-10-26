@@ -30,6 +30,10 @@ export type DamageMutationKind =
   | "return"
   | "reject"
   | "writeoff"
+  | "exceptional-request"
+  | "exceptional-approve"
+  | "exceptional-reject"
+  | "exceptional-post"
 
 /**
  * Frontend submit gates. Isolation and custody remain backend-enforced.
@@ -173,6 +177,21 @@ export function mapDamageMutationError(
   if (/an exceptional disposition is already open/i.test(raw)) {
     return "An exceptional disposition is already open."
   }
+  if (/an ordinary write-off is already posted/i.test(raw)) {
+    return "An ordinary write-off is already posted for this report."
+  }
+  if (/exceptional request cannot be approved/i.test(raw)) {
+    return "This exceptional request cannot be approved in its current status."
+  }
+  if (/exceptional request cannot be rejected/i.test(raw)) {
+    return "This exceptional request cannot be rejected in its current status."
+  }
+  if (/exceptional request is not approved/i.test(raw)) {
+    return "This exceptional request is not approved."
+  }
+  if (/exceptional disposition is invalid/i.test(raw)) {
+    return "Choose return to supplier or destroy."
+  }
   if (/a reason is required/i.test(raw)) {
     return "A reason is required."
   }
@@ -193,7 +212,11 @@ export function mapDamageMutationError(
       kind === "verify" ||
       kind === "return" ||
       kind === "reject" ||
-      kind === "writeoff"
+      kind === "writeoff" ||
+      kind === "exceptional-request" ||
+      kind === "exceptional-approve" ||
+      kind === "exceptional-reject" ||
+      kind === "exceptional-post"
     ) {
       return "The request may have been received. Refresh the report before retrying."
     }
@@ -207,7 +230,11 @@ export function mapDamageMutationError(
       kind === "verify" ||
       kind === "return" ||
       kind === "reject" ||
-      kind === "writeoff"
+      kind === "writeoff" ||
+      kind === "exceptional-request" ||
+      kind === "exceptional-approve" ||
+      kind === "exceptional-reject" ||
+      kind === "exceptional-post"
     ) {
       return "The request may have been received. Refresh the report before retrying."
     }
@@ -237,4 +264,21 @@ export function reportHasCompletedOrdinaryWriteoff(
     (row) => row.action === "ordinary_writeoff",
   )
   return event || (written && remaining.length === 0)
+}
+
+/**
+ * Identify a completed exceptional posting from the trusted payload.
+ * Used after an ambiguous mutation failure so the UI does not post again.
+ */
+export function reportHasCompletedExceptionalDisposition(
+  report: DamageReportDetail | null | undefined,
+  requestId?: string | null,
+) {
+  if (!report) return false
+  const rows = report.exceptional_requests ?? []
+  const match = requestId
+    ? rows.find((row) => row.id === requestId)
+    : rows.find((row) => row.status === "posted")
+  if (match?.status === "posted") return true
+  return (report.events ?? []).some((row) => row.action === "exceptional_posted")
 }

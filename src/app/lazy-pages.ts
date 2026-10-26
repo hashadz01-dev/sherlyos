@@ -111,6 +111,11 @@ export const DamageVerificationPage = lazy(() =>
     default: m.DamageVerificationPage,
   })),
 )
+export const DamageExceptionalApprovalsPage = lazy(() =>
+  import("@/features/damage/DamageExceptionalApprovalsPage").then((m) => ({
+    default: m.DamageExceptionalApprovalsPage,
+  })),
+)
 export const DamageReportDetailPage = lazy(() =>
   import("@/features/damage/DamageReportDetailPage").then((m) => ({
     default: m.DamageReportDetailPage,

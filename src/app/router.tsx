@@ -10,6 +10,7 @@ import {
   DamageQuarantinePage,
   DamageReportDetailPage,
   DamageReportsPage,
+  DamageExceptionalApprovalsPage,
   DamageVerificationPage,
   EditDamageReportPage,
   NewDamageReportPage,
@@ -66,6 +67,7 @@ import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
 import {
   damageCreatePermissions,
+  damageExceptionalQueuePermissions,
   damageNavPermissions,
   damageQuarantinePermissions,
   damageVerificationPermissions,
@@ -330,6 +332,16 @@ export const appRouteObjects: RouteObject[] = [
                 permissions={[...damageVerificationPermissions]}
               >
                 <DamageVerificationPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "damage/exceptional",
+            element: (
+              <RequireAnyPermission
+                permissions={[...damageExceptionalQueuePermissions]}
+              >
+                <DamageExceptionalApprovalsPage />
               </RequireAnyPermission>
             ),
           },

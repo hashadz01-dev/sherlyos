@@ -12,6 +12,9 @@ export type DamageLifecycleStageId =
   | "verified"
   | "ordinary_writeoff"
   | "quarantined"
+  | "exceptional_requested"
+  | "exceptional_approved"
+  | "exceptional_posted"
   | "disposition_pending"
   | "resolved"
 
@@ -70,8 +73,22 @@ export function damageLifecycleStages(
         hold.location_role === "quarantine",
     )?.created_at ??
     null
-  const exceptionalOpen = (report.exceptional_requests ?? []).some((row) =>
+  const exceptionalRows = report.exceptional_requests ?? []
+  const exceptionalOpen = exceptionalRows.some((row) =>
     ["requested", "approved"].includes(row.status),
+  )
+  const exceptionalRequested = exceptionalRows.find(
+    (row) =>
+      row.status === "requested" ||
+      row.status === "approved" ||
+      row.status === "posted" ||
+      row.status === "rejected",
+  )
+  const exceptionalApproved = exceptionalRows.find(
+    (row) => row.status === "approved" || row.status === "posted",
+  )
+  const exceptionalPosted = exceptionalRows.find(
+    (row) => row.status === "posted",
   )
   const remainingIsolation =
     breakdown.heldCases > 0 || breakdown.quarantinedCases > 0
@@ -185,6 +202,42 @@ export function damageLifecycleStages(
       applicable: true,
       complete: quarantined,
       at: quarantined ? quarantinedAt : null,
+    },
+    {
+      id: "exceptional_requested",
+      label: "Exceptional requested",
+      description:
+        "A Godown Manager requested return-to-supplier or destroy. Stock is unchanged.",
+      applicable: Boolean(exceptionalRequested),
+      complete: Boolean(exceptionalRequested),
+      at:
+        exceptionalRequested?.requested_at ??
+        eventAt(report, "exceptional_requested") ??
+        null,
+    },
+    {
+      id: "exceptional_approved",
+      label: "Exceptional approved",
+      description:
+        "Admin authorized the disposition. Inventory has not been posted.",
+      applicable: Boolean(exceptionalRequested),
+      complete: Boolean(exceptionalApproved),
+      at:
+        exceptionalApproved?.decided_at ??
+        eventAt(report, "exceptional_approved") ??
+        null,
+    },
+    {
+      id: "exceptional_posted",
+      label: "Exceptional posted",
+      description:
+        "Trusted ledger posting consumed remaining isolated cases. Saleable stock is not restored. Physical destruction or supplier handover is not independently recorded.",
+      applicable: Boolean(exceptionalRequested),
+      complete: Boolean(exceptionalPosted),
+      at:
+        exceptionalPosted?.posted_at ??
+        eventAt(report, "exceptional_posted") ??
+        null,
     },
     {
       id: "disposition_pending",

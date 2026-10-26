@@ -178,6 +178,7 @@ describe("damage display helpers", () => {
       reservationConvertedCases: 0,
       transferredCases: 2,
       writtenOffCases: 1,
+      returnedSupplierCases: 0,
       remainingHoldCases: 5,
     })
   })

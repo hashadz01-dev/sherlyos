@@ -11,6 +11,9 @@ import { DamageEvidencePanel } from "@/features/damage/components/DamageEvidence
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import { DamageHoldsPanel } from "@/features/damage/components/DamageHoldsPanel"
 import { DamageLifecycleTimeline } from "@/features/damage/components/DamageLifecycleTimeline"
+import { DamageExceptionalExecutionPanel } from "@/features/damage/components/DamageExceptionalExecutionPanel"
+import { DamageExceptionalRequestPanel } from "@/features/damage/components/DamageExceptionalRequestPanel"
+import { DamageExceptionalReviewPanel } from "@/features/damage/components/DamageExceptionalReviewPanel"
 import { DamageOrdinaryWriteoffPanel } from "@/features/damage/components/DamageOrdinaryWriteoffPanel"
 import { DamageVerificationHistory } from "@/features/damage/components/DamageVerificationHistory"
 import { DamageVerificationPanel } from "@/features/damage/components/DamageVerificationPanel"
@@ -74,6 +77,11 @@ export function DamageReportDetailPage() {
             {access.canViewVerification ? (
               <Button asChild variant="outline">
                 <Link to="/damage/verification">Verification queue</Link>
+              </Button>
+            ) : null}
+            {access.canViewExceptionalQueue ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/exceptional">Exceptional approvals</Link>
               </Button>
             ) : null}
             <Button asChild variant="outline">
@@ -259,27 +267,18 @@ export function DamageReportDetailPage() {
             />
           ) : null}
 
-          {(report.exceptional_requests?.length ?? 0) > 0 ? (
-            <DetailSection title="Exceptional disposition">
-              <ul className="grid gap-2 text-sm">
-                {report.exceptional_requests?.map((request) => (
-                  <li
-                    key={request.id}
-                    className="rounded-xl bg-muted/40 px-3 py-2"
-                  >
-                    <p className="font-medium">
-                      {request.kind} · {request.status}
-                    </p>
-                    {request.request_reason ? (
-                      <p className="text-muted-foreground">
-                        {request.request_reason}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </DetailSection>
-          ) : null}
+          <DamageExceptionalRequestPanel
+            report={report}
+            onChanged={() => void detail.refetch()}
+          />
+          <DamageExceptionalReviewPanel
+            report={report}
+            onChanged={() => void detail.refetch()}
+          />
+          <DamageExceptionalExecutionPanel
+            report={report}
+            onPosted={() => void detail.refetch()}
+          />
 
           <DetailSection title="Evidence">
             {report.status === "submitted" &&

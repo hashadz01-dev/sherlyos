@@ -190,6 +190,12 @@ export const damageVerificationPermissions = [
   "operations.monitor",
 ] as const
 
+/** Admin exceptional queue. GM uses report detail, not this route. */
+export const damageExceptionalQueuePermissions = [
+  "damage.dispose",
+  "operations.monitor",
+] as const
+
 export type DamageDecisionBlocker = {
   code:
     | "permission"
@@ -203,6 +209,10 @@ export type DamageDecisionBlocker = {
     | "holds"
     | "exceptional"
     | "posted"
+    | "kind"
+    | "open"
+    | "approved"
+    | "executed"
   message: string
 }
 
@@ -438,6 +448,234 @@ export function canPostOrdinaryDamageWriteoff(
   input: Parameters<typeof collectOrdinaryWriteoffBlockers>[0],
 ) {
   return collectOrdinaryWriteoffBlockers(input).length === 0
+}
+
+export type ExceptionalDispositionKind =
+  (typeof exceptionalDispositionKinds)[number]
+
+/**
+ * UX gate matching request_exceptional_damage_disposition.
+ * Remaining holds and no ordinary write-off are required. Backend is
+ * still authoritative and posts nothing at request time.
+ */
+export function collectExceptionalRequestBlockers(input: {
+  status: string
+  scenario: string
+  canVerify: boolean
+  hasFinalizedEvidence: boolean
+  remainingHoldCases: number
+  ordinaryPosted: boolean
+  exceptionalOpen: boolean
+  exceptionalPosted: boolean
+  godownActive?: boolean | null
+}): DamageDecisionBlocker[] {
+  const blockers: DamageDecisionBlocker[] = []
+  if (!input.canVerify) {
+    blockers.push({
+      code: "permission",
+      message: "Exceptional requests require damage.verify.",
+    })
+  }
+  const statusReady =
+    input.status === "verified" ||
+    (input.scenario === "shop_return" && input.status === "rejected")
+  if (!statusReady) {
+    blockers.push({
+      code: "status",
+      message:
+        "Exceptional disposition requires a verified report, or a rejected shop-return still holding quarantine stock.",
+    })
+  }
+  if (scenarioMaySubmitWithoutHold(input.scenario)) {
+    blockers.push({
+      code: "scenario",
+      message: "This damage report has no on-hand stock to post.",
+    })
+  }
+  if (!input.hasFinalizedEvidence) {
+    blockers.push({
+      code: "evidence",
+      message: "Finalized photographic evidence is required.",
+    })
+  }
+  if (input.ordinaryPosted) {
+    blockers.push({
+      code: "posted",
+      message: "An ordinary write-off is already posted for this report.",
+    })
+  }
+  if (input.exceptionalPosted) {
+    blockers.push({
+      code: "executed",
+      message: "An exceptional disposition is already posted for this report.",
+    })
+  }
+  if (input.exceptionalOpen) {
+    blockers.push({
+      code: "open",
+      message: "An exceptional disposition is already open.",
+    })
+  }
+  if (input.remainingHoldCases < 1 && !input.exceptionalPosted) {
+    blockers.push({
+      code: "holds",
+      message: "No isolated damage quantity remains to dispose.",
+    })
+  }
+  if (input.godownActive === false) {
+    blockers.push({
+      code: "godown",
+      message:
+        "This godown is inactive. Operational exceptional requests are not allowed.",
+    })
+  }
+  return blockers
+}
+
+export function canRequestExceptionalDisposition(
+  input: Parameters<typeof collectExceptionalRequestBlockers>[0],
+) {
+  return collectExceptionalRequestBlockers(input).length === 0
+}
+
+/** Admin authorization event. Does not post stock. */
+export function collectExceptionalApproveBlockers(input: {
+  canDispose: boolean
+  requestStatus?: string | null
+}): DamageDecisionBlocker[] {
+  const blockers: DamageDecisionBlocker[] = []
+  if (!input.canDispose) {
+    blockers.push({
+      code: "permission",
+      message: "Approving an exceptional request requires damage.dispose.",
+    })
+  }
+  if (input.requestStatus === "approved" || input.requestStatus === "posted") {
+    blockers.push({
+      code: "approved",
+      message: "This request is already approved or posted.",
+    })
+  } else if (input.requestStatus !== "requested") {
+    blockers.push({
+      code: "status",
+      message: "Only requested exceptional dispositions can be approved.",
+    })
+  }
+  return blockers
+}
+
+export function canApproveExceptionalDisposition(
+  input: Parameters<typeof collectExceptionalApproveBlockers>[0],
+) {
+  return collectExceptionalApproveBlockers(input).length === 0
+}
+
+export function collectExceptionalRejectBlockers(input: {
+  canDispose: boolean
+  requestStatus?: string | null
+}): DamageDecisionBlocker[] {
+  const blockers: DamageDecisionBlocker[] = []
+  if (!input.canDispose) {
+    blockers.push({
+      code: "permission",
+      message: "Rejecting an exceptional request requires damage.dispose.",
+    })
+  }
+  if (input.requestStatus === "rejected") {
+    blockers.push({
+      code: "status",
+      message: "This request is already rejected.",
+    })
+  } else if (input.requestStatus !== "requested") {
+    blockers.push({
+      code: "status",
+      message: "Only requested exceptional dispositions can be rejected.",
+    })
+  }
+  return blockers
+}
+
+export function canRejectExceptionalDisposition(
+  input: Parameters<typeof collectExceptionalRejectBlockers>[0],
+) {
+  return collectExceptionalRejectBlockers(input).length === 0
+}
+
+/**
+ * UX gate matching post_exceptional_damage_disposition.
+ * Execution is GM-only after admin approval. Quantity is remaining holds.
+ */
+export function collectExceptionalExecuteBlockers(input: {
+  canVerify: boolean
+  requestStatus?: string | null
+  remainingHoldCases: number
+  godownActive?: boolean | null
+}): DamageDecisionBlocker[] {
+  const blockers: DamageDecisionBlocker[] = []
+  if (!input.canVerify) {
+    blockers.push({
+      code: "permission",
+      message: "Executing an exceptional disposition requires damage.verify.",
+    })
+  }
+  if (input.requestStatus === "posted") {
+    blockers.push({
+      code: "executed",
+      message: "This exceptional disposition is already posted.",
+    })
+  } else if (input.requestStatus !== "approved") {
+    blockers.push({
+      code: "approved",
+      message: "Execution is available only after admin approval.",
+    })
+  }
+  if (input.remainingHoldCases < 1 && input.requestStatus !== "posted") {
+    blockers.push({
+      code: "holds",
+      message: "No isolated damage quantity remains to dispose.",
+    })
+  }
+  if (input.godownActive === false) {
+    blockers.push({
+      code: "godown",
+      message:
+        "This godown is inactive. Operational exceptional posting is not allowed.",
+    })
+  }
+  return blockers
+}
+
+export function canExecuteExceptionalDisposition(
+  input: Parameters<typeof collectExceptionalExecuteBlockers>[0],
+) {
+  return collectExceptionalExecuteBlockers(input).length === 0
+}
+
+export function formatExceptionalKind(kind: string) {
+  if (kind === "return_supplier") return "Return to supplier"
+  if (kind === "destroy") return "Destroy"
+  return kind
+}
+
+export function formatExceptionalStatus(status: string) {
+  switch (status) {
+    case "requested":
+      return "Requested"
+    case "approved":
+      return "Approved — pending execution"
+    case "rejected":
+      return "Rejected"
+    case "posted":
+      return "Posted — ledger complete"
+    default:
+      return status
+  }
+}
+
+export function isExceptionalDispositionKind(
+  value: string,
+): value is ExceptionalDispositionKind {
+  return (exceptionalDispositionKinds as readonly string[]).includes(value)
 }
 
 export function isValidDecisionReason(value: string) {

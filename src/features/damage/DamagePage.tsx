@@ -57,6 +57,11 @@ export function DamagePage() {
                 <Link to="/damage/verification">Verification queue</Link>
               </Button>
             ) : null}
+            {access.canViewExceptionalQueue ? (
+              <Button asChild variant="outline">
+                <Link to="/damage/exceptional">Exceptional approvals</Link>
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -172,6 +177,7 @@ export function DamagePage() {
               title="Exceptional approvals"
               description="Open return-to-supplier or destroy requests."
               items={queues.exceptional_pending}
+              href="/damage/exceptional"
             />
           ) : null}
           <DamageQueueCard

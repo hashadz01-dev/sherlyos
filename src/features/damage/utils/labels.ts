@@ -113,13 +113,24 @@ export function activityNote(
   metadata: Record<string, unknown> | null | undefined,
 ) {
   if (!metadata) return null
+  const parts: string[] = []
   const note =
     (typeof metadata.note === "string" && metadata.note) ||
     (typeof metadata.reason === "string" && metadata.reason) ||
     (typeof metadata.decision_reason === "string" &&
       metadata.decision_reason) ||
     null
-  return note
+  if (note) parts.push(note)
+  if (typeof metadata.kind === "string" && metadata.kind.trim()) {
+    parts.push(metadata.kind)
+  }
+  if (
+    typeof metadata.transaction_id === "string" &&
+    metadata.transaction_id.trim()
+  ) {
+    parts.push(`txn ${metadata.transaction_id.slice(0, 8)}`)
+  }
+  return parts.length > 0 ? parts.join(" · ") : null
 }
 
 export function readinessMessage(stockHoldReady: boolean) {

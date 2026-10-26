@@ -7,6 +7,8 @@ import {
   BranchesPage,
   CategoriesPage,
   DamagePage,
+  DamageReportDetailPage,
+  DamageReportsPage,
   DeliveriesPage,
   DeliveryNoteDetailPage,
   DeliveryNotePrintPage,
@@ -84,7 +86,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "orders",
             element: (
               <RequireAnyPermission
-                permissions={["orders.capture", "orders.verify", "operations.monitor"]}
+                permissions={[
+                  "orders.capture",
+                  "orders.verify",
+                  "operations.monitor",
+                ]}
               >
                 <OrdersPage />
               </RequireAnyPermission>
@@ -110,7 +116,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "orders/:orderId",
             element: (
               <RequireAnyPermission
-                permissions={["orders.capture", "orders.verify", "operations.monitor"]}
+                permissions={[
+                  "orders.capture",
+                  "orders.verify",
+                  "operations.monitor",
+                ]}
               >
                 <OrderDetailPage />
               </RequireAnyPermission>
@@ -135,7 +145,13 @@ export const appRouteObjects: RouteObject[] = [
           {
             path: "picking/exceptions",
             element: (
-              <RequireAnyPermission permissions={["picking.manage", "picking.allocate", "operations.monitor"]}>
+              <RequireAnyPermission
+                permissions={[
+                  "picking.manage",
+                  "picking.allocate",
+                  "operations.monitor",
+                ]}
+              >
                 <PickingExceptionsPage />
               </RequireAnyPermission>
             ),
@@ -167,7 +183,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "dispatch",
             element: (
               <RequireAnyPermission
-                permissions={["dispatch.view", "dispatch.confirm", "operations.monitor"]}
+                permissions={[
+                  "dispatch.view",
+                  "dispatch.confirm",
+                  "operations.monitor",
+                ]}
               >
                 <DispatchPage />
               </RequireAnyPermission>
@@ -176,7 +196,13 @@ export const appRouteObjects: RouteObject[] = [
           {
             path: "dispatch/prepare/:orderId",
             element: (
-              <RequireAnyPermission permissions={["dispatch.view", "dispatch.confirm", "operations.monitor"]}>
+              <RequireAnyPermission
+                permissions={[
+                  "dispatch.view",
+                  "dispatch.confirm",
+                  "operations.monitor",
+                ]}
+              >
                 <DispatchPreparePage />
               </RequireAnyPermission>
             ),
@@ -271,10 +297,30 @@ export const appRouteObjects: RouteObject[] = [
             ),
           },
           {
+            path: "damage/reports",
+            element: (
+              <RequireAnyPermission permissions={[...damageNavPermissions]}>
+                <DamageReportsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "damage/:reportId",
+            element: (
+              <RequireAnyPermission permissions={[...damageNavPermissions]}>
+                <DamageReportDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
             path: "receiving",
             element: (
               <RequireAnyPermission
-                permissions={["receiving.execute", "receiving.verify", "operations.monitor"]}
+                permissions={[
+                  "receiving.execute",
+                  "receiving.verify",
+                  "operations.monitor",
+                ]}
               >
                 <ReceivingPage />
               </RequireAnyPermission>
@@ -292,7 +338,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "receiving/:receiptId",
             element: (
               <RequireAnyPermission
-                permissions={["receiving.execute", "receiving.verify", "operations.monitor"]}
+                permissions={[
+                  "receiving.execute",
+                  "receiving.verify",
+                  "operations.monitor",
+                ]}
               >
                 <ReceiptDetailPage />
               </RequireAnyPermission>
@@ -302,7 +352,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "stock-verification",
             element: (
               <RequireAnyPermission
-                permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
+                permissions={[
+                  "stock.verify",
+                  "stock.count_assist",
+                  "operations.monitor",
+                ]}
               >
                 <StockVerificationPage />
               </RequireAnyPermission>
@@ -320,7 +374,11 @@ export const appRouteObjects: RouteObject[] = [
             path: "stock-verification/:verificationId",
             element: (
               <RequireAnyPermission
-                permissions={["stock.verify", "stock.count_assist", "operations.monitor"]}
+                permissions={[
+                  "stock.verify",
+                  "stock.count_assist",
+                  "operations.monitor",
+                ]}
               >
                 <VerificationDetailPage />
               </RequireAnyPermission>
@@ -439,7 +497,12 @@ export const appRouteObjects: RouteObject[] = [
             path: "masters",
             element: (
               <RequireAnyPermission
-                permissions={["products.read", "suppliers.read", "shops.read", "locations.read"]}
+                permissions={[
+                  "products.read",
+                  "suppliers.read",
+                  "shops.read",
+                  "locations.read",
+                ]}
               >
                 <MastersPage />
               </RequireAnyPermission>

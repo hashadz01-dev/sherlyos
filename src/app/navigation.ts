@@ -72,11 +72,7 @@ export const navigationItems: AppNavItem[] = [
       "Confirm ready-for-dispatch picks and consume reserved carton cases exactly once.",
     group: "Operations",
     icon: Send,
-    anyPermissions: [
-      "dispatch.view",
-      "dispatch.confirm",
-      "operations.monitor",
-    ],
+    anyPermissions: ["dispatch.view", "dispatch.confirm", "operations.monitor"],
   },
   {
     to: "/delivery-runs",
@@ -112,7 +108,7 @@ export const navigationItems: AppNavItem[] = [
     label: "Damage",
     title: "Damage Management",
     description:
-      "Damage reports and quarantine will be handled here in a later phase.",
+      "Authorized damage reports, verification queues, and stock isolation status.",
     group: "Operations",
     icon: TriangleAlert,
     anyPermissions: [...damageNavPermissions],
@@ -125,7 +121,11 @@ export const navigationItems: AppNavItem[] = [
       "Record supplier deliveries and verify accepted carton cases before they enter inventory.",
     group: "Operations",
     icon: PackageOpen,
-    anyPermissions: ["receiving.execute", "receiving.verify", "operations.monitor"],
+    anyPermissions: [
+      "receiving.execute",
+      "receiving.verify",
+      "operations.monitor",
+    ],
   },
   {
     to: "/stock-verification",
@@ -135,7 +135,11 @@ export const navigationItems: AppNavItem[] = [
       "Count selected crates against a frozen stock snapshot and record any difference.",
     group: "Operations",
     icon: ClipboardCheck,
-    anyPermissions: ["stock.verify", "stock.count_assist", "operations.monitor"],
+    anyPermissions: [
+      "stock.verify",
+      "stock.count_assist",
+      "operations.monitor",
+    ],
   },
   {
     to: "/stock-lot-reconciliation",

@@ -1,0 +1,244 @@
+import type { ReactNode } from "react"
+import { Link, useParams } from "react-router"
+import { useQuery } from "@tanstack/react-query"
+import { LoadingBlock } from "@/components/shared/LoadingState"
+import { PageHeader } from "@/components/shared/PageHeader"
+import { StatusBadge } from "@/components/shared/StatusBadge"
+import { Button } from "@/components/ui/button"
+import { DamageActivityTimeline } from "@/features/damage/components/DamageActivityTimeline"
+import { DamageEvidencePanel } from "@/features/damage/components/DamageEvidencePanel"
+import { DamageHoldsPanel } from "@/features/damage/components/DamageHoldsPanel"
+import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
+import {
+  damageStatusTone,
+  formatCases,
+  formatDamageScenario,
+  formatDamageStatus,
+  formatTimestamp,
+} from "@/features/damage/utils/labels"
+import { useDocumentTitle } from "@/hooks/use-document-title"
+import { getDamageReport } from "@/lib/damage/api"
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-2xl bg-card p-4 ring-1 ring-border">
+      <h2 className="mb-3 text-sm font-semibold">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+export function DamageReportDetailPage() {
+  const { reportId = "" } = useParams()
+  const access = useDamageAccess()
+  const detail = useQuery({
+    queryKey: ["damage-report", reportId],
+    queryFn: () => getDamageReport(reportId),
+    enabled: reportId !== "" && access.canOpenDamage,
+  })
+
+  const report = detail.data
+  useDocumentTitle(report ? report.report_number : "Damage report")
+
+  return (
+    <section className="min-w-0">
+      <PageHeader
+        title={report?.report_number ?? "Damage report"}
+        description="Read-only damage report detail. Verification and disposition actions arrive in later phases."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/damage/reports">Back to list</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/damage">Dashboard</Link>
+            </Button>
+          </div>
+        }
+      />
+
+      {detail.isLoading ? <LoadingBlock label="Loading damage report" /> : null}
+      {detail.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {detail.error.message}
+        </p>
+      ) : null}
+
+      {report ? (
+        <div className="grid gap-4">
+          <DetailSection title="Header">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <dt className="text-muted-foreground">Scenario</dt>
+                  <dd>{formatDamageScenario(report.scenario)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Godown</dt>
+                  <dd>{report.godown_name}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Reporter</dt>
+                  <dd>{report.reporter_name ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Created</dt>
+                  <dd>{formatTimestamp(report.created_at)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Updated</dt>
+                  <dd>{formatTimestamp(report.updated_at)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Custody</dt>
+                  <dd>
+                    {report.physical_custody_confirmed
+                      ? "Physical custody confirmed"
+                      : "Not confirmed"}
+                  </dd>
+                </div>
+              </dl>
+              <StatusBadge tone={damageStatusTone[report.status]}>
+                {formatDamageStatus(report.status)}
+              </StatusBadge>
+            </div>
+            {report.notes ? (
+              <p className="mt-3 text-sm">{report.notes}</p>
+            ) : null}
+          </DetailSection>
+
+          <DetailSection title="Source documents">
+            <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {report.receipt_id ? (
+                <div>
+                  <dt className="text-muted-foreground">Receipt</dt>
+                  <dd className="font-mono text-xs">{report.receipt_id}</dd>
+                </div>
+              ) : null}
+              {report.picking_request_id ? (
+                <div>
+                  <dt className="text-muted-foreground">Picking request</dt>
+                  <dd className="font-mono text-xs">
+                    {report.picking_request_id}
+                  </dd>
+                </div>
+              ) : null}
+              {report.dispatch_id ? (
+                <div>
+                  <dt className="text-muted-foreground">Dispatch</dt>
+                  <dd className="font-mono text-xs">{report.dispatch_id}</dd>
+                </div>
+              ) : null}
+              {report.order_id ? (
+                <div>
+                  <dt className="text-muted-foreground">Order</dt>
+                  <dd className="font-mono text-xs">{report.order_id}</dd>
+                </div>
+              ) : null}
+              {report.shop_id ? (
+                <div>
+                  <dt className="text-muted-foreground">Shop</dt>
+                  <dd className="font-mono text-xs">{report.shop_id}</dd>
+                </div>
+              ) : null}
+              {!report.receipt_id &&
+              !report.picking_request_id &&
+              !report.dispatch_id &&
+              !report.order_id &&
+              !report.shop_id ? (
+                <p className="text-sm text-muted-foreground">
+                  No source document links on this report.
+                </p>
+              ) : null}
+            </dl>
+          </DetailSection>
+
+          <DetailSection title="Damage lines">
+            {report.lines.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No lines recorded.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 pr-3">Product</th>
+                      <th className="py-2 pr-3">Cases</th>
+                      <th className="py-2 pr-3">Crate</th>
+                      <th className="py-2 pr-3">Lot</th>
+                      <th className="py-2 pr-3">Reason</th>
+                      <th className="py-2 pr-3">Receipt line</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.lines.map((line) => (
+                      <tr key={line.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3">
+                          {line.product_sku} · {line.product_name}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {formatCases(line.quantity_cases)}
+                        </td>
+                        <td className="py-2 pr-3">{line.crate_code ?? "—"}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {line.lot_id ? line.lot_id.slice(0, 8) : "—"}
+                        </td>
+                        <td className="py-2 pr-3">{line.damage_reason}</td>
+                        <td className="py-2 pr-3 font-mono text-xs">
+                          {line.receipt_line_id
+                            ? line.receipt_line_id.slice(0, 8)
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </DetailSection>
+
+          <DetailSection title="Stock isolation">
+            <DamageHoldsPanel report={report} />
+          </DetailSection>
+
+          {(report.exceptional_requests?.length ?? 0) > 0 ? (
+            <DetailSection title="Exceptional disposition">
+              <ul className="grid gap-2 text-sm">
+                {report.exceptional_requests?.map((request) => (
+                  <li
+                    key={request.id}
+                    className="rounded-xl bg-muted/40 px-3 py-2"
+                  >
+                    <p className="font-medium">
+                      {request.kind} · {request.status}
+                    </p>
+                    {request.request_reason ? (
+                      <p className="text-muted-foreground">
+                        {request.request_reason}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </DetailSection>
+          ) : null}
+
+          <DetailSection title="Evidence">
+            <DamageEvidencePanel evidence={report.evidence} />
+          </DetailSection>
+
+          <DetailSection title="Activity">
+            <DamageActivityTimeline events={report.events} />
+          </DetailSection>
+        </div>
+      ) : null}
+    </section>
+  )
+}

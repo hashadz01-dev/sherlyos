@@ -1,6 +1,6 @@
 /**
  * Damage-management lifecycle constants.
- * Holds and disposition posting are M5.3 RPCs; the /damage screen stays empty until M5.4.
+ * Holds and disposition posting are M5.3 RPCs. M5.4A is read-only UI over those contracts.
  */
 
 export const damageScenarios = [
@@ -39,7 +39,10 @@ export const damageHoldStatuses = [
   "returned_supplier",
 ] as const
 
-export const exceptionalDispositionKinds = ["return_supplier", "destroy"] as const
+export const exceptionalDispositionKinds = [
+  "return_supplier",
+  "destroy",
+] as const
 
 /** Legacy labels retained for M5.4 copy. Operational kinds are exceptionalDispositionKinds. */
 export const reservedDamageDispositionStates = [
@@ -83,5 +86,7 @@ export function isEditableDamageStatus(status: DamageStatus) {
 }
 
 export function isTerminalDamageStatus(status: DamageStatus) {
-  return status === "verified" || status === "cancelled" || status === "rejected"
+  return (
+    status === "verified" || status === "cancelled" || status === "rejected"
+  )
 }

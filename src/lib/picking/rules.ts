@@ -81,13 +81,13 @@ export function cutoverBlocksPicking(input: {
 }
 
 /**
- * D4 is approved in principle only. Dispatch still requires a full order fill.
- * Do not present short-shipment as an operational path.
+ * Production cutover flags stay false, so never present short-shipment as
+ * live warehouse stock movement. The approval workflow itself is implemented.
  */
 export const SHORT_SHIPMENT_OPERATIONAL = false
 
 export const shortShipmentNotOperationalMessage =
-  "Controlled short-shipment is not operational. Dispatch still requires a full order fill. Cancel this picking request and reallocate, or pick every reserved carton."
+  "Create a short-shipment document. Godown Manager confirms picked lots; Accounts approves shipped quantities before handoff. Dispatch stays blocked until lot cutover."
 
 export type PickingFulfilment = {
   ordered_cases: number
@@ -98,6 +98,16 @@ export type PickingFulfilment = {
   shortage_cases: number
   has_shortage: boolean
   short_shipment_operational: boolean
+  short_shipment_workflow: boolean
+  proposed_shipment_cases: number
+  approved_shipment_cases: number
+  dispatched_cases: number
+  outstanding_cases: number
+  shipment_status: string | null
+  shipment_number: string | null
+  shipment_revision: number | null
+  gm_confirmed: boolean
+  accounts_approved: boolean
 }
 
 const emptyFulfilment = (): PickingFulfilment => ({
@@ -109,6 +119,16 @@ const emptyFulfilment = (): PickingFulfilment => ({
   shortage_cases: 0,
   has_shortage: false,
   short_shipment_operational: false,
+  short_shipment_workflow: true,
+  proposed_shipment_cases: 0,
+  approved_shipment_cases: 0,
+  dispatched_cases: 0,
+  outstanding_cases: 0,
+  shipment_status: null,
+  shipment_number: null,
+  shipment_revision: null,
+  gm_confirmed: false,
+  accounts_approved: false,
 })
 
 export function parsePickingFulfilment(raw: unknown): PickingFulfilment {
@@ -122,8 +142,19 @@ export function parsePickingFulfilment(raw: unknown): PickingFulfilment {
     shortfall_cases: Number(record.shortfall_cases ?? 0),
     shortage_cases: Number(record.shortage_cases ?? 0),
     has_shortage: record.has_shortage === true,
-    // D4 is not operational yet. Ignore any payload that claims otherwise.
+    // Live stock movement still requires cutover flags. Ignore any payload
+    // that claims short-shipment is operational while they remain false.
     short_shipment_operational: false,
+    short_shipment_workflow: record.short_shipment_workflow === true,
+    proposed_shipment_cases: Number(record.proposed_shipment_cases ?? 0),
+    approved_shipment_cases: Number(record.approved_shipment_cases ?? 0),
+    dispatched_cases: Number(record.dispatched_cases ?? 0),
+    outstanding_cases: Number(record.outstanding_cases ?? 0),
+    shipment_status: record.shipment_status ? String(record.shipment_status) : null,
+    shipment_number: record.shipment_number ? String(record.shipment_number) : null,
+    shipment_revision: record.shipment_revision == null ? null : Number(record.shipment_revision),
+    gm_confirmed: record.gm_confirmed === true,
+    accounts_approved: record.accounts_approved === true,
   }
 }
 
@@ -137,6 +168,8 @@ export type OrderPickingNextActionInput = {
   pickingStatus: string | null | undefined
   hasShortage: boolean
   cutoverBlocked: boolean
+  shipmentStatus?: string | null
+  fulfilmentStatus?: string | null
 }
 
 /** Operator-facing next step. Verified does not mean reserved. */
@@ -148,7 +181,31 @@ export function nextOrderPickingAction(input: OrderPickingNextActionInput) {
     return "Verify using picking-eligible ATP. Verification does not reserve stock."
   }
   if (input.orderStatus !== "verified") return "No picking action on this order."
-  if (input.hasShortage) return shortShipmentNotOperationalMessage
+  if (input.fulfilmentStatus === "partially_fulfilled") {
+    return "Original order is partially fulfilled. Outstanding cases are on the linked backorder."
+  }
+  if (input.hasShortage || input.shipmentStatus) {
+    if (input.shipmentStatus === "dispatched") {
+      return "Short shipment dispatched. Outstanding cases are on the linked backorder."
+    }
+    if (input.shipmentStatus === "approved") {
+      if (input.pickingStatus === "ready_for_dispatch") {
+        return input.cutoverBlocked
+          ? "Approved short-shipment is ready. Dispatch stays blocked until lot cutover."
+          : "Prepare dispatch. confirm_dispatch will deduct only approved shipped lots."
+      }
+      return input.cutoverBlocked
+        ? "Accounts approved the short-shipment quantities. Godown Manager can mark ready for dispatch. Stock deduction stays blocked until lot cutover."
+        : "Accounts approved the short-shipment quantities. Godown Manager can mark ready for dispatch."
+    }
+    if (input.shipmentStatus === "gm_confirmed") {
+      return "Godown Manager confirmed picked quantities. Accounts must approve the commercial shipped quantities."
+    }
+    if (input.shipmentStatus === "draft") {
+      return "Godown Manager must confirm the picked quantities on this short-shipment document."
+    }
+    return shortShipmentNotOperationalMessage
+  }
   if (input.pickingStatus === "ready_for_dispatch") {
     return "Prepare dispatch. confirm_dispatch is the stock writer."
   }

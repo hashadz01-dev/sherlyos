@@ -4,6 +4,10 @@ import {
   type PickingFulfilment,
   type PickingRequestStatus,
 } from "@/lib/picking/rules"
+import {
+  parseShipmentSummary,
+  type ShipmentSummary,
+} from "@/lib/shipments/rules"
 import { toUserRpcMessage } from "@/lib/rpc/user-error"
 
 export type { PickingFulfilment } from "@/lib/picking/rules"
@@ -160,6 +164,7 @@ export type PickingDetail = {
   updated_at: string
   delivery_note_status?: string | null
   fulfilment?: PickingFulfilment
+  open_shipment?: ShipmentSummary | null
   cutover: {
     dual_write_enabled: boolean
     aggregate_only_blocked: boolean
@@ -189,6 +194,7 @@ function asPickingDetail(data: PickingDetail): PickingDetail {
   return {
     ...data,
     fulfilment: parsePickingFulfilment(data.fulfilment),
+    open_shipment: parseShipmentSummary(data.open_shipment),
   }
 }
 

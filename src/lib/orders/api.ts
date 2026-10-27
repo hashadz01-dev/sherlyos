@@ -11,6 +11,10 @@ import {
   type PickingFulfilment,
   type PickingRequestStatus,
 } from "@/lib/picking/rules"
+import {
+  parseShipmentSummary,
+  type ShipmentSummary,
+} from "@/lib/shipments/rules"
 import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
@@ -25,7 +29,9 @@ export type AvailabilityRow = AvailabilityLine
 
 export type OrderStatus = "draft" | "submitted" | "held" | "verified" | "cancelled"
 
-export type OrderSource = "salesperson" | "accounts" | "telecalling" | "enquiry"
+export type OrderSource = "salesperson" | "accounts" | "telecalling" | "enquiry" | "backorder"
+
+export type OrderFulfilmentStatus = "open" | "partially_fulfilled" | "fulfilled"
 
 export type OrderLineInput = {
   product_id: string
@@ -42,6 +48,9 @@ export type OrderRow = {
   notes: string | null
   created_by: string
   status: OrderStatus
+  fulfilment_status?: OrderFulfilmentStatus
+  parent_order_id?: string | null
+  originating_shipment_id?: string | null
   version: number
   submitted_at: string | null
   verified_at: string | null
@@ -88,12 +97,22 @@ export type OrderPickingCutover = {
   blockers: string[]
 }
 
+export type LinkedBackorderSummary = {
+  id: string
+  order_number: string
+  status: OrderStatus
+  fulfilment_status: OrderFulfilmentStatus
+  source: OrderSource
+}
+
 export type OrderDetail = {
   order: OrderRow
   lines: OrderLine[]
   events: OrderEvent[]
   open_delivery_note: OpenDeliveryNoteSummary | null
   open_picking_request: OpenPickingSummary | null
+  open_shipment: ShipmentSummary | null
+  linked_backorder: LinkedBackorderSummary | null
   picking_cutover: OrderPickingCutover | null
 }
 
@@ -178,6 +197,8 @@ export function getOrder(orderId: string) {
     ...detail,
     open_delivery_note: detail.open_delivery_note ?? null,
     open_picking_request: parseOpenPicking(detail.open_picking_request),
+    open_shipment: parseShipmentSummary(detail.open_shipment),
+    linked_backorder: detail.linked_backorder ?? null,
     picking_cutover: parsePickingCutover(detail.picking_cutover),
   }))
 }

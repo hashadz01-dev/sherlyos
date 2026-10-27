@@ -95,6 +95,33 @@ export function cleanupDisposableTestStock(
     `
     set session_replication_role = replica;
     select set_config('app.picking_write', 'on', true);
+    select set_config('app.shipment_write', 'on', true);
+    -- Shipment lots FK to reservations; remove disposable documents first.
+    delete from public.order_shipment_events
+    where shipment_id in (
+      select s.id
+      from public.order_shipments s
+      join public.order_shipment_lots l on l.shipment_id = s.id
+      join public.products p on p.id = l.product_id
+      where ${skuPred}
+    );
+    delete from public.order_shipment_lots
+    where product_id in (
+      select p.id from public.products p where ${skuPred}
+    );
+    delete from public.order_shipment_lines
+    where product_id in (
+      select p.id from public.products p where ${skuPred}
+    );
+    delete from public.order_shipments
+    where id in (
+      select s.id
+      from public.order_shipments s
+      join public.orders o on o.id = s.order_id
+      join public.order_lines ol on ol.order_id = o.id
+      join public.products p on p.id = ol.product_id
+      where ${skuPred}
+    );
     -- Released disposable reservations still FK to lots and block later wipes.
     delete from public.stock_picking_exceptions
     where reservation_id in (

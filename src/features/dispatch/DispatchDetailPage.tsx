@@ -390,8 +390,20 @@ function DispatchBody({
           </dd>
         </div>
         <div>
+          <dt className="text-slate-500">Shipment document</dt>
+          <dd>
+            {request.shipment_number
+              ? `${request.shipment_number} · ${request.shipment_status ?? ""} · rev ${request.shipment_revision ?? 1}`
+              : "Full shipment"}
+          </dd>
+        </div>
+        <div>
           <dt className="text-slate-500">Carton cases</dt>
           <dd>{request.total_cases}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Order fulfilment</dt>
+          <dd>{request.fulfilment_status ?? "open"}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Assigned to</dt>

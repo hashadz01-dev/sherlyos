@@ -78,5 +78,25 @@ describe("picking rules", () => {
         cutoverBlocked: false,
       }),
     ).toBe(shortShipmentNotOperationalMessage)
+    expect(
+      nextOrderPickingAction({
+        orderStatus: "verified",
+        dnStatus: "acknowledged",
+        pickingStatus: "picked",
+        hasShortage: true,
+        cutoverBlocked: false,
+        shipmentStatus: "gm_confirmed",
+      }),
+    ).toMatch(/Accounts must approve/)
+    expect(
+      nextOrderPickingAction({
+        orderStatus: "verified",
+        dnStatus: "acknowledged",
+        pickingStatus: "picked",
+        hasShortage: true,
+        cutoverBlocked: true,
+        shipmentStatus: "approved",
+      }),
+    ).toMatch(/lot cutover/)
   })
 })

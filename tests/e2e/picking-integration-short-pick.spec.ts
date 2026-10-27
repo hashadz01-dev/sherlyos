@@ -226,6 +226,18 @@ test.afterAll(() => {
     `
     set session_replication_role = replica;
     select set_config('app.picking_write', 'on', true);
+    select set_config('app.shipment_write', 'on', true);
+    delete from public.order_shipment_events
+    where shipment_id in (
+      select id from public.order_shipments
+      where order_id in (select id from public.orders where idempotency_key like '${PREFIX}%')
+    );
+    delete from public.order_shipment_lots
+    where product_id in (select id from public.products where sku like '${PREFIX}%');
+    delete from public.order_shipment_lines
+    where product_id in (select id from public.products where sku like '${PREFIX}%');
+    delete from public.order_shipments
+    where order_id in (select id from public.orders where idempotency_key like '${PREFIX}%');
     delete from public.stock_picking_exceptions
     where reservation_id in (
       select id from public.stock_reservations
@@ -292,14 +304,39 @@ test("short pick cannot be handed to dispatch", async ({ page }) => {
   await page.getByRole("button", { name: "Confirm reservation" }).click()
   await expect(page.getByRole("heading", { name: /^PK-/ })).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText("Ordered 2")).toBeVisible()
-  await expect(page.getByText("Allocated 2")).toBeVisible()
+  await expect(page.getByText("Reserved 2")).toBeVisible()
   await page.getByRole("button", { name: "Start picking" }).click()
   await expect(page.getByText("Picking started")).toBeVisible({ timeout: 20_000 })
+  await page.getByLabel(/Picked cases for/).fill("1")
+  await page.getByRole("button", { name: "Confirm pick" }).click()
+  await expect(page.getByText("Quantity confirmed")).toBeVisible({ timeout: 20_000 })
   await page.getByRole("button", { name: "Report shortage" }).click()
   await expect(page.getByText("Exception recorded")).toBeVisible({ timeout: 20_000 })
   await page.getByRole("button", { name: "Complete picking" }).click()
   await expect(page.getByText("Picking completed")).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText(/Controlled short-shipment is not operational/i).first()).toBeVisible()
+  await expect(page.getByRole("button", { name: "Create short-shipment" })).toBeVisible()
   await expect(page.getByRole("button", { name: "Ready for dispatch" })).toHaveCount(0)
+  await page.getByRole("button", { name: "Create short-shipment" }).click()
+  await expect(page.getByText(/Draft shipment/i).first()).toBeVisible({ timeout: 20_000 })
+  await page.getByRole("button", { name: "Confirm picked quantities" }).click()
+  await expect(page.getByText("GM confirmed", { exact: true })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole("button", { name: "Ready for dispatch" })).toHaveCount(0)
+  await logout(page)
+
+  await login(page, "accounts.m73e2e@example.com")
+  await page.goto(`/orders/${fixture.orderId}`)
+  await expect(page.getByRole("heading", { name: fixture.orderNumber })).toBeVisible({
+    timeout: 20_000,
+  })
+  await page.getByRole("button", { name: "Approve short-shipment" }).click()
+  await expect(page.getByText(/Accounts approved/i).first()).toBeVisible({ timeout: 20_000 })
+  await logout(page)
+
+  await login(page, "godown.m73e2e@example.com")
+  await page.goto("/picking")
+  await page.getByLabel("Picking status").selectOption("picked")
+  await page.getByLabel("Search picking").fill(fixture.orderNumber)
+  await page.getByRole("link", { name: "Open" }).click()
+  await expect(page.getByRole("button", { name: "Ready for dispatch" })).toBeVisible()
   await logout(page)
 })

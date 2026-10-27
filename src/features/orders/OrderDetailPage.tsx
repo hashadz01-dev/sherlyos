@@ -30,8 +30,13 @@ import {
   cutoverBlocksPicking,
   nextOrderPickingAction,
   pickingStatusLabel,
-  shortShipmentNotOperationalMessage,
 } from "@/lib/picking/rules"
+import { approveShortShipment } from "@/lib/shipments/api"
+import {
+  shipmentStatusLabel,
+  shipmentStatusTone,
+  type ShipmentStatus,
+} from "@/lib/shipments/rules"
 
 const tone: Record<OrderStatus, StatusTone> = {
   draft: "neutral",
@@ -97,6 +102,8 @@ export function OrderDetailPage() {
   const pickingCutover = detail.data?.picking_cutover ?? null
   const dnAcknowledged = isAcknowledgedDeliveryNote(openNote)
   const cutoverMessage = pickingCutover ? cutoverBlocksPicking(pickingCutover) : null
+  const openShipment = detail.data?.open_shipment ?? null
+  const linkedBackorder = detail.data?.linked_backorder ?? null
   const nextAction = order
     ? nextOrderPickingAction({
         orderStatus: order.status,
@@ -104,6 +111,8 @@ export function OrderDetailPage() {
         pickingStatus: openPicking?.status ?? null,
         hasShortage: openPicking?.fulfilment.has_shortage === true,
         cutoverBlocked: Boolean(cutoverMessage),
+        shipmentStatus: openShipment?.status ?? openPicking?.fulfilment.shipment_status ?? null,
+        fulfilmentStatus: order.fulfilment_status ?? null,
       })
     : null
   const canCreateDeliveryNote =
@@ -171,6 +180,23 @@ export function OrderDetailPage() {
     },
   })
 
+  const approveShipment = useMutation({
+    mutationFn: () => {
+      if (!openShipment) throw new Error("Shipment is not loaded.")
+      return approveShortShipment({
+        target_shipment: openShipment.id,
+        expected_version: openShipment.version,
+        lot_quantities: null,
+        idempotency_key: `sh-appr-${crypto.randomUUID()}`,
+      })
+    },
+    onSuccess: async () => {
+      setActionError(null)
+      await refresh()
+    },
+    onError: (error: Error) => setActionError(error.message),
+  })
+
   const cancel = useMutation({
     mutationFn: () => {
       if (!order) throw new Error("Order is not loaded.")
@@ -191,7 +217,12 @@ export function OrderDetailPage() {
     onError: (error: Error) => setActionError(error.message),
   })
 
-  const pending = submit.isPending || hold.isPending || verify.isPending || cancel.isPending
+  const pending =
+    submit.isPending ||
+    hold.isPending ||
+    verify.isPending ||
+    cancel.isPending ||
+    approveShipment.isPending
   const shortageRows = shortages ?? []
 
   return (
@@ -217,6 +248,11 @@ export function OrderDetailPage() {
         <div className="grid gap-6">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge tone={tone[order.status]}>{order.status}</StatusBadge>
+            {order.fulfilment_status && order.fulfilment_status !== "open" ? (
+              <StatusBadge tone={order.fulfilment_status === "fulfilled" ? "success" : "warning"}>
+                {order.fulfilment_status.replace("_", " ")}
+              </StatusBadge>
+            ) : null}
             <p className="text-sm text-muted-foreground">Version {order.version}</p>
           </div>
           <dl className="grid gap-3 sm:grid-cols-2">
@@ -280,28 +316,67 @@ export function OrderDetailPage() {
                 {pickingStatusLabel[openPicking.status]} · {openPicking.request_number}. Reserved
                 quantity is a hold. Stock is not deducted until dispatch.
               </p>
-              <ul className="grid gap-2 sm:grid-cols-5">
+              <ul className="grid gap-2 sm:grid-cols-4 lg:grid-cols-7">
                 <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
                   Ordered {openPicking.fulfilment.ordered_cases}
                 </li>
                 <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
-                  Allocated {openPicking.fulfilment.allocated_cases}
+                  Reserved {openPicking.fulfilment.allocated_cases}
                 </li>
                 <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
                   Picked {openPicking.fulfilment.picked_cases}
                 </li>
                 <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
-                  Remaining {openPicking.fulfilment.remaining_cases}
+                  Approved {openPicking.fulfilment.approved_shipment_cases}
                 </li>
                 <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
-                  Shortfall {openPicking.fulfilment.shortfall_cases}
+                  Dispatched {openPicking.fulfilment.dispatched_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Outstanding {openPicking.fulfilment.outstanding_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Remaining {openPicking.fulfilment.remaining_cases}
                 </li>
               </ul>
-              {openPicking.fulfilment.has_shortage ? (
-                <p role="status" className="mt-2 text-sm text-destructive">
-                  {shortShipmentNotOperationalMessage}
-                </p>
+            </div>
+          ) : null}
+
+          {openShipment ? (
+            <div>
+              <h2 className="mb-2 text-sm font-medium">Short-shipment document</h2>
+              <p className="mb-2 text-sm text-muted-foreground">
+                Operational record {openShipment.shipment_number}, revision {openShipment.revision}.
+                Original delivery note is unchanged. This is not a tax invoice.
+              </p>
+              <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+                <StatusBadge tone={shipmentStatusTone[openShipment.status as ShipmentStatus]}>
+                  {shipmentStatusLabel[openShipment.status as ShipmentStatus]}
+                </StatusBadge>
+                <span>GM {openShipment.gm_confirmed_at ? "confirmed" : "pending"}</span>
+                <span>Accounts {openShipment.accounts_approved_at ? "approved" : "pending"}</span>
+              </div>
+              {can("shipments.approve") && openShipment.status === "gm_confirmed" ? (
+                <Button
+                  type="button"
+                  onClick={() => approveShipment.mutate()}
+                  disabled={pending}
+                >
+                  {approveShipment.isPending ? "Approving" : "Approve short-shipment"}
+                </Button>
               ) : null}
+            </div>
+          ) : null}
+
+          {linkedBackorder ? (
+            <div>
+              <h2 className="mb-2 text-sm font-medium">Linked backorder</h2>
+              <p className="text-sm">
+                <Link className="underline" to={`/orders/${linkedBackorder.id}`}>
+                  {linkedBackorder.order_number}
+                </Link>{" "}
+                · {linkedBackorder.status} · outstanding remainder, not reserved
+              </p>
             </div>
           ) : null}
 

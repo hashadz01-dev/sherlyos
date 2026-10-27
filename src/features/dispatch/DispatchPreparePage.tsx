@@ -116,7 +116,15 @@ export function DispatchPreparePage() {
               <dd>{data.delivery_note_number ?? "None (paperwork is optional)"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Carton cases</dt>
+              <dt className="text-slate-500">Shipment document</dt>
+              <dd>
+                {data.shipment_number
+                  ? `${data.shipment_number} · ${data.shipment_status ?? "draft"} · rev ${data.shipment_revision ?? 1}`
+                  : "Full shipment (no short-shipment document)"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Carton cases to dispatch</dt>
               <dd>{data.total_cases}</dd>
             </div>
             <div>
@@ -149,7 +157,7 @@ export function DispatchPreparePage() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Confirm dispatch"
-        description="This deducts the reserved carton cases from inventory exactly once. Retrying a timeout is safe."
+        description="This deducts the approved shipped carton cases from inventory exactly once. Retrying a timeout is safe."
         footer={
           <>
             <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>

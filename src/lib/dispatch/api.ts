@@ -95,6 +95,11 @@ export type DispatchPreview = {
   delivery_note_id: string | null
   delivery_note_number: string | null
   delivery_note_status: string | null
+  shipment_id?: string | null
+  shipment_number?: string | null
+  shipment_status?: string | null
+  shipment_revision?: number | null
+  fulfilment_status?: string | null
   eligible: boolean
   blockers: string[]
   cutover: {
@@ -121,6 +126,12 @@ export type DispatchDetail = {
   delivery_note_id: string | null
   delivery_note_number: string | null
   delivery_note_status: string | null
+  shipment_id?: string | null
+  shipment_number?: string | null
+  shipment_status?: string | null
+  shipment_revision?: number | null
+  backorder_id?: string | null
+  fulfilment_status?: string | null
   status: DispatchRequestStatus
   version: number
   stock_consumed: boolean

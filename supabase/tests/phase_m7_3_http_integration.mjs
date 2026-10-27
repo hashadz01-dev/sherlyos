@@ -360,7 +360,7 @@ try {
     })
     throw new Error("short pick handoff must fail")
   } catch (error) {
-    if (!/Controlled short-shipment is not operational/i.test(error.message)) throw error
+    if (!/short-shipment/i.test(error.message)) throw error
   }
   ok("shortage complete cannot hand off")
 

@@ -512,7 +512,7 @@ begin
     raise exception 'short pick must not hand off to dispatch';
   exception
     when sqlstate '23514' then
-      if sqlerrm not like '%Controlled short-shipment is not operational%' then
+      if sqlerrm not like '%short-shipment%' then
         raise exception 'unexpected short-handoff error: %', sqlerrm;
       end if;
   end;

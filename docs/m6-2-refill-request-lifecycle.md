@@ -1,6 +1,6 @@
 # M6.2 — Stock refill request lifecycle and Admin approval
 
-Local-only implementation of PDF Branch 05 REF-01–REF-04. Supplier replenishment request and Admin decision. **Approval is not a stock receipt.** No Git commit, push, cloud migration, Netlify deploy, flag flip, or M6.3 work.
+Local-only implementation of PDF Branch 05 REF-01–REF-04. Supplier replenishment request and Admin decision. **Approval is not a stock receipt.** No Git push, cloud migration, Netlify deploy, flag flip, or M6.3 work.
 
 Owner-approved decisions applied here:
 
@@ -65,7 +65,7 @@ Idempotency: create key + fingerprint; submit/decision key replay of the complet
 
 Write guard GUC `app.refill_write` (transaction-local). FORCE RLS on header, lines, events. Authenticated SELECT only.
 
-Lock order: request header `FOR UPDATE`, then optional branch lock via `assert_operational_active_branch`. **No** product/location/stock grain locks.
+Lock order: request header `FOR UPDATE`, then optional branch lock via `assert_operational_active_branch`. Create also takes `pg_advisory_xact_lock(88106220, hashtext(key))`. **No** product/location/stock grain locks.
 
 ## 4. Stock contract
 
@@ -93,7 +93,7 @@ Flags remain false:
 | `/refill/:requestId/edit` | `refill.request` | Edit draft/held (creator) |
 | `/refill/:requestId` | `refill.request` or `refill.approve` | Detail, submit/resubmit, Admin decide |
 
-Nav label **Refill**. Copy states that Admin approval is not a stock receipt. Accounts never sees Approve/Hold/Reject. Admin never sees New request / Edit / Submit.
+Nav label **Refill**. Copy states that Admin approval is not a stock receipt. Accounts never sees Approve/Hold/Reject. Admin never sees New request / Edit / Submit. Mutations set `retry: false`. Create keeps a sessionStorage idempotency key until success so a lost HTTP response can be retried by the same actor without opening a second tab.
 
 ## 6. Tests
 
@@ -107,13 +107,76 @@ Nav label **Refill**. Copy states that Admin approval is not a stock receipt. Ac
 
 Disposable SKU prefix `m62%`.
 
-## 7. M6.3 handoff
+## 7. Final security review
 
-Out of scope here:
+### RLS helper
 
-- REF-05 send approved request to the FMCG supplier (`sent_to_supplier` / `mark_stock_refill_sent`)
+`app_private.can_view_refill_at_godown(uuid)` is `SECURITY DEFINER` with `search_path = ''`. It returns a boolean from `auth.uid()`, `refill.request` / `refill.approve`, `branches.access_all`, and `user_branch_assignments`. It does not read request lines or notes.
+
+`GRANT EXECUTE` to `authenticated` is required so FORCE RLS `USING` expressions can evaluate, matching `can_view_damage_report` / `can_view_order`. `anon`, `public`, and `service_role` stay revoked. Direct callers only learn whether *they* may view refill at a godown UUID; they cannot impersonate another user. Private mutation helpers (`enable_refill_write`, `replace_refill_lines`, `record_refill_event`) remain revoked.
+
+Permission and assignment changes take effect on the next statement. `operations.monitor` granted to salesperson still cannot list. Cross-godown Accounts cannot `GET`. Inactive godown historical `GET` remains; submit/approve fail closed.
+
+### Concurrent create idempotency
+
+Original create selected by key then inserted. Concurrent identical-key inserts could unique-violate without completed-operation recovery, and a second Accounts user on the same godown could replay a key and receive the original payload.
+
+Forward-only `20261027133000_stock_refill_create_idempotency.sql` (local Docker applied):
+
+- Same-key creates take a transaction advisory lock.
+- Unique-violation recovery re-selects the row and runs the same completed-operation path.
+- Replay authorizes **creator + current view** before comparing fingerprints, so a foreign actor always gets `42501` and cannot distinguish a fingerprint mismatch.
+- Same actor, matching fingerprint, returns the original payload (lost-response recovery).
+- Same actor, conflicting fingerprint, `23505`.
+- Unique `(idempotency_key)` remains the persistence safety net.
+- Submit replay also requires `created_by = auth.uid()`.
+
+Proven: one persisted request, one `created` event, no duplicate numbers, no cross-actor disclosure, no silent conflicting payload, current auth on replay, zero stock.
+
+### Receiving harness
+
+`phase_3_1_stock_receiving.sql` assumed an empty database (`bootstrap_initial_admin` fails when an admin already exists) and a globally matching balance/ledger pair. Later disposable suites seed replica balances for zero-stock proofs.
+
+Test-only changes, no bootstrap or receiving writer edits:
+
+1. Repeatable admin fixture (same `42501` handler as M5 SQL).
+2. Ledger mismatch / negative checks scoped to this file’s `refs` crates and products.
+
+After those harness fixes the suite rolls back successfully. M5.3 isolation SQL, which posts through `verify_stock_receipt`, also passed. Production bootstrap authorization was not changed.
+
+### Zero-stock-effect proofs
+
+SQL, HTTP, concurrency, and Playwright snapshots of `stock_transactions`, `stock_ledger`, `stock_balances`, lots, reservations, holds, and receipts were unchanged across create, update, submit, hold, resubmit, approve, and reject.
+
+## 8. Final test evidence (this review)
+
+| Suite | First pass | Final |
+| --- | --- | --- |
+| M6.2 SQL | Passed after review SQL additions | Passed |
+| M6.2 HTTP | 16 passed | 16 passed |
+| M6.2 concurrency | 16 passed (create races included) | 16 passed |
+| `phase_3_1_stock_receiving.sql` | Failed: existing admin, then global ledger mismatch from leftover disposable replica balances | Passed after test-only harness scoping |
+| M5.3 damage stock isolation | Passed | Passed |
+| Vitest | 32 files / 194 tests passed | 194 passed |
+| Playwright | 75 passed | 75 passed |
+| Typecheck / lint / production build | Passed (pre-existing oxlint warnings only) | Passed |
+
+Flags after all runs remain false.
+
+## 9. Remaining limitations
+
+- Development cloud and production are not migrated.
+- Replica-seeded disposable balances can still exist on the shared local Docker database; they are not operational stock.
+- Advisory-lock hash collisions could serialize unrelated creates; uniqueness still prevents duplicate keys.
+- M6.2 does not send a supplier order or link receipts.
+
+## 10. M6.3 handoff
+
+Out of scope and not started:
+
+- REF-05 send approved request to the FMCG supplier
 - REF-06 supplier dispatch tracking
-- REF-07 linkage from an approved request to Branch 03 receiving (`stock_receipts.refill_request_id` remains an owner decision)
-- Any stock writer, hold, reservation, or ledger type
+- REF-07 optional `stock_receipts.refill_request_id`
+- Any stock writer, hold, reservation, or new ledger type
 
-Do not begin M6.3 without owner approval. Do not treat approval as receiving.
+Do not begin M6.3 without owner approval. Do not treat Admin approval as receiving.

@@ -176,9 +176,10 @@ export const navigationItems: AppNavItem[] = [
     label: "Refill",
     title: "Stock Refill",
     description:
-      "Refill requests will be raised and fulfilled here in a later phase.",
+      "Accounts prepares supplier replenishment requests. Admin approval is not a stock receipt.",
     group: "Operations",
     icon: RefreshCw,
+    anyPermissions: ["refill.request", "refill.approve"],
   },
   {
     to: "/inventory",

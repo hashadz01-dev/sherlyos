@@ -52,6 +52,9 @@ import {
   ReceiptDetailPage,
   ReceiptEditorPage,
   ReceivingPage,
+  EditRefillRequestPage,
+  NewRefillRequestPage,
+  RefillDetailPage,
   RefillPage,
   ReportsPage,
   SettingsPage,
@@ -65,6 +68,10 @@ import {
 } from "@/app/lazy-pages"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
+import {
+  refillCreatePermissions,
+  refillNavPermissions,
+} from "@/lib/refill/rules"
 import {
   damageCreatePermissions,
   damageExceptionalQueuePermissions,
@@ -517,7 +524,38 @@ export const appRouteObjects: RouteObject[] = [
               </RequireAnyPermission>
             ),
           },
-          { path: "refill", element: <RefillPage /> },
+          {
+            path: "refill",
+            element: (
+              <RequireAnyPermission permissions={[...refillNavPermissions]}>
+                <RefillPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "refill/new",
+            element: (
+              <RequireAnyPermission permissions={[...refillCreatePermissions]}>
+                <NewRefillRequestPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "refill/:requestId/edit",
+            element: (
+              <RequireAnyPermission permissions={[...refillCreatePermissions]}>
+                <EditRefillRequestPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "refill/:requestId",
+            element: (
+              <RequireAnyPermission permissions={[...refillNavPermissions]}>
+                <RefillDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
           {
             path: "inventory",
             element: (

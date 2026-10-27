@@ -47,10 +47,27 @@ select
   now()
 from fixture;
 
-select app_private.bootstrap_initial_admin(
-  (select id from fixture where name = 'admin'),
-  'create-initial-administrator'
-);
+-- Repeatable on a shared local database that already has an administrator.
+-- Does not delete the existing admin and does not change bootstrap authorization.
+do $$
+begin
+  begin
+    perform app_private.bootstrap_initial_admin(
+      (select id from fixture where name = 'admin'),
+      'create-initial-administrator'
+    );
+  exception
+    when sqlstate '42501' then
+      insert into public.profiles (id, full_name, is_active)
+      values ((select id from fixture where name = 'admin'), 'Phase 3.1 Admin', true)
+      on conflict (id) do update set is_active = true;
+      insert into public.user_roles (user_id, role_id, assigned_by)
+      select (select id from fixture where name = 'admin'), roles.id,
+        (select id from fixture where name = 'admin')
+      from public.roles where roles.code = 'admin'
+      on conflict do nothing;
+  end;
+end $$;
 
 insert into public.user_roles (user_id, role_id)
 select fixture.id, roles.id
@@ -1312,10 +1329,16 @@ begin
     raise exception 'opening stock or transfer changed a receipt balance incorrectly';
   end if;
 
+  -- Scope reconciliation to this file's crates/products. The shared local
+  -- database may contain replica-seeded disposable balances from later suites.
   select count(*)
   into mismatches
   from public.stock_balances
-  where quantity <> (
+  where (
+      stock_balances.crate_id in (select id from refs)
+      or stock_balances.product_id in (select id from refs)
+    )
+    and quantity <> (
     select coalesce(sum(stock_ledger.quantity), 0)
     from public.stock_ledger
     where stock_ledger.crate_id = stock_balances.crate_id
@@ -1325,7 +1348,13 @@ begin
     raise exception 'ledger reconciliation found mismatches';
   end if;
 
-  select count(*) into negatives from public.stock_balances where quantity < 0;
+  select count(*) into negatives
+  from public.stock_balances
+  where (
+      stock_balances.crate_id in (select id from refs)
+      or stock_balances.product_id in (select id from refs)
+    )
+    and quantity < 0;
   if negatives <> 0 then
     raise exception 'negative stock exists';
   end if;

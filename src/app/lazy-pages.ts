@@ -202,6 +202,21 @@ export const RefillPage = lazy(() =>
     default: m.RefillPage,
   })),
 )
+export const NewRefillRequestPage = lazy(() =>
+  import("@/features/refill/RefillEditorPage").then((m) => ({
+    default: m.NewRefillRequestPage,
+  })),
+)
+export const EditRefillRequestPage = lazy(() =>
+  import("@/features/refill/RefillEditorPage").then((m) => ({
+    default: m.EditRefillRequestPage,
+  })),
+)
+export const RefillDetailPage = lazy(() =>
+  import("@/features/refill/RefillDetailPage").then((m) => ({
+    default: m.RefillDetailPage,
+  })),
+)
 export const InventoryPage = lazy(() =>
   import("@/features/inventory/InventoryPage").then((m) => ({
     default: m.InventoryPage,

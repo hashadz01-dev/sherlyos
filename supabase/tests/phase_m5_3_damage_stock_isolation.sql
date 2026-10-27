@@ -81,6 +81,57 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.handshake_dn(p_order uuid, p_prefix text)
+returns uuid
+language plpgsql as $$
+declare
+  note_id uuid;
+  payload jsonb;
+  note_status text;
+  note_version integer;
+begin
+  -- Reuse an open note so draft paperwork created earlier can still be acked.
+  perform pg_temp.as_user('accounts');
+  select delivery_notes.id, delivery_notes.status, delivery_notes.version
+    into note_id, note_status, note_version
+  from public.delivery_notes
+  where delivery_notes.order_id = p_order
+    and delivery_notes.status is distinct from 'voided'
+  order by delivery_notes.created_at desc
+  limit 1;
+
+  if note_id is null then
+    payload := public.create_delivery_note(p_order, p_prefix || '-dn');
+    note_id := (payload -> 'delivery_note' ->> 'id')::uuid;
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'draft' then
+    payload := public.generate_delivery_note(note_id, note_version, p_prefix || '-gen');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'generated' then
+    payload := public.send_delivery_note(note_id, note_version, p_prefix || '-send');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'sent' then
+    perform pg_temp.as_user('godown');
+    payload := public.acknowledge_delivery_note(note_id, note_version, p_prefix || '-ack');
+    note_status := payload -> 'delivery_note' ->> 'status';
+  end if;
+
+  if note_status is distinct from 'acknowledged' then
+    raise exception 'DN handshake did not reach acknowledged: %', note_status;
+  end if;
+  return note_id;
+end;
+$$;
+
 create or replace function pg_temp.attach_photo(target uuid)
 returns void
 language plpgsql
@@ -520,6 +571,7 @@ select set_config('sherlyos.order_load', (
 ), true);
 select public.submit_order(current_setting('sherlyos.order_load')::uuid, 1, 'm53-sub-load');
 select public.verify_order(current_setting('sherlyos.order_load')::uuid, 2, 'm53-ver-load');
+select pg_temp.handshake_dn(current_setting('sherlyos.order_load')::uuid, 'm53-hload');
 
 select pg_temp.as_user('godown');
 do $$
@@ -604,6 +656,7 @@ select set_config('sherlyos.order_tr', (
 ), true);
 select public.submit_order(current_setting('sherlyos.order_tr')::uuid, 1, 'm53-sub-tr');
 select public.verify_order(current_setting('sherlyos.order_tr')::uuid, 2, 'm53-ver-tr');
+select pg_temp.handshake_dn(current_setting('sherlyos.order_tr')::uuid, 'm53-htr');
 select pg_temp.as_user('godown');
 do $$
 declare

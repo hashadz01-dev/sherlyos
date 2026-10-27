@@ -49,6 +49,7 @@ async function setup() {
       product_id uuid;
       shop_id uuid;
       order_id uuid;
+      payload jsonb;
     begin
       insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -130,6 +131,12 @@ async function setup() {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-sub');
       perform public.verify_order(order_id, 2, '${PREFIX}-ver');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-send');
+      perform set_config('request.jwt.claims', json_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack');
 
       raise notice 'IDS % % % %', admin_id, branch_id, product_id, order_id;
     end $$;

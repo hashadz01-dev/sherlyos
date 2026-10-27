@@ -75,13 +75,29 @@ select public.assign_shop_salesperson(
 );
 select set_config('sherlyos.product', public.create_product('p41c-soap', 'Phase 41C soap', null, null)::text, true);
 select set_config('sherlyos.product_two', public.create_product('p41c-oil', 'Phase 41C oil', null, null)::text, true);
+select public.set_product_expiry_policy(current_setting('sherlyos.product')::uuid, 'non_expiring');
+select public.set_product_expiry_policy(current_setting('sherlyos.product_two')::uuid, 'non_expiring');
 select set_config('sherlyos.zone', public.create_zone(current_setting('sherlyos.branch_a')::uuid, 'A', 'Zone A', null)::text, true);
 select set_config('sherlyos.crate', public.create_crate(current_setting('sherlyos.zone')::uuid, 'c1', 'Crate 1', null)::text, true);
+reset role;
+set session_replication_role = replica;
+update public.app_configuration set value = 'true'::jsonb
+where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+set session_replication_role = origin;
+select set_config(
+  'request.jwt.claims',
+  (select json_build_object('sub', id, 'role', 'authenticated')::text from fixture where name = 'admin'),
+  true
+);
+set local role authenticated;
 select public.post_opening_stock(
   current_setting('sherlyos.product')::uuid,
   current_setting('sherlyos.crate')::uuid,
   10,
   'p41c-open-soap',
+  null,
+  'P41C-LOT',
+  null,
   null
 );
 

@@ -77,7 +77,7 @@ export function PickingPage() {
             <EmptyState
               icon={PackageSearch}
               title="No picking work in this status"
-              description="Verified orders appear here after Accounts verification. Allocation stays disabled until lot-aware dual-write is on."
+              description="Verified orders appear here after the Godown Manager acknowledges the delivery note. Allocation stays disabled until lot-aware dual-write is on."
             />
           ) : (
             <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200/80">
@@ -86,6 +86,7 @@ export function PickingPage() {
                   <tr>
                     <th className="px-4 py-3 font-medium">Reference</th>
                     <th className="px-4 py-3 font-medium">Order</th>
+                    <th className="px-4 py-3 font-medium">Delivery note</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Action</th>
                   </tr>
@@ -120,6 +121,7 @@ function QueueRow({ row, canAllocate }: { row: PickingQueueRow; canAllocate: boo
     <tr className="border-b border-slate-100 last:border-0">
       <td className="px-4 py-3 font-medium">{row.request_number ?? "—"}</td>
       <td className="px-4 py-3">{row.order_number}</td>
+      <td className="px-4 py-3">{row.delivery_note_status ?? "—"}</td>
       <td className="px-4 py-3">
         <StatusBadge tone={pickingStatusTone[row.status]}>{pickingStatusLabel[row.status]}</StatusBadge>
       </td>

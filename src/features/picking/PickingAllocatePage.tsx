@@ -52,7 +52,7 @@ export function PickingAllocatePage() {
     <section className="min-w-0">
       <PageHeader
         title={preview.data ? `Allocate ${preview.data.order_number}` : "Allocate order"}
-        description="FEFO for expiry-controlled products, FIFO for non-expiring products. Confirming creates crate and lot reservations without changing the ledger."
+        description="FEFO for expiry-controlled products, FIFO for non-expiring products. The Godown Manager must acknowledge the delivery note first. Confirming creates crate and lot reservations without changing the ledger."
         action={
           <Button asChild variant="outline">
             <Link to="/picking">Back to queue</Link>
@@ -67,6 +67,13 @@ export function PickingAllocatePage() {
       ) : null}
       {preview.data ? (
         <div className="space-y-4">
+          {preview.data.delivery_note_status ? (
+            <p className="text-sm text-slate-600">
+              Delivery note status: {preview.data.delivery_note_status}
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">No delivery note on this order.</p>
+          )}
           {cutoverMessage ? (
             <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {cutoverMessage}

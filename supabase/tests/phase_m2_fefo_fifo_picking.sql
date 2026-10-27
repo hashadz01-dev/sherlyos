@@ -81,6 +81,57 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.handshake_dn(p_order uuid, p_prefix text)
+returns uuid
+language plpgsql as $$
+declare
+  note_id uuid;
+  payload jsonb;
+  note_status text;
+  note_version integer;
+begin
+  -- Reuse an open note so draft paperwork created earlier can still be acked.
+  perform pg_temp.as_user('accounts');
+  select delivery_notes.id, delivery_notes.status, delivery_notes.version
+    into note_id, note_status, note_version
+  from public.delivery_notes
+  where delivery_notes.order_id = p_order
+    and delivery_notes.status is distinct from 'voided'
+  order by delivery_notes.created_at desc
+  limit 1;
+
+  if note_id is null then
+    payload := public.create_delivery_note(p_order, p_prefix || '-dn');
+    note_id := (payload -> 'delivery_note' ->> 'id')::uuid;
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'draft' then
+    payload := public.generate_delivery_note(note_id, note_version, p_prefix || '-gen');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'generated' then
+    payload := public.send_delivery_note(note_id, note_version, p_prefix || '-send');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'sent' then
+    perform pg_temp.as_user('godown');
+    payload := public.acknowledge_delivery_note(note_id, note_version, p_prefix || '-ack');
+    note_status := payload -> 'delivery_note' ->> 'status';
+  end if;
+
+  if note_status is distinct from 'acknowledged' then
+    raise exception 'DN handshake did not reach acknowledged: %', note_status;
+  end if;
+  return note_id;
+end;
+$$;
+
 -- Cutover off: preview fail-closed
 select pg_temp.as_user('admin');
 set local role authenticated;
@@ -228,6 +279,7 @@ begin
   end;
 end $$;
 
+select pg_temp.handshake_dn(current_setting('sherlyos.order')::uuid, 'm2pk-h1');
 select pg_temp.as_user('godown');
 do $$
 declare
@@ -446,6 +498,7 @@ select set_config(
 );
 select public.submit_order(current_setting('sherlyos.order_cutover')::uuid, 1, 'm2pk-sub-cutover');
 select public.verify_order(current_setting('sherlyos.order_cutover')::uuid, 2, 'm2pk-ver-cutover');
+select pg_temp.handshake_dn(current_setting('sherlyos.order_cutover')::uuid, 'm2pk-hc');
 
 select pg_temp.as_user('godown');
 do $$
@@ -495,6 +548,7 @@ select set_config(
 );
 select public.submit_order(current_setting('sherlyos.order_short')::uuid, 1, 'm2pk-sub-short');
 select public.verify_order(current_setting('sherlyos.order_short')::uuid, 2, 'm2pk-ver-short');
+select pg_temp.handshake_dn(current_setting('sherlyos.order_short')::uuid, 'm2pk-hs');
 
 select pg_temp.as_user('godown');
 do $$
@@ -594,6 +648,28 @@ begin
   end;
 end $$;
 
+-- Dedicated verified order: D1 handshake already consumed order_cutover.
+select pg_temp.as_user('accounts');
+set local role authenticated;
+select set_config(
+  'sherlyos.order_paper',
+  (
+    public.create_order(
+      current_setting('sherlyos.shop')::uuid,
+      current_setting('sherlyos.branch')::uuid,
+      'accounts', null, null,
+      jsonb_build_array(
+        jsonb_build_object('product_id', current_setting('sherlyos.nx')::uuid, 'requested_cases', 1)
+      ),
+      'm2pk-order-paper'
+    ) -> 'order' ->> 'id'
+  ),
+  true
+);
+select public.submit_order(current_setting('sherlyos.order_paper')::uuid, 1, 'm2pk-sub-paper');
+select public.verify_order(current_setting('sherlyos.order_paper')::uuid, 2, 'm2pk-ver-paper');
+
+reset role;
 select set_config(
   'sherlyos.ledger_before',
   (select count(*)::text from public.stock_ledger),
@@ -606,7 +682,7 @@ declare
   note jsonb;
 begin
   note := public.create_delivery_note(
-    current_setting('sherlyos.order_cutover')::uuid,
+    current_setting('sherlyos.order_paper')::uuid,
     'm2pk-dn-paper'
   );
   if note -> 'delivery_note' ->> 'status' is distinct from 'draft' then

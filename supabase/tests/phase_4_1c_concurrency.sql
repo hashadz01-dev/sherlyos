@@ -91,9 +91,14 @@ begin
   shop_id := public.create_shop('Phase 41C Race Shop', null, null);
   perform public.assign_shop_salesperson(shop_id, salesperson_id);
   product_id := public.create_product('p41c-race-sku', 'Phase 41C Race Soap', null, null);
+  perform public.set_product_expiry_policy(product_id, 'non_expiring');
   zone_id := public.create_zone(branch_a, 'R', 'Race Zone', null);
   crate_id := public.create_crate(zone_id, 'rc1', 'Race Crate', null);
-  perform public.post_opening_stock(product_id, crate_id, 20, 'p41c-race-open', null);
+  set session_replication_role = replica;
+  update public.app_configuration set value = 'true'::jsonb
+  where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
+  set session_replication_role = origin;
+  perform public.post_opening_stock(product_id, crate_id, 20, 'p41c-race-open', null, 'P41C-RACE', null, null);
 
   reset role;
   perform set_config('request.jwt.claims', '', true);

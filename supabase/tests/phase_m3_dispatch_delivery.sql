@@ -83,6 +83,57 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.handshake_dn(p_order uuid, p_prefix text)
+returns uuid
+language plpgsql as $$
+declare
+  note_id uuid;
+  payload jsonb;
+  note_status text;
+  note_version integer;
+begin
+  -- Reuse an open note so draft paperwork created earlier can still be acked.
+  perform pg_temp.as_user('accounts');
+  select delivery_notes.id, delivery_notes.status, delivery_notes.version
+    into note_id, note_status, note_version
+  from public.delivery_notes
+  where delivery_notes.order_id = p_order
+    and delivery_notes.status is distinct from 'voided'
+  order by delivery_notes.created_at desc
+  limit 1;
+
+  if note_id is null then
+    payload := public.create_delivery_note(p_order, p_prefix || '-dn');
+    note_id := (payload -> 'delivery_note' ->> 'id')::uuid;
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'draft' then
+    payload := public.generate_delivery_note(note_id, note_version, p_prefix || '-gen');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'generated' then
+    payload := public.send_delivery_note(note_id, note_version, p_prefix || '-send');
+    note_status := payload -> 'delivery_note' ->> 'status';
+    note_version := (payload -> 'delivery_note' ->> 'version')::integer;
+  end if;
+
+  if note_status = 'sent' then
+    perform pg_temp.as_user('godown');
+    payload := public.acknowledge_delivery_note(note_id, note_version, p_prefix || '-ack');
+    note_status := payload -> 'delivery_note' ->> 'status';
+  end if;
+
+  if note_status is distinct from 'acknowledged' then
+    raise exception 'DN handshake did not reach acknowledged: %', note_status;
+  end if;
+  return note_id;
+end;
+$$;
+
 create or replace function pg_temp.handoff(order_id uuid, prefix text)
 returns uuid language plpgsql as $$
 declare
@@ -91,6 +142,7 @@ declare
   i int;
   request_id uuid;
 begin
+  perform pg_temp.handshake_dn(order_id, prefix);
   perform pg_temp.as_user('godown');
   header := public.reserve_order_allocation(order_id, 3, prefix || '-res');
   request_id := (header ->> 'id')::uuid;
@@ -499,7 +551,9 @@ begin
   select status into note_status
   from public.delivery_notes
   where id = current_setting('sherlyos.note')::uuid;
-  if note_status is distinct from 'draft' then
+  -- Handshake acknowledges the note before picking; dispatch must leave that
+  -- paperwork status unchanged.
+  if note_status is distinct from 'acknowledged' then
     raise exception 'dispatch must not mutate delivery-note paperwork status, got %', note_status;
   end if;
 

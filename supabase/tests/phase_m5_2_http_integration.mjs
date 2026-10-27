@@ -287,6 +287,27 @@ await rpc(accounts, "verify_order", {
   expected_version: createdOrder.order.version + 1,
   idempotency_key: `${PREFIX}-ver-${RUN}`,
 })
+{
+  const dn = await rpc(accounts, "create_delivery_note", {
+    target_order: orderId,
+    idempotency_key: `${PREFIX}-dn-${RUN}`,
+  })
+  await rpc(accounts, "generate_delivery_note", {
+    target_note: dn.delivery_note.id,
+    expected_version: 1,
+    idempotency_key: `${PREFIX}-gen-${RUN}`,
+  })
+  await rpc(accounts, "send_delivery_note", {
+    target_note: dn.delivery_note.id,
+    expected_version: 2,
+    idempotency_key: `${PREFIX}-send-${RUN}`,
+  })
+  await rpc(godown, "acknowledge_delivery_note", {
+    target_note: dn.delivery_note.id,
+    expected_version: 3,
+    idempotency_key: `${PREFIX}-ack-${RUN}`,
+  })
+}
 
 let reserved = await rpc(godown, "reserve_order_allocation", {
   target_order: orderId,

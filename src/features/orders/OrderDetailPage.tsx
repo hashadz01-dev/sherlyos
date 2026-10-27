@@ -19,9 +19,13 @@ import {
   loadOrderShops,
   submitOrder,
   verifyOrder,
-  type AvailabilityRow,
+  type AvailabilityLine,
   type OrderStatus,
 } from "@/lib/orders/api"
+import {
+  deliveryNoteHandoverLabel,
+  isAcknowledgedDeliveryNote,
+} from "@/lib/orders/availability"
 
 const tone: Record<OrderStatus, StatusTone> = {
   draft: "neutral",
@@ -39,7 +43,7 @@ export function OrderDetailPage() {
   const [holdNote, setHoldNote] = useState("")
   const [cancelReason, setCancelReason] = useState("")
   const [confirmCancel, setConfirmCancel] = useState(false)
-  const [shortages, setShortages] = useState<AvailabilityRow[] | null>(null)
+  const [shortages, setShortages] = useState<AvailabilityLine[] | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const detail = useQuery({
@@ -82,9 +86,12 @@ export function OrderDetailPage() {
     isCreator && can("orders.capture") && (order?.status === "draft" || order?.status === "held")
   const canCancelAccounts =
     can("orders.verify") && (order?.status === "submitted" || order?.status === "verified")
+  const openNote = detail.data?.open_delivery_note ?? null
+  const dnAcknowledged = isAcknowledgedDeliveryNote(openNote)
   const canCreateDeliveryNote =
-    can("delivery_notes.issue") && order?.status === "verified"
-  const canAllocatePicking = can("picking.allocate") && order?.status === "verified"
+    can("delivery_notes.issue") && order?.status === "verified" && openNote == null
+  const canAllocatePicking =
+    can("picking.allocate") && order?.status === "verified" && dnAcknowledged
   const canOpenDispatch = can("dispatch.confirm") && order?.status === "verified"
 
   async function refresh() {
@@ -167,7 +174,7 @@ export function OrderDetailPage() {
     <section className="min-w-0">
       <PageHeader
         title={order?.order_number ?? "Order"}
-        description="Capture, submit, hold, verify, or cancel a shop request. Verification does not reserve stock."
+        description="Capture, submit, hold, verify, or cancel a shop request. Verification checks picking-eligible stock and does not reserve it."
         action={
           canEdit ? (
             <Button asChild>
@@ -215,6 +222,21 @@ export function OrderDetailPage() {
                 <dd>{order.cancellation_reason}</dd>
               </div>
             ) : null}
+            <div className="sm:col-span-2">
+              <dt className="text-sm text-muted-foreground">Delivery note handover</dt>
+              <dd>
+                {openNote ? (
+                  <span>
+                    {openNote.delivery_note_number} · {deliveryNoteHandoverLabel(openNote.status)}
+                    {openNote.acknowledged_at
+                      ? ` · acknowledged ${openNote.acknowledged_at.slice(0, 19).replace("T", " ")}`
+                      : ""}
+                  </span>
+                ) : (
+                  deliveryNoteHandoverLabel(null)
+                )}
+              </dd>
+            </div>
           </dl>
 
           <div>
@@ -234,24 +256,38 @@ export function OrderDetailPage() {
 
           {canVerify ? (
             <div>
-              <h2 className="mb-2 text-sm font-medium">Availability</h2>
+              <h2 className="mb-2 text-sm font-medium">Picking-eligible availability</h2>
+              <p className="mb-2 text-sm text-muted-foreground">
+                Eligible cases exclude reservations, quarantine, and ineligible lots. On-hand is
+                informational. This check does not reserve stock.
+              </p>
               {availability.isLoading ? <LoadingBlock label="Checking stock" /> : null}
               {availability.error ? (
                 <p role="alert" className="text-sm text-destructive">
                   {availability.error.message}
                 </p>
               ) : null}
-              {(availability.data ?? []).length > 0 ? (
+              {availability.data && !availability.data.picking_operational ? (
+                <p role="status" className="mb-2 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Lot-aware picking is not operational. Verification stays fail-closed until dual-write
+                  cutover. {(availability.data.cutover_blockers ?? []).join(" ")}
+                </p>
+              ) : null}
+              {(availability.data?.lines ?? []).length > 0 ? (
                 <ul className="grid gap-2">
-                  {(availability.data ?? []).map((row) => (
+                  {(availability.data?.lines ?? []).map((row) => (
                     <li
                       key={row.product_id}
-                      className="grid gap-1 rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border sm:grid-cols-4"
+                      className="grid gap-1 rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border sm:grid-cols-5"
                     >
                       <span>{productName.get(row.product_id) ?? row.product_id}</span>
                       <span>Requested {row.requested_cases}</span>
-                      <span>Available {row.on_hand_cases}</span>
+                      <span>On hand {row.on_hand_cases}</span>
+                      <span>Eligible {row.eligible_cases}</span>
                       <span>Shortfall {row.shortfall_cases}</span>
+                      {row.blockers.length > 0 ? (
+                        <span className="sm:col-span-5 text-muted-foreground">{row.blockers.join(" ")}</span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -262,19 +298,24 @@ export function OrderDetailPage() {
           {shortageRows.length > 0 ? (
             <div role="alert" className="grid gap-2 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">
               <p className="font-medium">
-                Verification cannot be completed because the following products have insufficient stock.
+                Verification cannot be completed because the following products have insufficient
+                picking-eligible stock.
               </p>
               <ul className="grid gap-2">
                 {shortageRows.map((row) => (
-                  <li key={row.product_id} className="grid gap-1 sm:grid-cols-4">
+                  <li key={row.product_id} className="grid gap-1 sm:grid-cols-5">
                     <span>{productName.get(row.product_id) ?? row.product_id}</span>
                     <span>Requested {row.requested_cases}</span>
-                    <span>Available {row.on_hand_cases}</span>
+                    <span>On hand {row.on_hand_cases}</span>
+                    <span>Eligible {row.eligible_cases}</span>
                     <span>Shortfall {row.shortfall_cases}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-foreground">The order remains submitted. Hold it separately if correction is needed.</p>
+              <p className="text-foreground">
+                The order remains submitted. Stock was not reserved. Hold it separately if correction is
+                needed.
+              </p>
             </div>
           ) : null}
 
@@ -288,6 +329,18 @@ export function OrderDetailPage() {
             {canAllocatePicking ? (
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to={`/picking/allocate/${order.id}`}>Allocate for picking</Link>
+              </Button>
+            ) : null}
+
+            {order.status === "verified" && can("picking.allocate") && !dnAcknowledged ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                Godown Manager must acknowledge the delivery note before picking allocation.
+              </p>
+            ) : null}
+
+            {openNote ? (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link to={`/deliveries/${openNote.id}`}>Open delivery note</Link>
               </Button>
             ) : null}
 

@@ -29,8 +29,24 @@ delete from public.stock_ledger
 where product_id in (select id from public.products where sku = 'p41c-race-sku');
 delete from public.stock_transactions
 where product_id in (select id from public.products where sku = 'p41c-race-sku');
+delete from public.stock_lot_balances
+where lot_id in (
+  select id from public.stock_lots
+  where product_id in (select id from public.products where sku = 'p41c-race-sku')
+);
+delete from public.stock_lots
+where product_id in (select id from public.products where sku = 'p41c-race-sku');
 delete from public.stock_balances
 where product_id in (select id from public.products where sku = 'p41c-race-sku');
+set session_replication_role = replica;
+update public.app_configuration
+set value = 'false'::jsonb
+where key in (
+  'damage.stock_hold_ready',
+  'stock.lots.dual_write_enabled',
+  'stock.lots.aggregate_only_blocked'
+);
+set session_replication_role = origin;
 
 alter table public.stock_balances enable trigger stock_balances_match_ledger;
 alter table public.stock_transactions enable trigger stock_transactions_append_only;

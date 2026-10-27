@@ -162,7 +162,7 @@ export function DeliveryNoteDetailPage() {
     <section className="min-w-0">
       <PageHeader
         title={note?.delivery_note_number ?? "Delivery note"}
-        description="Draft, generate, send, acknowledge, void, or open the printable view."
+        description="Draft, generate, send, acknowledge, void, or open the printable view. Acknowledgement is paperwork only and does not change stock. Picking cannot start until this note is acknowledged."
         action={
           <Button asChild variant="outline">
             <Link to="/deliveries">Back</Link>

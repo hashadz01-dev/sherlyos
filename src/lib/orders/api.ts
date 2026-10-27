@@ -1,6 +1,22 @@
 import { callRpc, loadRows } from "@/lib/masters/api"
+import {
+  parseAvailabilitySnapshot,
+  shortageLinesFromErrorDetails,
+  type AvailabilityLine,
+  type AvailabilitySnapshot,
+  type OpenDeliveryNoteSummary,
+} from "@/lib/orders/availability"
 import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+
+export type {
+  AvailabilityLine,
+  AvailabilitySnapshot,
+  OpenDeliveryNoteSummary,
+} from "@/lib/orders/availability"
+
+/** @deprecated Use AvailabilityLine. Kept for existing shortage-row call sites. */
+export type AvailabilityRow = AvailabilityLine
 
 export type OrderStatus = "draft" | "submitted" | "held" | "verified" | "cancelled"
 
@@ -9,13 +25,6 @@ export type OrderSource = "salesperson" | "accounts" | "telecalling" | "enquiry"
 export type OrderLineInput = {
   product_id: string
   requested_cases: number
-}
-
-export type AvailabilityRow = {
-  product_id: string
-  requested_cases: number
-  on_hand_cases: number
-  shortfall_cases: number
 }
 
 export type OrderRow = {
@@ -56,7 +65,7 @@ export type OrderEvent = {
   note: string | null
   version: number
   line_snapshot: OrderLineInput[]
-  availability_snapshot: AvailabilityRow[] | null
+  availability_snapshot: AvailabilitySnapshot | AvailabilityLine[] | null
   created_at: string
 }
 
@@ -64,6 +73,7 @@ export type OrderDetail = {
   order: OrderRow
   lines: OrderLine[]
   events: OrderEvent[]
+  open_delivery_note: OpenDeliveryNoteSummary | null
 }
 
 export type OrderCatalogShop = {
@@ -87,10 +97,10 @@ export type OrderCatalogProduct = {
 }
 
 export class InsufficientStockError extends Error {
-  shortages: AvailabilityRow[]
+  shortages: AvailabilityLine[]
 
-  constructor(shortages: AvailabilityRow[]) {
-    super("Verification cannot be completed because the following products have insufficient stock.")
+  constructor(shortages: AvailabilityLine[]) {
+    super("Verification cannot be completed because the following products have insufficient picking-eligible stock.")
     this.name = "InsufficientStockError"
     this.shortages = shortages
   }
@@ -111,13 +121,7 @@ async function callOrderRpc<T>(name: string, args: Record<string, unknown>) {
       result.error.message === "insufficient stock" ||
       result.error.message.toLowerCase().includes("insufficient stock")
     ) {
-      let shortages: AvailabilityRow[] = []
-      try {
-        shortages = JSON.parse(result.error.details ?? "[]") as AvailabilityRow[]
-      } catch {
-        shortages = []
-      }
-      throw new InsufficientStockError(shortages)
+      throw new InsufficientStockError(shortageLinesFromErrorDetails(result.error.details))
     }
     throw new Error(toUserRpcMessage(result.error))
   }
@@ -134,10 +138,11 @@ export function getOrder(orderId: string) {
   return callRpc<OrderDetail>("get_order", { target_order: orderId })
 }
 
-export function checkOrderAvailability(orderId: string) {
-  return callRpc<AvailabilityRow[]>("check_order_availability", {
+export async function checkOrderAvailability(orderId: string) {
+  const raw = await callRpc<unknown>("check_order_availability", {
     target_order: orderId,
   })
+  return parseAvailabilitySnapshot(raw)
 }
 
 export function createOrder(input: {

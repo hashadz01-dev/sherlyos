@@ -335,14 +335,22 @@ begin
       null;
   end;
   detail := public.check_order_availability((select id from refs where name = 'own'));
-  if detail <> jsonb_build_array(
-    jsonb_build_object(
-      'product_id', current_setting('sherlyos.product')::uuid,
-      'requested_cases', 8,
-      'on_hand_cases', 5,
-      'shortfall_cases', 3
-    )
-  ) then
+  if detail ->> 'reserves_stock' is distinct from 'false' then
+    raise exception 'availability must not reserve: %', detail;
+  end if;
+  if detail ->> 'picking_operational' is distinct from 'false' then
+    raise exception 'pre-cutover availability must be fail-closed: %', detail;
+  end if;
+  if (detail -> 'lines' -> 0 ->> 'product_id')
+    is distinct from current_setting('sherlyos.product')
+  then
+    raise exception 'availability product mismatch: %', detail;
+  end if;
+  if (detail -> 'lines' -> 0 ->> 'requested_cases') is distinct from '8'
+    or (detail -> 'lines' -> 0 ->> 'on_hand_cases') is distinct from '5'
+    or (detail -> 'lines' -> 0 ->> 'eligible_cases') is distinct from '0'
+    or (detail -> 'lines' -> 0 ->> 'shortfall_cases') is distinct from '8'
+  then
     raise exception 'availability was %', detail;
   end if;
 end;
@@ -406,7 +414,14 @@ do $$
 declare
   seen integer;
 begin
-  select count(*) into seen from public.orders;
+  -- Scope to this suite's shops. Later disposable orders must not fail this proof.
+  select count(*) into seen
+  from public.orders
+  where shop_id in (
+    current_setting('sherlyos.shop')::uuid,
+    current_setting('sherlyos.shop_other')::uuid,
+    current_setting('sherlyos.shop_inactive')::uuid
+  );
   if seen <> 2 then
     raise exception 'admin saw % orders', seen;
   end if;

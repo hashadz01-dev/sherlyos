@@ -51,6 +51,7 @@ test.beforeAll(() => {
       shop_id uuid;
       order_a uuid;
       order_b uuid;
+      payload jsonb;
     begin
       insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -195,6 +196,25 @@ test.beforeAll(() => {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_b, 1, '${PREFIX}-sub-b');
       perform public.verify_order(order_b, 2, '${PREFIX}-ver-b');
+
+      payload := public.create_delivery_note(order_a, '${PREFIX}-dna');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gena');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snda');
+      payload := public.create_delivery_note(order_b, '${PREFIX}-dnb');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-genb');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-sndb');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config(
+        'request.jwt.claims',
+        jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text,
+        true
+      );
+      perform public.acknowledge_delivery_note(
+        (select id from public.delivery_notes where idempotency_key = '${PREFIX}-dna'), 3, '${PREFIX}-acka'
+      );
+      perform public.acknowledge_delivery_note(
+        (select id from public.delivery_notes where idempotency_key = '${PREFIX}-dnb'), 3, '${PREFIX}-ackb'
+      );
     end;
     $$;
     `,

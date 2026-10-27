@@ -197,6 +197,16 @@ test.beforeAll(() => {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-sub');
       perform public.verify_order(order_id, 2, '${PREFIX}-ver');
+      header := public.create_delivery_note(order_id, '${PREFIX}-dn');
+      perform public.generate_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen');
+      perform public.send_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-send');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config(
+        'request.jwt.claims',
+        jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text,
+        true
+      );
+      perform public.acknowledge_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack');
 
       perform set_config('request.jwt.claim.sub', godown_id::text, true);
       perform set_config(
@@ -297,6 +307,12 @@ test.beforeAll(() => {
         ) -> 'order' ->> 'id')::uuid;
         perform public.submit_order(order_id, 1, '${PREFIX}-sub-fail');
         perform public.verify_order(order_id, 2, '${PREFIX}-ver-fail');
+        header := public.create_delivery_note(order_id, '${PREFIX}-dn-fail');
+        perform public.generate_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-fail');
+        perform public.send_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-send-fail');
+        perform set_config('request.jwt.claim.sub', godown_id::text, true);
+        perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+        perform public.acknowledge_delivery_note((header -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-fail');
 
         perform set_config('request.jwt.claim.sub', godown_id::text, true);
         perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);

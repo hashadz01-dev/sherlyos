@@ -28,6 +28,7 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m65%",
   "m66%",
   "m14e2e%",
+  "m72%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {

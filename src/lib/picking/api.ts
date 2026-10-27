@@ -54,6 +54,8 @@ export type AllocationPreview = {
   order_version: number
   branch_id: string
   shop_id: string
+  delivery_note_id?: string | null
+  delivery_note_status?: string | null
   eligible: boolean
   blockers: string[]
   cutover: {
@@ -73,6 +75,7 @@ export type PickingQueueRow = {
   order_version?: number
   branch_id: string
   shop_id?: string
+  delivery_note_status?: string
   status: PickingRequestStatus
   version?: number
   assigned_to?: string | null

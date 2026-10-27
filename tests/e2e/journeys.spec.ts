@@ -139,7 +139,8 @@ test.beforeAll(() => {
         '${PREFIX}-order'
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-sub');
-      perform public.verify_order(order_id, 2, '${PREFIX}-ver');
+      -- M7.2: verify is picking-eligible and fail-closed while dual-write is off.
+      -- Test I only needs a submitted order for the allocate preview blockers.
     end $$;
     `,
     "m14e2e seed",

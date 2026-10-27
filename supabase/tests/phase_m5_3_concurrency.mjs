@@ -333,6 +333,7 @@ function createVerifiedOrderSql(key, qty, orderVersionOut) {
       shop_id uuid := (select value::uuid from public.phase_m53_race_target where name = 'shop');
       p_product uuid := (select value::uuid from public.phase_m53_race_target where name = 'product_${key}');
       order_id uuid;
+      payload jsonb;
       reserved jsonb;
       header jsonb;
       res jsonb;
@@ -347,6 +348,12 @@ function createVerifiedOrderSql(key, qty, orderVersionOut) {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-osub-${key}');
       perform public.verify_order(order_id, 2, '${PREFIX}-over-${key}');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn-${key}');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-${key}');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snd-${key}');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-${key}');
       insert into public.phase_m53_race_target (name, value)
       values ('order_${key}', order_id::text)
       on conflict (name) do update set value = excluded.value;
@@ -408,6 +415,7 @@ async function raceA() {
       selected_lot uuid := (select value::uuid from public.phase_m53_race_target where name = 'lot_a');
       report_id uuid;
       order_id uuid;
+      payload jsonb;
     begin
       perform set_config('request.jwt.claim.sub', godown_id::text, true);
       perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
@@ -427,6 +435,12 @@ async function raceA() {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-osub-a');
       perform public.verify_order(order_id, 2, '${PREFIX}-over-a');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn-a');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-a');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snd-a');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-a');
       insert into public.phase_m53_race_target (name, value) values
         ('report_a', report_id::text),
         ('order_a', order_id::text)
@@ -1037,6 +1051,7 @@ async function raceH() {
       selected_lot uuid := (select value::uuid from public.phase_m53_race_target where name = 'lot_h');
       report_id uuid;
       order_id uuid;
+      payload jsonb;
     begin
       perform set_config('request.jwt.claim.sub', godown_id::text, true);
       perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
@@ -1057,6 +1072,12 @@ async function raceH() {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-osub-h');
       perform public.verify_order(order_id, 2, '${PREFIX}-over-h');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn-h');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-h');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snd-h');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-h');
       insert into public.phase_m53_race_target (name, value) values
         ('report_h', report_id::text),
         ('order_h', order_id::text)

@@ -327,6 +327,7 @@ function createDispatchReady(key, qty) {
       shop_id uuid := (select value::uuid from public.phase_m54d_race_target where name = 'shop');
       p_product uuid := (select value::uuid from public.phase_m54d_race_target where name = 'product_${key}');
       order_id uuid;
+      payload jsonb;
       reserved jsonb;
       header jsonb;
       res jsonb;
@@ -341,6 +342,12 @@ function createDispatchReady(key, qty) {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-osub-${key}');
       perform public.verify_order(order_id, 2, '${PREFIX}-over-${key}');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn-${key}');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-${key}');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snd-${key}');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-${key}');
 
       perform set_config('request.jwt.claim.sub', godown_id::text, true);
       perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
@@ -708,6 +715,12 @@ async function raceWriteoffPicking() {
       ) -> 'order' ->> 'id')::uuid;
       perform public.submit_order(order_id, 1, '${PREFIX}-osub-pk');
       perform public.verify_order(order_id, 2, '${PREFIX}-over-pk');
+      payload := public.create_delivery_note(order_id, '${PREFIX}-dn-pk');
+      perform public.generate_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 1, '${PREFIX}-gen-pk');
+      perform public.send_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 2, '${PREFIX}-snd-pk');
+      perform set_config('request.jwt.claim.sub', godown_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', godown_id, 'role', 'authenticated')::text, true);
+      perform public.acknowledge_delivery_note((payload -> 'delivery_note' ->> 'id')::uuid, 3, '${PREFIX}-ack-pk');
       insert into public.phase_m54d_race_target (name, value)
       values ('order_pk', order_id::text)
       on conflict (name) do update set value = excluded.value;

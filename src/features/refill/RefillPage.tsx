@@ -9,8 +9,15 @@ import { Button } from "@/components/ui/button"
 import { SearchField } from "@/features/masters/MasterControls"
 import {
   formatCases,
+  formatDateOnly,
+  formatRefillAcknowledgement,
+  formatRefillCommunication,
+  formatRefillDispatch,
   formatRefillStatus,
   formatTimestamp,
+  refillAcknowledgementTone,
+  refillCommunicationTone,
+  refillDispatchTone,
   refillStatusTone,
 } from "@/features/refill/utils/labels"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -124,16 +131,19 @@ export function RefillPage() {
             />
           ) : (
             <div className="overflow-x-auto rounded-2xl bg-card ring-1 ring-border">
-              <table className="w-full min-w-[44rem] text-left text-sm">
+              <table className="w-full min-w-[64rem] text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="px-4 py-3 font-medium">Request</th>
                     <th className="px-4 py-3 font-medium">Supplier</th>
                     <th className="px-4 py-3 font-medium">Godown</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Approval</th>
+                    <th className="px-4 py-3 font-medium">Communication</th>
+                    <th className="px-4 py-3 font-medium">Acknowledgement</th>
+                    <th className="px-4 py-3 font-medium">Dispatch</th>
+                    <th className="px-4 py-3 font-medium">Expected arrival</th>
                     <th className="px-4 py-3 font-medium">Cases</th>
                     <th className="px-4 py-3 font-medium">Created</th>
-                    <th className="px-4 py-3 font-medium">Submitted</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -154,9 +164,36 @@ export function RefillPage() {
                           {formatRefillStatus(row.status)}
                         </StatusBadge>
                       </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          tone={refillCommunicationTone[row.communication_status ?? "not_sent"]}
+                        >
+                          {formatRefillCommunication(row.communication_status ?? "not_sent")}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          tone={
+                            refillAcknowledgementTone[row.acknowledgement_status ?? "none"]
+                          }
+                        >
+                          {formatRefillAcknowledgement(
+                            row.acknowledgement_status ?? "none",
+                          )}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          tone={refillDispatchTone[row.dispatch_status ?? "not_recorded"]}
+                        >
+                          {formatRefillDispatch(row.dispatch_status ?? "not_recorded")}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatDateOnly(row.expected_arrival_on)}
+                      </td>
                       <td className="px-4 py-3">{formatCases(row.total_requested_cases)}</td>
                       <td className="px-4 py-3">{formatTimestamp(row.created_at)}</td>
-                      <td className="px-4 py-3">{formatTimestamp(row.submitted_at)}</td>
                     </tr>
                   ))}
                 </tbody>

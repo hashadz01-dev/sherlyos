@@ -7,6 +7,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
+import { RefillSupplierPanel } from "@/features/refill/components/RefillSupplierPanel"
 import {
   formatCases,
   formatRefillEvent,
@@ -268,6 +269,13 @@ export function RefillDetailPage() {
               </tbody>
             </table>
           </div>
+          {request.status === "approved" || request.communication ? (
+            <RefillSupplierPanel
+              request={request}
+              canRequest={canRequest}
+              onChanged={refresh}
+            />
+          ) : null}
           <section>
             <h2 className="mb-3 text-base font-semibold">Audit history</h2>
             {request.events.length === 0 ? (

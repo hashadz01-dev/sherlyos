@@ -18,6 +18,9 @@ vi.mock("@/lib/refill/api", () => ({
   approveStockRefillRequest: vi.fn(),
   holdStockRefillRequest: vi.fn(),
   rejectStockRefillRequest: vi.fn(),
+  recordStockRefillSupplierCommunication: vi.fn(),
+  recordStockRefillSupplierAcknowledgement: vi.fn(),
+  recordStockRefillSupplierDispatch: vi.fn(),
 }))
 
 vi.mock("@/lib/access/use-access", () => ({
@@ -88,6 +91,10 @@ describe("refill pages", () => {
           godown_name: "Main",
           godown_active: true,
           status: "submitted",
+          communication_status: "not_sent",
+          acknowledgement_status: "none",
+          dispatch_status: "not_recorded",
+          expected_arrival_on: null,
           version: 2,
           total_requested_cases: 4,
           created_at: "2026-10-27T00:00:00Z",
@@ -115,6 +122,12 @@ describe("refill pages", () => {
       godown_name: "Main",
       godown_active: true,
       status: "submitted",
+      communication_status: "not_sent",
+      acknowledgement_status: "none",
+      dispatch_status: "not_recorded",
+      expected_arrival_on: null,
+      communication: null,
+      dispatch: null,
       notes: null,
       version: 2,
       created_by: "acct",
@@ -161,5 +174,74 @@ describe("refill pages", () => {
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument()
     expect(screen.getByText("Submitted for Admin review")).toBeInTheDocument()
+  })
+
+  it("shows manual send controls and no-inventory copy on an approved request", async () => {
+    getStockRefillRequest.mockResolvedValue({
+      id: "r2",
+      request_number: "RF-20261027-000003",
+      supplier_id: "s1",
+      supplier_name: "Brand",
+      destination_godown_id: "g1",
+      godown_code: "G1",
+      godown_name: "Main",
+      godown_active: true,
+      status: "approved",
+      communication_status: "not_sent",
+      acknowledgement_status: "none",
+      dispatch_status: "not_recorded",
+      expected_arrival_on: null,
+      communication: null,
+      dispatch: null,
+      notes: null,
+      version: 3,
+      created_by: "acct",
+      creator_name: "Accounts",
+      created_at: "2026-10-27T00:00:00Z",
+      updated_by: "admin",
+      updated_at: "2026-10-27T02:00:00Z",
+      submitted_by: "acct",
+      submitted_at: "2026-10-27T01:00:00Z",
+      held_by: null,
+      held_at: null,
+      hold_reason: null,
+      decided_by: "admin",
+      decided_at: "2026-10-27T02:00:00Z",
+      decision_reason: null,
+      total_requested_cases: 3,
+      lines: [
+        {
+          id: "l1",
+          product_id: "p1",
+          product_sku: "SKU-1",
+          product_name: "Soap",
+          requested_cases: 3,
+        },
+      ],
+      events: [
+        {
+          id: "e1",
+          action: "approved",
+          previous_status: "submitted",
+          next_status: "approved",
+          reason: null,
+          version: 3,
+          actor_id: "admin",
+          actor_name: "Admin",
+          created_at: "2026-10-27T02:00:00Z",
+        },
+      ],
+    })
+    renderAt("/refill/r2", <RefillDetailPage />)
+    expect(await screen.findByText("RF-20261027-000003")).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Supplier communication & dispatch" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Mark as sent — manually recorded" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Supplier dispatch does not add inventory/i),
+    ).toBeInTheDocument()
   })
 })

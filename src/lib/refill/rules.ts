@@ -101,3 +101,111 @@ export function refillMutationIdempotencyKey(prefix: string, requestId: string) 
   const compact = requestId.replaceAll("-", "").slice(0, 20)
   return `${prefix}-${compact}`
 }
+
+/** M6.3 supplier-communication states. Separate from Admin approval status. */
+export const refillCommunicationStatuses = ["not_sent", "sent"] as const
+export type RefillCommunicationStatus = (typeof refillCommunicationStatuses)[number]
+
+export const refillAcknowledgementStatuses = [
+  "none",
+  "pending",
+  "acknowledged",
+  "declined",
+] as const
+export type RefillAcknowledgementStatus =
+  (typeof refillAcknowledgementStatuses)[number]
+
+export const refillDispatchStatuses = ["not_recorded", "recorded"] as const
+export type RefillDispatchStatus = (typeof refillDispatchStatuses)[number]
+
+export const refillCommunicationChannels = [
+  "phone",
+  "whatsapp",
+  "email",
+  "other",
+] as const
+export type RefillCommunicationChannel = (typeof refillCommunicationChannels)[number]
+
+export function isRefillCommunicationChannel(
+  value: string,
+): value is RefillCommunicationChannel {
+  return (refillCommunicationChannels as readonly string[]).includes(value)
+}
+
+/**
+ * Accounts may attest a first send only on an approved, unsent request.
+ * Backend still re-checks permission, godown activity, and uniqueness.
+ */
+export function canRecordRefillSend(input: {
+  status: RefillStatus
+  communicationStatus: RefillCommunicationStatus
+  godownActive: boolean
+  canRequest: boolean
+}) {
+  return (
+    input.canRequest &&
+    input.status === "approved" &&
+    input.communicationStatus === "not_sent" &&
+    input.godownActive
+  )
+}
+
+/** Acknowledgement (or audited correction) requires a recorded send. */
+export function canRecordRefillAcknowledgement(input: {
+  status: RefillStatus
+  communicationStatus: RefillCommunicationStatus
+  godownActive: boolean
+  canRequest: boolean
+}) {
+  return (
+    input.canRequest &&
+    input.status === "approved" &&
+    input.communicationStatus === "sent" &&
+    input.godownActive
+  )
+}
+
+/** Dispatch is blocked while the supplier response is declined. */
+export function canRecordRefillDispatch(input: {
+  status: RefillStatus
+  communicationStatus: RefillCommunicationStatus
+  acknowledgementStatus: RefillAcknowledgementStatus
+  godownActive: boolean
+  canRequest: boolean
+}) {
+  return (
+    input.canRequest &&
+    input.status === "approved" &&
+    input.communicationStatus === "sent" &&
+    input.acknowledgementStatus !== "declined" &&
+    input.godownActive
+  )
+}
+
+export function isValidRefillShortText(value: string, required = false) {
+  const cleaned = value.trim()
+  if (cleaned.length === 0) return !required
+  return cleaned.length <= 120
+}
+
+export function refillSessionIdempotencyKey(
+  storageKey: string,
+  existing?: string | null,
+) {
+  if (existing && /^[A-Za-z0-9_-]{8,80}$/.test(existing)) return existing
+  if (typeof sessionStorage !== "undefined") {
+    const stored = sessionStorage.getItem(storageKey)
+    if (stored && /^[A-Za-z0-9_-]{8,80}$/.test(stored)) return stored
+  }
+  const generated = refillCreateIdempotencyKey()
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem(storageKey, generated)
+  }
+  return generated
+}
+
+export function clearRefillSessionIdempotencyKey(storageKey: string) {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem(storageKey)
+  }
+}

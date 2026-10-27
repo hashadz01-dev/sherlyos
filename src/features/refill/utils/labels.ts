@@ -1,5 +1,11 @@
 import type { StatusTone } from "@/components/shared/StatusBadge"
-import type { RefillStatus } from "@/lib/refill/rules"
+import type {
+  RefillAcknowledgementStatus,
+  RefillCommunicationChannel,
+  RefillCommunicationStatus,
+  RefillDispatchStatus,
+  RefillStatus,
+} from "@/lib/refill/rules"
 
 export const refillStatusLabels: Record<RefillStatus, string> = {
   draft: "Draft",
@@ -7,6 +13,49 @@ export const refillStatusLabels: Record<RefillStatus, string> = {
   held: "Held",
   approved: "Approved",
   rejected: "Rejected",
+}
+
+export const refillCommunicationLabels: Record<RefillCommunicationStatus, string> = {
+  not_sent: "Not sent",
+  sent: "Sent — manually recorded",
+}
+
+export const refillAcknowledgementLabels: Record<RefillAcknowledgementStatus, string> =
+  {
+    none: "Not sent",
+    pending: "Awaiting supplier response",
+    acknowledged: "Supplier acknowledged — manually recorded",
+    declined: "Supplier declined",
+  }
+
+export const refillDispatchLabels: Record<RefillDispatchStatus, string> = {
+  not_recorded: "Dispatch not recorded",
+  recorded: "Supplier dispatch recorded",
+}
+
+export const refillChannelLabels: Record<RefillCommunicationChannel, string> = {
+  phone: "Phone",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  other: "Other",
+}
+
+export const refillCommunicationTone: Record<RefillCommunicationStatus, StatusTone> = {
+  not_sent: "neutral",
+  sent: "info",
+}
+
+export const refillAcknowledgementTone: Record<RefillAcknowledgementStatus, StatusTone> =
+  {
+    none: "neutral",
+    pending: "warning",
+    acknowledged: "success",
+    declined: "danger",
+  }
+
+export const refillDispatchTone: Record<RefillDispatchStatus, StatusTone> = {
+  not_recorded: "neutral",
+  recorded: "info",
 }
 
 export const refillStatusTone: Record<RefillStatus, StatusTone> = {
@@ -25,6 +74,37 @@ export const refillEventLabels: Record<string, string> = {
   resubmitted: "Resubmitted for Admin review",
   approved: "Approved — not a stock receipt",
   rejected: "Rejected",
+  sent_to_supplier: "Marked as sent — manually recorded",
+  supplier_acknowledged: "Supplier acknowledged — manually recorded",
+  supplier_declined: "Supplier declined",
+  supplier_acknowledgement_corrected: "Supplier acknowledgement corrected",
+  supplier_dispatch_recorded: "Supplier dispatch recorded",
+  supplier_dispatch_corrected: "Supplier dispatch corrected",
+}
+
+export function formatRefillCommunication(status: string) {
+  return refillCommunicationLabels[status as RefillCommunicationStatus] ?? status
+}
+
+export function formatRefillAcknowledgement(status: string) {
+  return (
+    refillAcknowledgementLabels[status as RefillAcknowledgementStatus] ?? status
+  )
+}
+
+export function formatRefillDispatch(status: string) {
+  return refillDispatchLabels[status as RefillDispatchStatus] ?? status
+}
+
+export function formatRefillChannel(channel: string) {
+  return refillChannelLabels[channel as RefillCommunicationChannel] ?? channel
+}
+
+export function formatDateOnly(value: string | null | undefined) {
+  if (!value) return "—"
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString()
 }
 
 export function formatRefillStatus(status: string) {

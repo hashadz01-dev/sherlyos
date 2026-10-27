@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import {
   canDecideRefillRequest,
   canEditRefillRequest,
+  canRecordRefillAcknowledgement,
+  canRecordRefillDispatch,
+  canRecordRefillSend,
   canSubmitRefillRequest,
   isEditableRefillStatus,
   isTerminalRefillStatus,
@@ -84,6 +87,54 @@ describe("refill permission-aware actions", () => {
   it("requires a hold/reject reason", () => {
     expect(isValidDecisionReason("need fewer cases")).toBe(true)
     expect(isValidDecisionReason("   ")).toBe(false)
+  })
+})
+
+describe("refill supplier communication eligibility", () => {
+  it("lets Accounts record send only on approved unsent active godowns", () => {
+    const base = {
+      canRequest: true,
+      godownActive: true,
+      communicationStatus: "not_sent" as const,
+    }
+    expect(canRecordRefillSend({ ...base, status: "approved" })).toBe(true)
+    expect(canRecordRefillSend({ ...base, status: "submitted" })).toBe(false)
+    expect(
+      canRecordRefillSend({
+        ...base,
+        status: "approved",
+        communicationStatus: "sent",
+      }),
+    ).toBe(false)
+    expect(
+      canRecordRefillSend({ ...base, status: "approved", canRequest: false }),
+    ).toBe(false)
+  })
+
+  it("blocks dispatch after a declined supplier response", () => {
+    const base = {
+      status: "approved" as const,
+      communicationStatus: "sent" as const,
+      godownActive: true,
+      canRequest: true,
+    }
+    expect(
+      canRecordRefillDispatch({ ...base, acknowledgementStatus: "pending" }),
+    ).toBe(true)
+    expect(
+      canRecordRefillDispatch({ ...base, acknowledgementStatus: "acknowledged" }),
+    ).toBe(true)
+    expect(
+      canRecordRefillDispatch({ ...base, acknowledgementStatus: "declined" }),
+    ).toBe(false)
+    expect(
+      canRecordRefillAcknowledgement({
+        status: "approved",
+        communicationStatus: "sent",
+        godownActive: true,
+        canRequest: true,
+      }),
+    ).toBe(true)
   })
 })
 

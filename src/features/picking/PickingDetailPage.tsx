@@ -22,11 +22,15 @@ import {
   type PickingReservation,
 } from "@/lib/picking/api"
 import {
+  cutoverBlocksPicking,
   isStalePickingVersion,
+  nextOrderPickingAction,
   pickingEventLabel,
+  pickingHasShortage,
   pickingStatusLabel,
   pickingStatusTone,
   remainingCases,
+  shortShipmentNotOperationalMessage,
 } from "@/lib/picking/rules"
 
 export function PickingDetailPage() {
@@ -117,6 +121,21 @@ export function PickingDetailPage() {
     actionError && isStalePickingVersion(actionError)
       ? "This picking task changed. Reload before continuing."
       : actionError?.message
+  const fulfilment = request?.fulfilment
+  const hasShortage =
+    fulfilment?.has_shortage === true || pickingHasShortage(request?.exceptions ?? [])
+  const cutoverMessage = request ? cutoverBlocksPicking(request.cutover) : null
+  const nextAction = request
+    ? nextOrderPickingAction({
+        orderStatus: request.order_status,
+        dnStatus: request.delivery_note_status,
+        pickingStatus: request.status,
+        hasShortage,
+        cutoverBlocked: Boolean(cutoverMessage),
+      })
+    : null
+  const canHandoff =
+    can("picking.manage") && request?.status === "picked" && !hasShortage
 
   return (
     <section className="min-w-0">
@@ -144,7 +163,46 @@ export function PickingDetailPage() {
             <Link className="text-sm underline" to={`/orders/${request.order_id}`}>
               Open order
             </Link>
+            {request.delivery_note_status ? (
+              <span className="text-sm text-slate-600">
+                Delivery note: {request.delivery_note_status}
+              </span>
+            ) : null}
           </div>
+          {nextAction ? (
+            <p role="status" className="text-sm text-slate-700">
+              {nextAction}
+            </p>
+          ) : null}
+          {fulfilment ? (
+            <ul className="grid gap-2 sm:grid-cols-5">
+              <li className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200/80">
+                Ordered {fulfilment.ordered_cases}
+              </li>
+              <li className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200/80">
+                Allocated {fulfilment.allocated_cases}
+              </li>
+              <li className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200/80">
+                Picked {fulfilment.picked_cases}
+              </li>
+              <li className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200/80">
+                Remaining {fulfilment.remaining_cases}
+              </li>
+              <li className="rounded-2xl bg-white px-4 py-3 text-sm ring-1 ring-slate-200/80">
+                Shortfall {fulfilment.shortfall_cases}
+              </li>
+            </ul>
+          ) : null}
+          {cutoverMessage ? (
+            <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {cutoverMessage}
+            </p>
+          ) : null}
+          {hasShortage ? (
+            <p role="status" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {shortShipmentNotOperationalMessage}
+            </p>
+          ) : null}
           {actionMessage ? (
             <p role="alert" className="text-sm text-destructive">
               {actionMessage}
@@ -161,10 +219,16 @@ export function PickingDetailPage() {
                 {complete.isPending ? "Completing" : "Complete picking"}
               </Button>
             ) : null}
-            {can("picking.manage") && request.status === "picked" ? (
+            {canHandoff ? (
               <Button type="button" onClick={() => handoff.mutate()} disabled={handoff.isPending}>
                 {handoff.isPending ? "Handing off" : "Ready for dispatch"}
               </Button>
+            ) : null}
+            {can("picking.manage") && request.status === "picked" && hasShortage ? (
+              <p className="w-full text-sm text-muted-foreground">
+                Ready for dispatch is blocked until this short pick is cancelled and the full order
+                is reallocated.
+              </p>
             ) : null}
             {can("dispatch.confirm") && request.status === "ready_for_dispatch" ? (
               <Button asChild>
@@ -374,6 +438,13 @@ function ReservationTable({
           ))}
         </tbody>
       </table>
+      {status === "picking" ? (
+        <p className="px-4 py-3 text-sm text-slate-600">
+          Reporting a shortage releases or reduces the reservation. It does not authorize a short
+          shipment. Cancel and reallocate the full order instead of handing a short pick to
+          dispatch.
+        </p>
+      ) : null}
       {confirm.error || shortage.error ? (
         <p role="alert" className="px-4 py-3 text-sm text-destructive">
           {(confirm.error ?? shortage.error)?.message}

@@ -52,7 +52,7 @@ export function PickingAllocatePage() {
     <section className="min-w-0">
       <PageHeader
         title={preview.data ? `Allocate ${preview.data.order_number}` : "Allocate order"}
-        description="FEFO for expiry-controlled products, FIFO for non-expiring products. The Godown Manager must acknowledge the delivery note first. Confirming creates crate and lot reservations without changing the ledger."
+        description="FEFO for expiry-controlled products, FIFO for non-expiring products. The Godown Manager must acknowledge the delivery note first. Verification does not reserve stock. Confirming creates crate and lot reservations without changing the ledger."
         action={
           <Button asChild variant="outline">
             <Link to="/picking">Back to queue</Link>
@@ -69,7 +69,8 @@ export function PickingAllocatePage() {
         <div className="space-y-4">
           {preview.data.delivery_note_status ? (
             <p className="text-sm text-slate-600">
-              Delivery note status: {preview.data.delivery_note_status}
+              Delivery note status: {preview.data.delivery_note_status}. A verified order does not
+              guarantee reserved stock.
             </p>
           ) : (
             <p className="text-sm text-slate-600">No delivery note on this order.</p>
@@ -93,7 +94,8 @@ export function PickingAllocatePage() {
                   {line.sku} · {line.product_name}
                 </h2>
                 <StatusBadge tone={line.eligible ? "success" : "danger"}>
-                  {line.allocated_cases}/{line.requested_cases} cases
+                  Ordered {line.requested_cases} · Eligible {line.allocated_cases} · Shortfall{" "}
+                  {line.shortfall_cases}
                 </StatusBadge>
               </div>
               {line.blockers.length > 0 ? (

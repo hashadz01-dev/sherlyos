@@ -79,3 +79,96 @@ export function cutoverBlocksPicking(input: {
   }
   return null
 }
+
+/**
+ * D4 is approved in principle only. Dispatch still requires a full order fill.
+ * Do not present short-shipment as an operational path.
+ */
+export const SHORT_SHIPMENT_OPERATIONAL = false
+
+export const shortShipmentNotOperationalMessage =
+  "Controlled short-shipment is not operational. Dispatch still requires a full order fill. Cancel this picking request and reallocate, or pick every reserved carton."
+
+export type PickingFulfilment = {
+  ordered_cases: number
+  allocated_cases: number
+  picked_cases: number
+  remaining_cases: number
+  shortfall_cases: number
+  shortage_cases: number
+  has_shortage: boolean
+  short_shipment_operational: boolean
+}
+
+const emptyFulfilment = (): PickingFulfilment => ({
+  ordered_cases: 0,
+  allocated_cases: 0,
+  picked_cases: 0,
+  remaining_cases: 0,
+  shortfall_cases: 0,
+  shortage_cases: 0,
+  has_shortage: false,
+  short_shipment_operational: false,
+})
+
+export function parsePickingFulfilment(raw: unknown): PickingFulfilment {
+  if (!raw || typeof raw !== "object") return emptyFulfilment()
+  const record = raw as Record<string, unknown>
+  return {
+    ordered_cases: Number(record.ordered_cases ?? 0),
+    allocated_cases: Number(record.allocated_cases ?? 0),
+    picked_cases: Number(record.picked_cases ?? 0),
+    remaining_cases: Number(record.remaining_cases ?? 0),
+    shortfall_cases: Number(record.shortfall_cases ?? 0),
+    shortage_cases: Number(record.shortage_cases ?? 0),
+    has_shortage: record.has_shortage === true,
+    // D4 is not operational yet. Ignore any payload that claims otherwise.
+    short_shipment_operational: false,
+  }
+}
+
+export function pickingHasShortage(exceptions: { exception_type: string }[]) {
+  return exceptions.some((item) => item.exception_type === "shortage")
+}
+
+export type OrderPickingNextActionInput = {
+  orderStatus: string
+  dnStatus: string | null | undefined
+  pickingStatus: string | null | undefined
+  hasShortage: boolean
+  cutoverBlocked: boolean
+}
+
+/** Operator-facing next step. Verified does not mean reserved. */
+export function nextOrderPickingAction(input: OrderPickingNextActionInput) {
+  if (input.orderStatus === "cancelled") return "Order is cancelled."
+  if (input.orderStatus === "draft") return "Submit the order."
+  if (input.orderStatus === "held") return "Correct the order and resubmit."
+  if (input.orderStatus === "submitted") {
+    return "Verify using picking-eligible ATP. Verification does not reserve stock."
+  }
+  if (input.orderStatus !== "verified") return "No picking action on this order."
+  if (input.hasShortage) return shortShipmentNotOperationalMessage
+  if (input.pickingStatus === "ready_for_dispatch") {
+    return "Prepare dispatch. confirm_dispatch is the stock writer."
+  }
+  if (input.pickingStatus === "picked") {
+    return "Godown Manager can mark ready for dispatch after a full pick."
+  }
+  if (input.pickingStatus === "picking" || input.pickingStatus === "allocated") {
+    return "Continue warehouse picking. Reserved quantity is a hold, not a ledger debit."
+  }
+  if (input.pickingStatus === "blocked") {
+    return "Picking is blocked. Resolve the exception or cancel and reallocate."
+  }
+  if (input.cutoverBlocked) {
+    return "Lot-aware picking is blocked until dual-write cutover."
+  }
+  if (!input.dnStatus) {
+    return "Create and send the delivery note. Godown Manager must acknowledge it before allocation."
+  }
+  if (input.dnStatus !== "acknowledged") {
+    return "Wait for Godown Manager acknowledgement. Allocation is blocked until the delivery note is acknowledged."
+  }
+  return "Allocate FEFO/FIFO reservations. A verified order does not guarantee reserved stock."
+}

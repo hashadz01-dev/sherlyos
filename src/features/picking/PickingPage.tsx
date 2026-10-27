@@ -87,6 +87,9 @@ export function PickingPage() {
                     <th className="px-4 py-3 font-medium">Reference</th>
                     <th className="px-4 py-3 font-medium">Order</th>
                     <th className="px-4 py-3 font-medium">Delivery note</th>
+                    <th className="px-4 py-3 font-medium">Ordered</th>
+                    <th className="px-4 py-3 font-medium">Allocated</th>
+                    <th className="px-4 py-3 font-medium">Picked</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Action</th>
                   </tr>
@@ -122,6 +125,9 @@ function QueueRow({ row, canAllocate }: { row: PickingQueueRow; canAllocate: boo
       <td className="px-4 py-3 font-medium">{row.request_number ?? "—"}</td>
       <td className="px-4 py-3">{row.order_number}</td>
       <td className="px-4 py-3">{row.delivery_note_status ?? "—"}</td>
+      <td className="px-4 py-3">{row.ordered_cases ?? "—"}</td>
+      <td className="px-4 py-3">{row.allocated_cases ?? "—"}</td>
+      <td className="px-4 py-3">{row.picked_cases ?? "—"}</td>
       <td className="px-4 py-3">
         <StatusBadge tone={pickingStatusTone[row.status]}>{pickingStatusLabel[row.status]}</StatusBadge>
       </td>

@@ -29,6 +29,7 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m66%",
   "m14e2e%",
   "m72%",
+  "m73%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {
@@ -93,6 +94,27 @@ export function cleanupDisposableTestStock(
   runLocalSql(
     `
     set session_replication_role = replica;
+    select set_config('app.picking_write', 'on', true);
+    -- Released disposable reservations still FK to lots and block later wipes.
+    delete from public.stock_picking_exceptions
+    where reservation_id in (
+      select r.id
+      from public.stock_reservations r
+      join public.products p on p.id = r.product_id
+      where ${skuPred}
+    )
+      or picking_request_id in (
+        select spr.id
+        from public.stock_picking_requests spr
+        join public.orders o on o.id = spr.order_id
+        join public.order_lines ol on ol.order_id = o.id
+        join public.products p on p.id = ol.product_id
+        where ${skuPred}
+      );
+    delete from public.stock_reservations r
+    using public.products p
+    where p.id = r.product_id
+      and (${skuPred});
     with disposable as (
       select p.id as product_id
       from public.products p

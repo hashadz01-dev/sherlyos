@@ -6,6 +6,11 @@ import {
   type AvailabilitySnapshot,
   type OpenDeliveryNoteSummary,
 } from "@/lib/orders/availability"
+import {
+  parsePickingFulfilment,
+  type PickingFulfilment,
+  type PickingRequestStatus,
+} from "@/lib/picking/rules"
 import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
@@ -69,11 +74,27 @@ export type OrderEvent = {
   created_at: string
 }
 
+export type OpenPickingSummary = {
+  id: string
+  request_number: string
+  status: PickingRequestStatus
+  version: number
+  fulfilment: PickingFulfilment
+}
+
+export type OrderPickingCutover = {
+  dual_write_enabled: boolean
+  aggregate_only_blocked: boolean
+  blockers: string[]
+}
+
 export type OrderDetail = {
   order: OrderRow
   lines: OrderLine[]
   events: OrderEvent[]
   open_delivery_note: OpenDeliveryNoteSummary | null
+  open_picking_request: OpenPickingSummary | null
+  picking_cutover: OrderPickingCutover | null
 }
 
 export type OrderCatalogShop = {
@@ -134,8 +155,31 @@ export function listOrders(statusFilter?: string | null) {
   })
 }
 
+function parseOpenPicking(raw: OrderDetail["open_picking_request"]): OrderDetail["open_picking_request"] {
+  if (!raw) return null
+  return {
+    ...raw,
+    fulfilment: parsePickingFulfilment(raw.fulfilment),
+  }
+}
+
+function parsePickingCutover(raw: OrderDetail["picking_cutover"]): OrderDetail["picking_cutover"] {
+  if (!raw || typeof raw !== "object") return null
+  const blockers = Array.isArray(raw.blockers) ? raw.blockers.map((item) => String(item)) : []
+  return {
+    dual_write_enabled: raw.dual_write_enabled === true,
+    aggregate_only_blocked: raw.aggregate_only_blocked === true,
+    blockers,
+  }
+}
+
 export function getOrder(orderId: string) {
-  return callRpc<OrderDetail>("get_order", { target_order: orderId })
+  return callRpc<OrderDetail>("get_order", { target_order: orderId }).then((detail) => ({
+    ...detail,
+    open_delivery_note: detail.open_delivery_note ?? null,
+    open_picking_request: parseOpenPicking(detail.open_picking_request),
+    picking_cutover: parsePickingCutover(detail.picking_cutover),
+  }))
 }
 
 export async function checkOrderAvailability(orderId: string) {

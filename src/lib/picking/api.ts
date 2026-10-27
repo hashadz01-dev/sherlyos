@@ -1,6 +1,12 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import type { PickingRequestStatus } from "@/lib/picking/rules"
+import {
+  parsePickingFulfilment,
+  type PickingFulfilment,
+  type PickingRequestStatus,
+} from "@/lib/picking/rules"
 import { toUserRpcMessage } from "@/lib/rpc/user-error"
+
+export type { PickingFulfilment } from "@/lib/picking/rules"
 
 export class PickingRpcError extends Error {
   readonly code: string
@@ -81,6 +87,11 @@ export type PickingQueueRow = {
   assigned_to?: string | null
   created_at: string
   updated_at?: string
+  ordered_cases?: number
+  allocated_cases?: number
+  picked_cases?: number
+  shortfall_cases?: number
+  has_shortage?: boolean
 }
 
 export type PickingReservation = {
@@ -147,6 +158,8 @@ export type PickingDetail = {
   blocked_reason: string | null
   created_at: string
   updated_at: string
+  delivery_note_status?: string | null
+  fulfilment?: PickingFulfilment
   cutover: {
     dual_write_enabled: boolean
     aggregate_only_blocked: boolean
@@ -172,6 +185,13 @@ function asList<T>(data: unknown): T[] {
   return Array.isArray(data) ? (data as T[]) : []
 }
 
+function asPickingDetail(data: PickingDetail): PickingDetail {
+  return {
+    ...data,
+    fulfilment: parsePickingFulfilment(data.fulfilment),
+  }
+}
+
 export function listPickingRequests(statusFilter?: string | null) {
   return pickingRpc<PickingQueueRow[]>("list_picking_requests", {
     status_filter: statusFilter && statusFilter !== "all" ? statusFilter : null,
@@ -181,7 +201,7 @@ export function listPickingRequests(statusFilter?: string | null) {
 export function getPickingRequest(targetRequest: string) {
   return pickingRpc<PickingDetail>("get_picking_request", {
     target_request: targetRequest,
-  })
+  }).then(asPickingDetail)
 }
 
 export function previewOrderAllocation(targetOrder: string) {
@@ -195,7 +215,7 @@ export function reserveOrderAllocation(input: {
   expected_order_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("reserve_order_allocation", input)
+  return pickingRpc<PickingDetail>("reserve_order_allocation", input).then(asPickingDetail)
 }
 
 export function assignPickingRequest(input: {
@@ -204,7 +224,7 @@ export function assignPickingRequest(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("assign_picking_request", input)
+  return pickingRpc<PickingDetail>("assign_picking_request", input).then(asPickingDetail)
 }
 
 export function startPicking(input: {
@@ -212,7 +232,7 @@ export function startPicking(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("start_picking", input)
+  return pickingRpc<PickingDetail>("start_picking", input).then(asPickingDetail)
 }
 
 export function confirmPickingQuantity(input: {
@@ -222,7 +242,7 @@ export function confirmPickingQuantity(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("confirm_picking_quantity", input)
+  return pickingRpc<PickingDetail>("confirm_picking_quantity", input).then(asPickingDetail)
 }
 
 export function reportPickingShortage(input: {
@@ -233,7 +253,7 @@ export function reportPickingShortage(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("report_picking_shortage", input)
+  return pickingRpc<PickingDetail>("report_picking_shortage", input).then(asPickingDetail)
 }
 
 export function completePicking(input: {
@@ -241,7 +261,7 @@ export function completePicking(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("complete_picking", input)
+  return pickingRpc<PickingDetail>("complete_picking", input).then(asPickingDetail)
 }
 
 export function confirmPickingHandoff(input: {
@@ -249,7 +269,7 @@ export function confirmPickingHandoff(input: {
   expected_version: number
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("confirm_picking_handoff", input)
+  return pickingRpc<PickingDetail>("confirm_picking_handoff", input).then(asPickingDetail)
 }
 
 export function cancelPickingRequest(input: {
@@ -258,7 +278,7 @@ export function cancelPickingRequest(input: {
   cancel_reason: string
   idempotency_key: string
 }) {
-  return pickingRpc<PickingDetail>("cancel_picking_request", input)
+  return pickingRpc<PickingDetail>("cancel_picking_request", input).then(asPickingDetail)
 }
 
 export function getPickingHandoff(targetRequest: string) {

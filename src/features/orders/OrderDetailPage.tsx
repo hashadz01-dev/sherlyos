@@ -26,6 +26,12 @@ import {
   deliveryNoteHandoverLabel,
   isAcknowledgedDeliveryNote,
 } from "@/lib/orders/availability"
+import {
+  cutoverBlocksPicking,
+  nextOrderPickingAction,
+  pickingStatusLabel,
+  shortShipmentNotOperationalMessage,
+} from "@/lib/picking/rules"
 
 const tone: Record<OrderStatus, StatusTone> = {
   draft: "neutral",
@@ -87,12 +93,30 @@ export function OrderDetailPage() {
   const canCancelAccounts =
     can("orders.verify") && (order?.status === "submitted" || order?.status === "verified")
   const openNote = detail.data?.open_delivery_note ?? null
+  const openPicking = detail.data?.open_picking_request ?? null
+  const pickingCutover = detail.data?.picking_cutover ?? null
   const dnAcknowledged = isAcknowledgedDeliveryNote(openNote)
+  const cutoverMessage = pickingCutover ? cutoverBlocksPicking(pickingCutover) : null
+  const nextAction = order
+    ? nextOrderPickingAction({
+        orderStatus: order.status,
+        dnStatus: openNote?.status ?? null,
+        pickingStatus: openPicking?.status ?? null,
+        hasShortage: openPicking?.fulfilment.has_shortage === true,
+        cutoverBlocked: Boolean(cutoverMessage),
+      })
+    : null
   const canCreateDeliveryNote =
     can("delivery_notes.issue") && order?.status === "verified" && openNote == null
   const canAllocatePicking =
-    can("picking.allocate") && order?.status === "verified" && dnAcknowledged
-  const canOpenDispatch = can("dispatch.confirm") && order?.status === "verified"
+    can("picking.allocate") &&
+    order?.status === "verified" &&
+    dnAcknowledged &&
+    openPicking == null
+  const canOpenDispatch =
+    can("dispatch.confirm") &&
+    order?.status === "verified" &&
+    openPicking?.status === "ready_for_dispatch"
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["orders"] })
@@ -237,7 +261,49 @@ export function OrderDetailPage() {
                 )}
               </dd>
             </div>
+            <div className="sm:col-span-2">
+              <dt className="text-sm text-muted-foreground">Next permitted action</dt>
+              <dd>{nextAction}</dd>
+            </div>
           </dl>
+
+          {cutoverMessage && order.status === "verified" ? (
+            <p role="status" className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {cutoverMessage}
+            </p>
+          ) : null}
+
+          {openPicking ? (
+            <div>
+              <h2 className="mb-2 text-sm font-medium">Picking fulfilment</h2>
+              <p className="mb-2 text-sm text-muted-foreground">
+                {pickingStatusLabel[openPicking.status]} · {openPicking.request_number}. Reserved
+                quantity is a hold. Stock is not deducted until dispatch.
+              </p>
+              <ul className="grid gap-2 sm:grid-cols-5">
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Ordered {openPicking.fulfilment.ordered_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Allocated {openPicking.fulfilment.allocated_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Picked {openPicking.fulfilment.picked_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Remaining {openPicking.fulfilment.remaining_cases}
+                </li>
+                <li className="rounded-2xl bg-card px-4 py-3 text-sm ring-1 ring-border">
+                  Shortfall {openPicking.fulfilment.shortfall_cases}
+                </li>
+              </ul>
+              {openPicking.fulfilment.has_shortage ? (
+                <p role="status" className="mt-2 text-sm text-destructive">
+                  {shortShipmentNotOperationalMessage}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div>
             <h2 className="mb-2 text-sm font-medium">Lines</h2>
@@ -329,6 +395,12 @@ export function OrderDetailPage() {
             {canAllocatePicking ? (
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to={`/picking/allocate/${order.id}`}>Allocate for picking</Link>
+              </Button>
+            ) : null}
+
+            {openPicking ? (
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link to={`/picking/${openPicking.id}`}>Open picking</Link>
               </Button>
             ) : null}
 

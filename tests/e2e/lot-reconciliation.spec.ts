@@ -411,6 +411,10 @@ function wipeLocalLotsIfSafe() {
         raise exception 'refusing lot wipe while lot-attributed ledger exists';
       end if;
       perform set_config('app.lot_reconciliation_write', 'on', true);
+      perform set_config('app.picking_write', 'on', true);
+      -- Local lot wipe cannot leave reservation FKs pointing at deleted lots.
+      delete from public.stock_picking_exceptions;
+      delete from public.stock_reservations;
       perform app_private.begin_lot_balance_write('seed');
       delete from public.stock_lot_reconciliation_attributions;
       delete from public.stock_lot_attribution_baselines;

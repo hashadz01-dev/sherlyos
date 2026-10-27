@@ -209,3 +209,56 @@ export function clearRefillSessionIdempotencyKey(storageKey: string) {
     sessionStorage.removeItem(storageKey)
   }
 }
+
+/** M6.4 labels from persisted reconciliation only. No auto-closure of the request. */
+export const refillReceivingCompletionLabels = [
+  "not_started",
+  "pending_verification",
+  "partially_received",
+  "fully_received",
+  "excess_requires_review",
+] as const
+export type RefillReceivingCompletionLabel =
+  (typeof refillReceivingCompletionLabels)[number]
+
+/**
+ * Posted accepted only. Draft/submitted/held never reduce outstanding.
+ */
+export function outstandingCases(requestedCases: number, acceptedCases: number) {
+  return Math.max(requestedCases - acceptedCases, 0)
+}
+
+/** Detected after posted accepted exceeds the approved request. Not an auto-accept. */
+export function excessCases(requestedCases: number, acceptedCases: number) {
+  return Math.max(acceptedCases - requestedCases, 0)
+}
+
+/**
+ * Header completion from persisted totals. Excess wins so operators cannot miss
+ * over-delivery while another SKU is still outstanding.
+ */
+export function refillReceivingCompletionLabel(input: {
+  acceptedCases: number
+  outstandingCases: number
+  excessCases: number
+  pendingReceiptCases: number
+}): RefillReceivingCompletionLabel {
+  if (input.excessCases > 0) return "excess_requires_review"
+  if (input.acceptedCases > 0 && input.outstandingCases === 0) return "fully_received"
+  if (input.acceptedCases > 0) return "partially_received"
+  if (input.pendingReceiptCases > 0) return "pending_verification"
+  return "not_started"
+}
+
+/** Store Keepers create linked receipts. Accounts refill.request is not enough. */
+export function canCreateLinkedRefillReceipt(input: {
+  canExecuteReceiving: boolean
+  requestStatus: RefillStatus
+  godownActive: boolean
+}) {
+  return (
+    input.canExecuteReceiving &&
+    input.requestStatus === "approved" &&
+    input.godownActive
+  )
+}

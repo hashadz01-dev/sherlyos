@@ -36,6 +36,7 @@ export function ReceiptEditorPage() {
           counted_cases: Number(line.countedCases),
           damaged_cases: Number(line.damagedCases),
         })),
+        target_refill_request: values.refillRequestId || null,
       }),
     onSuccess: async (receipt) => {
       notify.success(`Draft ${receipt.receipt_number} saved`)
@@ -47,6 +48,7 @@ export function ReceiptEditorPage() {
   const initial: ReceiptDraft = {
     godownId: "",
     supplierId: "",
+    refillRequestId: "",
     documentReference: "",
     receivedDate: today(),
     notes: "",

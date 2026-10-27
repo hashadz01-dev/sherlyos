@@ -1,5 +1,14 @@
 import { callRpc } from "@/lib/masters/api"
 
+export type ReceivingRefillOption = {
+  id: string
+  request_number: string
+  supplier_id: string
+  destination_godown_id: string
+  supplier_name: string
+  godown_name: string
+}
+
 export type ReceivingOptions = {
   godowns: { id: string; code: string; name: string }[]
   suppliers: { id: string; name: string }[]
@@ -11,6 +20,7 @@ export type ReceivingOptions = {
   }[]
   zones: { id: string; branch_id: string; code: string; name: string }[]
   crates: { id: string; zone_id: string; code: string; name: string | null }[]
+  refill_requests?: ReceivingRefillOption[]
 }
 
 export type ReceiptLotAttribution = {
@@ -78,6 +88,8 @@ export type StockReceipt = {
   canceller_name: string | null
   cancelled_at: string | null
   cancellation_reason: string | null
+  refill_request_id?: string | null
+  refill_request_number?: string | null
   lines: ReceiptLine[]
   transactions: ReceiptTransaction[]
   audit: ReceiptAudit[]
@@ -97,6 +109,8 @@ export type ReceiptSummary = {
   created_by: string
   verified_at: string | null
   posted_at: string | null
+  refill_request_id?: string | null
+  refill_request_number?: string | null
 }
 
 export type ReceiptLinePayload = {
@@ -126,6 +140,7 @@ export function createStockReceipt(args: {
   received_on: string
   receipt_notes: string | null
   line_items: ReceiptLinePayload[]
+  target_refill_request?: string | null
 }) {
   return callRpc<StockReceipt>("create_stock_receipt", args)
 }
@@ -138,6 +153,7 @@ export function updateStockReceipt(args: {
   received_on: string
   receipt_notes: string | null
   line_items: ReceiptLinePayload[]
+  target_refill_request?: string | null
 }) {
   return callRpc<StockReceipt>("update_stock_receipt", args)
 }

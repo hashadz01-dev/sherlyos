@@ -24,6 +24,7 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m55%",
   "m62%",
   "m63%",
+  "m64%",
   "m14e2e%",
 ] as const
 

@@ -44,6 +44,7 @@ export function ReceivingPage() {
       row.document_reference,
       row.creator_name,
       row.status,
+      row.refill_request_number,
     ])
   })
 
@@ -116,6 +117,7 @@ export function ReceivingPage() {
                     <th className="px-4 py-3 font-medium">Supplier</th>
                     <th className="px-4 py-3 font-medium">Godown</th>
                     <th className="px-4 py-3 font-medium">Document</th>
+                    <th className="px-4 py-3 font-medium">Refill</th>
                     <th className="px-4 py-3 font-medium">Date</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Creator</th>
@@ -147,6 +149,7 @@ function ReceiptRow({ row }: { row: ReceiptSummary }) {
       <td className="px-4 py-3">{row.supplier_name}</td>
       <td className="px-4 py-3">{row.godown_name}</td>
       <td className="px-4 py-3">{row.document_reference}</td>
+      <td className="px-4 py-3">{row.refill_request_number ?? "—"}</td>
       <td className="px-4 py-3">{row.received_date}</td>
       <td className="px-4 py-3">
         <StatusBadge tone={statusTone[row.status]}>{row.status}</StatusBadge>

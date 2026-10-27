@@ -25,6 +25,8 @@ export const receiptLineSchema = z
 export const receiptFormSchema = z.object({
   godownId: requiredId,
   supplierId: requiredId,
+  /** Empty keeps ordinary unlinked Branch 03 receiving. */
+  refillRequestId: z.union([z.literal(""), requiredId]).optional(),
   documentReference: z
     .string()
     .trim()

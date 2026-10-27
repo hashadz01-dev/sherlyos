@@ -1,6 +1,9 @@
 import { useState, type FormEvent, type SelectHTMLAttributes } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { TextField } from "@/components/forms/TextField"
 import { Button } from "@/components/ui/button"
+import { formatCases, formatRefillReceivingLabel } from "@/features/refill/utils/labels"
+import { getStockRefillReceivingReconciliation } from "@/lib/refill/api"
 import type { ReceivingOptions } from "@/lib/receiving/api"
 import { acceptedCases } from "@/lib/receiving/rules"
 import { receiptFormSchema, type ReceiptFormValues } from "@/lib/validations/receiving"
@@ -27,6 +30,19 @@ export function ReceiptForm({
 }) {
   const [draft, setDraft] = useState(initial)
   const [errors, setErrors] = useState<string[]>([])
+  const refillRequests = options.refill_requests ?? []
+  const linked = Boolean(draft.refillRequestId)
+  const reconciliation = useQuery({
+    queryKey: ["refill-receiving", draft.refillRequestId],
+    queryFn: () => getStockRefillReceivingReconciliation(draft.refillRequestId),
+    enabled: draft.refillRequestId.length > 0,
+  })
+  const allowedProductIds = new Set(
+    (reconciliation.data?.receiving.lines ?? []).map((line) => line.product_id),
+  )
+  const products = linked
+    ? options.products.filter((product) => allowedProductIds.has(product.id))
+    : options.products
   const zones = options.zones.filter((zone) => zone.branch_id === draft.godownId)
   const zoneIds = new Set(zones.map((zone) => zone.id))
   const crates = options.crates.filter((crate) => zoneIds.has(crate.zone_id))
@@ -51,10 +67,77 @@ export function ReceiptForm({
 
   return (
     <form className="grid gap-4" onSubmit={submit}>
+      {refillRequests.length > 0 ? (
+        <SelectField
+          label="Approved refill request (optional)"
+          value={draft.refillRequestId}
+          aria-label="Approved refill request"
+          onChange={(event) => {
+            const nextId = event.target.value
+            const next = refillRequests.find((row) => row.id === nextId)
+            setDraft((current) => ({
+              ...current,
+              refillRequestId: nextId,
+              godownId: next?.destination_godown_id ?? current.godownId,
+              supplierId: next?.supplier_id ?? current.supplierId,
+              lines: nextId ? [emptyReceiptLine()] : current.lines,
+            }))
+            if (!nextId) return
+            void getStockRefillReceivingReconciliation(nextId).then((recon) => {
+              setDraft((current) => {
+                if (current.refillRequestId !== nextId) return current
+                const snapshot = recon.receiving
+                return {
+                  ...current,
+                  godownId: recon.destination_godown_id,
+                  supplierId: recon.supplier_id,
+                  lines:
+                    snapshot.lines.length > 0
+                      ? snapshot.lines.map((line) => ({
+                          ...emptyReceiptLine(),
+                          productId: line.product_id,
+                          documentCases: String(line.outstanding_cases),
+                        }))
+                      : [emptyReceiptLine()],
+                }
+              })
+            })
+          }}
+        >
+          <option value="">Unlinked receiving</option>
+          {refillRequests.map((request) => (
+            <option key={request.id} value={request.id}>
+              {request.request_number} · {request.supplier_name} · {request.godown_name}
+            </option>
+          ))}
+        </SelectField>
+      ) : null}
+      {linked && reconciliation.data ? (
+        <aside className="grid gap-2 rounded-2xl bg-slate-50 p-4 text-sm ring-1 ring-slate-200">
+          <p className="font-medium">
+            Remaining against {reconciliation.data.request_number}:{" "}
+            {formatRefillReceivingLabel(reconciliation.data.receiving.summary.completion_label)}
+          </p>
+          <p className="text-muted-foreground">
+            Requested quantities below are outstanding on the refill request. Count this
+            delivery separately. Damaged cases do not become accepted stock.
+          </p>
+          <ul className="grid gap-1">
+            {reconciliation.data.receiving.lines.map((line) => (
+              <li key={line.product_id}>
+                {line.product_sku}: requested {formatCases(line.requested_cases)}, accepted{" "}
+                {formatCases(line.accepted_cases)}, outstanding {formatCases(line.outstanding_cases)}
+                {line.excess_cases > 0 ? `, excess ${formatCases(line.excess_cases)}` : ""}
+              </li>
+            ))}
+          </ul>
+        </aside>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
         <SelectField
           label="Godown"
           value={draft.godownId}
+          disabled={linked}
           onChange={(event) =>
             setDraft((current) => ({
               ...current,
@@ -72,7 +155,9 @@ export function ReceiptForm({
         </SelectField>
         <SelectField
           label="Supplier"
+          aria-label="Supplier"
           value={draft.supplierId}
+          disabled={linked}
           onChange={(event) =>
             setDraft((current) => ({ ...current, supplierId: event.target.value }))
           }
@@ -124,7 +209,7 @@ export function ReceiptForm({
                   onChange={(event) => updateLine(line.key, { productId: event.target.value })}
                 >
                   <option value="">Choose a product</option>
-                  {options.products.map((product) => (
+                  {products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.name} ({product.sku})
                     </option>

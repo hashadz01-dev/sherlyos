@@ -11,6 +11,8 @@ export type ReceiptLineDraft = {
 export type ReceiptDraft = {
   godownId: string
   supplierId: string
+  /** Optional approved refill request. Empty string means unlinked receiving. */
+  refillRequestId: string
   documentReference: string
   receivedDate: string
   notes: string

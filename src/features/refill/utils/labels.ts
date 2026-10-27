@@ -4,6 +4,7 @@ import type {
   RefillCommunicationChannel,
   RefillCommunicationStatus,
   RefillDispatchStatus,
+  RefillReceivingCompletionLabel,
   RefillStatus,
 } from "@/lib/refill/rules"
 
@@ -126,4 +127,20 @@ export function formatTimestamp(value: string | null | undefined) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString()
+}
+
+/** Operator copy for persisted M6.4 reconciliation labels. */
+export const refillReceivingLabelCopy: Record<RefillReceivingCompletionLabel, string> =
+  {
+    not_started: "No verified receipts yet",
+    pending_verification: "Receiving pending verification",
+    partially_received: "Partially received",
+    fully_received: "Fully received against requested quantities",
+    excess_requires_review: "Excess quantity requires review",
+  }
+
+export function formatRefillReceivingLabel(label: string) {
+  return (
+    refillReceivingLabelCopy[label as RefillReceivingCompletionLabel] ?? label
+  )
 }

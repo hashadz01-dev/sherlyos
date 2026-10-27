@@ -4,14 +4,18 @@ import {
   canEditRefillRequest,
   canRecordRefillAcknowledgement,
   canRecordRefillDispatch,
+  canCreateLinkedRefillReceipt,
   canRecordRefillSend,
   canSubmitRefillRequest,
+  excessCases,
   isEditableRefillStatus,
   isTerminalRefillStatus,
   isValidDecisionReason,
+  outstandingCases,
   parseRequestedCases,
   refillCreateIdempotencyKey,
   refillMutationIdempotencyKey,
+  refillReceivingCompletionLabel,
   validateRefillLines,
 } from "@/lib/refill/rules"
 
@@ -135,6 +139,83 @@ describe("refill supplier communication eligibility", () => {
         canRequest: true,
       }),
     ).toBe(true)
+  })
+})
+
+describe("refill receiving reconciliation", () => {
+  it("computes outstanding and excess from posted accepted only", () => {
+    expect(outstandingCases(100, 70)).toBe(30)
+    expect(outstandingCases(60, 45)).toBe(15)
+    expect(outstandingCases(10, 12)).toBe(0)
+    expect(excessCases(100, 70)).toBe(0)
+    expect(excessCases(10, 12)).toBe(2)
+  })
+
+  it("excludes damaged and pending quantities from accepted stock", () => {
+    const counted = 40
+    const damaged = 5
+    const accepted = counted - damaged
+    expect(accepted).toBe(35)
+    expect(outstandingCases(100, accepted)).toBe(65)
+    expect(
+      refillReceivingCompletionLabel({
+        acceptedCases: 0,
+        outstandingCases: 100,
+        excessCases: 0,
+        pendingReceiptCases: 12,
+      }),
+    ).toBe("pending_verification")
+  })
+
+  it("labels partial, complete, and excess from persisted totals", () => {
+    expect(
+      refillReceivingCompletionLabel({
+        acceptedCases: 70,
+        outstandingCases: 30,
+        excessCases: 0,
+        pendingReceiptCases: 0,
+      }),
+    ).toBe("partially_received")
+    expect(
+      refillReceivingCompletionLabel({
+        acceptedCases: 160,
+        outstandingCases: 0,
+        excessCases: 0,
+        pendingReceiptCases: 0,
+      }),
+    ).toBe("fully_received")
+    expect(
+      refillReceivingCompletionLabel({
+        acceptedCases: 165,
+        outstandingCases: 0,
+        excessCases: 5,
+        pendingReceiptCases: 0,
+      }),
+    ).toBe("excess_requires_review")
+  })
+
+  it("does not let Accounts post receiving through refill.request", () => {
+    expect(
+      canCreateLinkedRefillReceipt({
+        canExecuteReceiving: false,
+        requestStatus: "approved",
+        godownActive: true,
+      }),
+    ).toBe(false)
+    expect(
+      canCreateLinkedRefillReceipt({
+        canExecuteReceiving: true,
+        requestStatus: "approved",
+        godownActive: true,
+      }),
+    ).toBe(true)
+    expect(
+      canCreateLinkedRefillReceipt({
+        canExecuteReceiving: true,
+        requestStatus: "approved",
+        godownActive: false,
+      }),
+    ).toBe(false)
   })
 })
 

@@ -4,6 +4,7 @@ import type {
   RefillCommunicationChannel,
   RefillCommunicationStatus,
   RefillDispatchStatus,
+  RefillReceivingCompletionLabel,
   RefillStatus,
 } from "@/lib/refill/rules"
 
@@ -65,6 +66,54 @@ export type RefillDispatch = {
   updated_at: string
 }
 
+export type RefillReceivingLine = {
+  product_id: string
+  product_sku: string
+  product_name: string
+  requested_cases: number
+  accepted_cases: number
+  outstanding_cases: number
+  excess_cases: number
+  damaged_cases: number
+  pending_receipt_cases: number
+}
+
+export type RefillLinkedReceipt = {
+  id: string
+  receipt_number: string
+  status: string
+  document_reference: string
+  received_date: string
+  verified_at: string | null
+  posted_at: string | null
+  accepted_cases: number
+  damaged_cases: number
+  counted_cases: number
+}
+
+export type RefillReceivingSnapshot = {
+  summary: {
+    requested_cases: number
+    accepted_cases: number
+    outstanding_cases: number
+    excess_cases: number
+    damaged_cases: number
+    pending_receipt_cases: number
+    completion_label: RefillReceivingCompletionLabel
+  }
+  lines: RefillReceivingLine[]
+  receipts: RefillLinkedReceipt[]
+}
+
+export type RefillReceivingReconciliation = {
+  id: string
+  request_number: string
+  supplier_id: string
+  destination_godown_id: string
+  status: RefillStatus
+  receiving: RefillReceivingSnapshot
+}
+
 export type RefillRequestDetail = {
   id: string
   request_number: string
@@ -97,6 +146,7 @@ export type RefillRequestDetail = {
   total_requested_cases: number
   communication: RefillCommunication | null
   dispatch: RefillDispatch | null
+  receiving?: RefillReceivingSnapshot | null
   lines: RefillLine[]
   events: RefillEvent[]
 }
@@ -168,6 +218,14 @@ export function getStockRefillRequest(targetRequest: string) {
   return callRpc<RefillRequestDetail>("get_stock_refill_request", {
     target_request: targetRequest,
   })
+}
+
+/** Keepers and authorized refill viewers. Read-only posted-receipt totals. */
+export function getStockRefillReceivingReconciliation(targetRequest: string) {
+  return callRpc<RefillReceivingReconciliation>(
+    "get_stock_refill_receiving_reconciliation",
+    { target_request: targetRequest },
+  )
 }
 
 export function createStockRefillRequest(args: {

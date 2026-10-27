@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
+import { Link, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useParams } from "react-router"
 import { AppModal } from "@/components/shared/AppModal"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -143,6 +143,7 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
           counted_cases: Number(line.countedCases),
           damaged_cases: Number(line.damagedCases),
         })),
+        target_refill_request: values.refillRequestId || null,
       }),
     onSuccess: async () => {
       notify.success("Draft updated")
@@ -203,6 +204,7 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
   const initial: ReceiptDraft = {
     godownId: receipt.godown_id,
     supplierId: receipt.supplier_id,
+    refillRequestId: receipt.refill_request_id ?? "",
     documentReference: receipt.document_reference,
     receivedDate: receipt.received_date,
     notes: receipt.notes ?? "",
@@ -228,6 +230,23 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
         <Fact label="Received date" value={receipt.received_date} />
         <Fact label="Created by" value={receipt.creator_name ?? "Unknown"} />
         <Fact label="Verification" value={receipt.verified_at ? "Verified" : "Not verified"} />
+        {receipt.refill_request_id ? (
+          <div>
+            <dt className="text-muted-foreground">Refill request</dt>
+            <dd className="font-medium">
+              {can("refill.request") || can("refill.approve") ? (
+                <Link
+                  className="underline-offset-4 hover:underline"
+                  to={`/refill/${receipt.refill_request_id}`}
+                >
+                  {receipt.refill_request_number ?? "Linked refill"}
+                </Link>
+              ) : (
+                receipt.refill_request_number ?? "Linked refill"
+              )}
+            </dd>
+          </div>
+        ) : null}
       </dl>
       {receipt.hold_reason ? (
         <p className="mb-4 text-sm">Hold reason: {receipt.hold_reason}</p>

@@ -209,6 +209,44 @@ describe("refill pages", () => {
       decided_at: "2026-10-27T02:00:00Z",
       decision_reason: null,
       total_requested_cases: 3,
+      receiving: {
+        summary: {
+          requested_cases: 3,
+          accepted_cases: 1,
+          outstanding_cases: 2,
+          excess_cases: 0,
+          damaged_cases: 1,
+          pending_receipt_cases: 0,
+          completion_label: "partially_received",
+        },
+        lines: [
+          {
+            product_id: "p1",
+            product_sku: "SKU-1",
+            product_name: "Soap",
+            requested_cases: 3,
+            accepted_cases: 1,
+            outstanding_cases: 2,
+            excess_cases: 0,
+            damaged_cases: 1,
+            pending_receipt_cases: 0,
+          },
+        ],
+        receipts: [
+          {
+            id: "rc1",
+            receipt_number: "RC-20261027-000001",
+            status: "posted",
+            document_reference: "INV-P1",
+            received_date: "2026-10-27",
+            verified_at: "2026-10-27T03:00:00Z",
+            posted_at: "2026-10-27T03:00:00Z",
+            accepted_cases: 1,
+            damaged_cases: 1,
+            counted_cases: 2,
+          },
+        ],
+      },
       lines: [
         {
           id: "l1",
@@ -242,6 +280,14 @@ describe("refill pages", () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText(/Supplier dispatch does not add inventory/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Receiving & reconciliation" }),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Partially received")).toBeInTheDocument()
+    expect(screen.getByText("RC-20261027-000001")).toBeInTheDocument()
+    expect(
+      screen.getByText(/Accounts cannot post receiving/i),
     ).toBeInTheDocument()
   })
 })

@@ -7,6 +7,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
+import { RefillReceivingPanel } from "@/features/refill/components/RefillReceivingPanel"
 import { RefillSupplierPanel } from "@/features/refill/components/RefillSupplierPanel"
 import {
   formatCases,
@@ -276,6 +277,15 @@ export function RefillDetailPage() {
               onChanged={refresh}
             />
           ) : null}
+          <RefillReceivingPanel
+            request={request}
+            canExecuteReceiving={can("receiving.execute")}
+            canViewReceiving={
+              can("receiving.execute") ||
+              can("receiving.verify") ||
+              can("operations.monitor")
+            }
+          />
           <section>
             <h2 className="mb-3 text-base font-semibold">Audit history</h2>
             {request.events.length === 0 ? (

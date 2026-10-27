@@ -65,6 +65,7 @@ import {
   SuppliersPage,
   TransfersPage,
   UsersRolesPage,
+  VehiclesPage,
   VerificationDetailPage,
 } from "@/app/lazy-pages"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
@@ -599,6 +600,7 @@ export const appRouteObjects: RouteObject[] = [
                   "suppliers.read",
                   "shops.read",
                   "locations.read",
+                  "vehicles.view",
                 ]}
               >
                 <MastersPage />
@@ -642,6 +644,14 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequirePermission permission="locations.read">
                 <LocationsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/vehicles",
+            element: (
+              <RequirePermission permission="vehicles.view">
+                <VehiclesPage />
               </RequirePermission>
             ),
           },

@@ -7,6 +7,7 @@ import {
   productSchema,
   shopSchema,
   supplierSchema,
+  vehicleSchema,
   zoneSchema,
 } from "@/lib/validations/masters"
 
@@ -25,6 +26,9 @@ describe("master data navigation", () => {
     expect(
       navigationItems.find((item) => item.to === "/masters/locations")?.permission,
     ).toBe("locations.read")
+    expect(
+      navigationItems.find((item) => item.to === "/masters/vehicles")?.permission,
+    ).toBe("vehicles.view")
     expect(findNavigationItem("/masters/products")?.title).toBe("Products")
     expect(findNavigationItem("/masters")?.title).toBe("Master data")
   })
@@ -79,5 +83,18 @@ describe("master data forms", () => {
       shopSchema.safeParse({ name: "Shop", phone: "+91 9000000000", address: "" })
         .success,
     ).toBe(true)
+  })
+
+  it("accepts an informational vehicle without capacity", () => {
+    const parsed = vehicleSchema.parse({
+      branchId: "11111111-1111-1111-1111-111111111111",
+      registrationNumber: "KL 07 AB 1234",
+      vehicleType: "van",
+      displayName: "  Van 1  ",
+      capacityCases: "",
+      notes: "",
+    })
+    expect(parsed.displayName).toBe("Van 1")
+    expect(parsed.capacityCases).toBe("")
   })
 })

@@ -18,6 +18,7 @@ export const dispatchKeys = {
   preview: (orderId: string) => ["dispatch-preview", orderId] as const,
   assigned: ["delivery-runs"] as const,
   assignees: (branchId: string) => ["dispatch-assignees", branchId] as const,
+  vehicles: (branchId: string) => ["dispatch-vehicles", branchId] as const,
 }
 
 export type DispatchReservation = {
@@ -43,10 +44,38 @@ export type DispatchAssignment = {
   id: string
   assignee: string
   assignee_name: string | null
+  vehicle_id: string | null
   assigned_by: string
   assigned_at: string
   unassigned_at: string | null
   reason: string | null
+}
+
+export type DispatchDeliveryLine = {
+  order_line_id: string
+  product_id: string
+  sku: string
+  product_name: string
+  dispatched_cases: number
+  delivered_cases: number | null
+  undelivered_cases: number | null
+}
+
+export type DispatchDeliveryAttempt = {
+  id: string
+  attempt_number: number
+  outcome: string
+  actor_id: string
+  attempted_at: string
+  reason: string | null
+}
+
+export type AssignableVehicle = {
+  id: string
+  display_name: string
+  registration_number: string
+  vehicle_type: string
+  in_use: boolean
 }
 
 export type DispatchEvent = {
@@ -137,9 +166,17 @@ export type DispatchDetail = {
   stock_consumed: boolean
   posted_transaction_id: string | null
   physical_return_status: string | null
+  return_required?: boolean
+  delivery_outcome?: string | null
+  proof_reference?: string | null
+  attempted_at?: string | null
   assigned_to: string | null
   assigned_to_name: string | null
   assigned_at: string | null
+  vehicle_id?: string | null
+  vehicle_registration?: string | null
+  vehicle_name?: string | null
+  vehicle_type?: string | null
   dispatched_by: string | null
   dispatched_at: string | null
   in_transit_at: string | null
@@ -160,7 +197,9 @@ export type DispatchDetail = {
   }
   total_cases: number
   reservations: DispatchReservation[]
+  delivery_lines?: DispatchDeliveryLine[]
   assignments: DispatchAssignment[]
+  attempts?: DispatchDeliveryAttempt[]
   events: DispatchEvent[]
 }
 
@@ -239,6 +278,7 @@ export function assignDispatchDelivery(input: {
   assignee: string
   expected_version: number
   idempotency_key: string
+  target_vehicle?: string | null
 }) {
   return dispatchRpc<DispatchDetail>("assign_dispatch_delivery", input)
 }
@@ -257,8 +297,19 @@ export function acknowledgeDispatchDelivery(input: {
   acknowledgement_notes: string | null
   expected_version: number
   idempotency_key: string
+  proof_reference?: string | null
 }) {
   return dispatchRpc<DispatchDetail>("acknowledge_dispatch_delivery", input)
+}
+
+export function recordPartialDispatchDelivery(input: {
+  target_dispatch: string
+  delivered_lines: { order_line_id: string; delivered_cases: number }[]
+  exception_reason: string
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DispatchDetail>("record_partial_dispatch_delivery", input)
 }
 
 export function reportDispatchDeliveryException(input: {
@@ -274,4 +325,10 @@ export function listDispatchAssignees(targetBranch: string) {
   return dispatchRpc<DispatchAssignee[]>("list_dispatch_assignees", {
     target_branch: targetBranch,
   }).then((rows) => asList<DispatchAssignee>(rows))
+}
+
+export function listAssignableVehicles(targetBranch: string) {
+  return dispatchRpc<AssignableVehicle[]>("list_assignable_vehicles", {
+    target_branch: targetBranch,
+  }).then((rows) => asList<AssignableVehicle>(rows))
 }

@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Building2,
+  Car,
   ChartColumn,
   ClipboardCheck,
   History,
@@ -265,10 +266,19 @@ export const navigationItems: AppNavItem[] = [
     permission: "locations.read",
   },
   {
+    to: "/masters/vehicles",
+    label: "Vehicles",
+    title: "Vehicles",
+    description: "Delivery vehicles for assignment. Inactive vehicles stay in history.",
+    group: "Master data",
+    icon: Car,
+    permission: "vehicles.view",
+  },
+  {
     to: "/masters",
     label: "Masters",
     title: "Master data",
-    description: "Products, suppliers, shops, and godown locations.",
+    description: "Products, suppliers, shops, godown locations, and vehicles.",
     group: "Master data",
     icon: Library,
     end: true,
@@ -277,6 +287,7 @@ export const navigationItems: AppNavItem[] = [
       "suppliers.read",
       "shops.read",
       "locations.read",
+      "vehicles.view",
     ],
   },
   {

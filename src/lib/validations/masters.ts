@@ -65,12 +65,35 @@ export const crateSchema = z.object({
   description: optionalText(500, "Description is too long."),
 })
 
+/** Vehicle types are informational labels. Capacity is not enforced against a load. */
+export const vehicleTypes = ["truck", "van", "two_wheeler", "other"] as const
+
+export const vehicleSchema = z.object({
+  branchId: z.string().trim().min(1, "Choose a godown."),
+  registrationNumber: z
+    .string()
+    .trim()
+    .min(4, "Enter a registration number.")
+    .max(32, "Registration number is too long."),
+  vehicleType: z.enum(vehicleTypes),
+  displayName: requiredName,
+  capacityCases: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value.length === 0 || (/^[0-9]+$/.test(value) && Number(value) >= 1),
+      "Capacity must be a whole number of cases.",
+    ),
+  notes: optionalText(500, "Notes are too long."),
+})
+
 export type CategoryValues = z.infer<typeof categorySchema>
 export type SupplierValues = z.infer<typeof supplierSchema>
 export type ProductValues = z.infer<typeof productSchema>
 export type ShopValues = z.infer<typeof shopSchema>
 export type ZoneValues = z.infer<typeof zoneSchema>
 export type CrateValues = z.infer<typeof crateSchema>
+export type VehicleValues = z.infer<typeof vehicleSchema>
 
 export function emptyToNull(value: string) {
   const trimmed = value.trim()

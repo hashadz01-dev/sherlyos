@@ -15,6 +15,7 @@ const fixture = {
   orderId: "",
   orderNumber: "",
   driverId: "",
+  vehicleId: "",
   failDispatchId: "",
 }
 
@@ -240,6 +241,7 @@ test.beforeAll(() => {
         true
       );
       perform public.confirm_picking_handoff(request_id, (header ->> 'version')::integer, '${PREFIX}-ho');
+      perform public.create_vehicle(branch_id, 'KL07${RUN}', 'van', 'E2E van', null, null);
       if not exists (
         select 1
         from jsonb_array_elements(public.list_dispatch_assignees(branch_id)) entry
@@ -259,7 +261,8 @@ test.beforeAll(() => {
       select
         (select id::text from public.orders where idempotency_key = '${PREFIX}-order') || '|' ||
         (select order_number from public.orders where idempotency_key = '${PREFIX}-order') || '|' ||
-        (select id::text from auth.users where email = 'driver.m3e2e@example.com');
+        (select id::text from auth.users where email = 'driver.m3e2e@example.com') || '|' ||
+        (select id::text from public.vehicles where registration_normalized = lower('KL07${RUN}') limit 1);
       `,
       "m3e2e ids",
     ),
@@ -267,7 +270,8 @@ test.beforeAll(() => {
   fixture.orderId = parsed[0] ?? ""
   fixture.orderNumber = parsed[1] ?? ""
   fixture.driverId = parsed[2] ?? ""
-  if (!fixture.orderId || !fixture.driverId) {
+  fixture.vehicleId = parsed[3] ?? ""
+  if (!fixture.orderId || !fixture.driverId || !fixture.vehicleId) {
     throw new Error(`m3e2e fixture parse failed: ${parsed.join("|")}`)
   }
 
@@ -408,6 +412,21 @@ test("store keeper cannot open dispatch", async ({ page }) => {
   await signOut(page)
 })
 
+test("godown manager can open the vehicle master", async ({ page }) => {
+  await signIn(page, "godown.m3e2e@example.com")
+  await page.goto("/masters/vehicles")
+  // Page heading and empty-state "No vehicles" both match a loose Vehicles heading.
+  await expect(page.getByRole("heading", { name: "Vehicles", exact: true })).toBeVisible({
+    timeout: 20_000,
+  })
+  await expect(page.getByLabel("Godown").locator("option", { hasText: `M3E2E ${RUN}` })).toBeAttached({
+    timeout: 20_000,
+  })
+  await page.getByLabel("Godown").selectOption({ label: `M3E2E ${RUN}` })
+  await expect(page.getByText("E2E van")).toBeVisible({ timeout: 20_000 })
+  await signOut(page)
+})
+
 test("godown manager confirms dispatch and assigns delivery", async ({ page }) => {
   await signIn(page, "godown.m3e2e@example.com")
   await page.goto("/dispatch")
@@ -449,6 +468,10 @@ test("godown manager confirms dispatch and assigns delivery", async ({ page }) =
     page.locator(`select[aria-label="Delivery assignee"] option[value="${fixture.driverId}"]`),
   ).toBeAttached({ timeout: 20_000 })
   await page.getByLabel("Delivery assignee").selectOption(fixture.driverId)
+  await expect(
+    page.locator(`select[aria-label="Delivery vehicle"] option[value="${fixture.vehicleId}"]`),
+  ).toBeAttached({ timeout: 20_000 })
+  await page.getByLabel("Delivery vehicle").selectOption(fixture.vehicleId)
   await page.getByRole("button", { name: "Assign" }).click()
   await expect(page.getByText("Delivery assigned").first()).toBeVisible({ timeout: 20_000 })
   await signOut(page)

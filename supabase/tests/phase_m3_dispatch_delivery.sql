@@ -180,6 +180,18 @@ select public.assign_user_branch((select id from fixture where name = 'driver'),
 select public.assign_user_branch((select id from fixture where name = 'other'), current_setting('sherlyos.branch_b')::uuid);
 select set_config('sherlyos.zone', public.create_zone(current_setting('sherlyos.branch')::uuid, 'z1', 'Z1', null)::text, true);
 select set_config('sherlyos.crate', public.create_crate(current_setting('sherlyos.zone')::uuid, 'c1', 'C1', null)::text, true);
+select set_config(
+  'sherlyos.vehicle',
+  public.create_vehicle(
+    current_setting('sherlyos.branch')::uuid,
+    'KL07M3DS01',
+    'van',
+    'M3 van',
+    null,
+    null
+  )::text,
+  true
+);
 select set_config('sherlyos.exp', public.create_product('m3ds-exp', 'M3DS Expiry', null, null)::text, true);
 select public.set_product_expiry_policy(current_setting('sherlyos.exp')::uuid, 'expiry_controlled');
 select set_config('sherlyos.shop', public.create_shop('M3DS shop', null, null)::text, true);
@@ -522,7 +534,8 @@ begin
     (confirmed ->> 'id')::uuid,
     (select id from fixture where name = 'driver'),
     (confirmed ->> 'version')::integer,
-    'm3ds-asg-1'
+    'm3ds-asg-1',
+    current_setting('sherlyos.vehicle')::uuid
   );
   if assigned ->> 'assigned_to' is distinct from (select id::text from fixture where name = 'driver') then
     raise exception 'assignment did not stick';

@@ -350,9 +350,18 @@ try {
   }
   ok("idempotent confirm replay")
 
+  const vehicleId = await rpc(godown, "create_vehicle", {
+    target_branch: confirmed.branch_id,
+    registration_number: `KL07${RUN}`.slice(0, 12),
+    vehicle_type: "van",
+    display_name: `${PREFIX} van`,
+    capacity_cases: null,
+    operational_notes: null,
+  })
   const assigned = await rpc(godown, "assign_dispatch_delivery", {
     target_dispatch: confirmed.id,
     assignee: users.driver,
+    target_vehicle: vehicleId,
     expected_version: confirmed.version,
     idempotency_key: `${PREFIX}-drv-${RUN}`,
   })

@@ -165,6 +165,18 @@ select public.assign_user_branch((select id from fixture where name = 'accounts'
 
 select set_config('sherlyos.zone', public.create_zone(current_setting('sherlyos.branch')::uuid, 'z1', 'Z1', null)::text, true);
 select set_config('sherlyos.crate', public.create_crate(current_setting('sherlyos.zone')::uuid, 'ca', 'CA', null)::text, true);
+select set_config(
+  'sherlyos.vehicle',
+  public.create_vehicle(
+    current_setting('sherlyos.branch')::uuid,
+    'KL07M41IG1',
+    'van',
+    'M41 van',
+    null,
+    null
+  )::text,
+  true
+);
 select set_config('sherlyos.zone_b', public.create_zone(current_setting('sherlyos.branch_b')::uuid, 'zb', 'ZB', null)::text, true);
 select set_config('sherlyos.crate_b', public.create_crate(current_setting('sherlyos.zone_b')::uuid, 'cb', 'CB', null)::text, true);
 
@@ -691,7 +703,8 @@ begin
     current_setting('sherlyos.dispatch_live')::uuid,
     (select id from fixture where name = 'driver'),
     current_setting('sherlyos.dispatch_live_version')::integer,
-    'm41ig-asg-live'
+    'm41ig-asg-live',
+    current_setting('sherlyos.vehicle')::uuid
   );
 
   perform pg_temp.as_user('driver');

@@ -267,6 +267,11 @@ export const LocationsPage = lazy(() =>
     default: m.LocationsPage,
   })),
 )
+export const VehiclesPage = lazy(() =>
+  import("@/features/masters/vehicles/VehiclesPage").then((m) => ({
+    default: m.VehiclesPage,
+  })),
+)
 export const ReportsPage = lazy(() =>
   import("@/features/reports/ReportsPage").then((m) => ({
     default: m.ReportsPage,

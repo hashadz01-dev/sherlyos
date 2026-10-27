@@ -30,6 +30,8 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m14e2e%",
   "m72%",
   "m73%",
+  // M7.4A HTTP/SQL/concurrency leftovers (covers m74a- and m74ac_ families).
+  "m74a%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {

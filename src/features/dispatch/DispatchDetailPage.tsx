@@ -15,12 +15,17 @@ import {
   confirmDispatch,
   dispatchKeys,
   getDispatchRequest,
+  listAssignableVehicles,
   listDispatchAssignees,
+  recordPartialDispatchDelivery,
   reportDispatchDeliveryException,
   startDispatchDelivery,
+  type AssignableVehicle,
   type DispatchDetail,
 } from "@/lib/dispatch/api"
 import {
+  canReassignDelivery,
+  canStartDelivery,
   dispatchEventLabel,
   dispatchStatusLabel,
   dispatchStatusTone,
@@ -39,11 +44,16 @@ export function DispatchDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [ackOpen, setAckOpen] = useState(false)
   const [failOpen, setFailOpen] = useState(false)
+  const [partialOpen, setPartialOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState("")
   const [recipientName, setRecipientName] = useState("")
   const [ackNotes, setAckNotes] = useState("")
+  const [proofReference, setProofReference] = useState("")
   const [failReason, setFailReason] = useState("")
+  const [partialReason, setPartialReason] = useState("")
+  const [partialQty, setPartialQty] = useState<Record<string, string>>({})
   const [assignee, setAssignee] = useState("")
+  const [vehicle, setVehicle] = useState("")
   const [actionError, setActionError] = useState<string | null>(null)
 
   const detail = useQuery({
@@ -59,11 +69,19 @@ export function DispatchDetailPage() {
     queryFn: () => listDispatchAssignees(request?.branch_id ?? ""),
     enabled: Boolean(request?.branch_id) && can("deliveries.assign"),
   })
+  const vehicles = useQuery({
+    queryKey: dispatchKeys.vehicles(request?.branch_id ?? ""),
+    queryFn: () => listAssignableVehicles(request?.branch_id ?? ""),
+    enabled: Boolean(request?.branch_id) && can("deliveries.assign"),
+  })
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: dispatchKeys.detail(dispatchId) })
     await queryClient.invalidateQueries({ queryKey: ["dispatch-queue"] })
     await queryClient.invalidateQueries({ queryKey: dispatchKeys.assigned })
+    await queryClient.invalidateQueries({
+      queryKey: dispatchKeys.vehicles(request?.branch_id ?? ""),
+    })
   }
 
   function onError(error: Error) {
@@ -103,6 +121,7 @@ export function DispatchDetailPage() {
       assignDispatchDelivery({
         target_dispatch: dispatchId,
         assignee,
+        target_vehicle: vehicle,
         expected_version: request?.version ?? 1,
         idempotency_key: nextKey("ds-asg"),
       }),
@@ -125,6 +144,7 @@ export function DispatchDetailPage() {
         target_dispatch: dispatchId,
         recipient_name: recipientName,
         acknowledgement_notes: ackNotes.trim() === "" ? null : ackNotes.trim(),
+        proof_reference: proofReference.trim() === "" ? null : proofReference.trim(),
         expected_version: request?.version ?? 1,
         idempotency_key: nextKey("ds-pod"),
       }),
@@ -144,6 +164,22 @@ export function DispatchDetailPage() {
     onError,
     onSettled: () => setFailOpen(false),
   })
+  const partial = useMutation({
+    mutationFn: () =>
+      recordPartialDispatchDelivery({
+        target_dispatch: dispatchId,
+        exception_reason: partialReason,
+        expected_version: request?.version ?? 1,
+        idempotency_key: nextKey("ds-part"),
+        delivered_lines: (request?.delivery_lines ?? []).map((line) => ({
+          order_line_id: line.order_line_id,
+          delivered_cases: Number(partialQty[line.order_line_id] ?? "0"),
+        })),
+      }),
+    onSuccess: refresh,
+    onError,
+    onSettled: () => setPartialOpen(false),
+  })
 
   const pending =
     confirm.isPending ||
@@ -151,7 +187,8 @@ export function DispatchDetailPage() {
     assign.isPending ||
     start.isPending ||
     acknowledge.isPending ||
-    fail.isPending
+    fail.isPending ||
+    partial.isPending
 
   return (
     <section className="min-w-0">
@@ -173,8 +210,11 @@ export function DispatchDetailPage() {
           canExecute={can("deliveries.execute")}
           canException={can("dispatch.exception") || can("deliveries.execute")}
           assignees={assignees.data ?? []}
+          vehicles={vehicles.data ?? []}
           assignee={assignee}
+          vehicle={vehicle}
           setAssignee={setAssignee}
+          setVehicle={setVehicle}
           actionError={actionError}
           pending={pending}
           onConfirm={() => setConfirmOpen(true)}
@@ -183,6 +223,14 @@ export function DispatchDetailPage() {
           onStart={() => start.mutate()}
           onAck={() => setAckOpen(true)}
           onFail={() => setFailOpen(true)}
+          onPartial={() => {
+            const seed: Record<string, string> = {}
+            for (const line of request.delivery_lines ?? []) {
+              seed[line.order_line_id] = String(line.delivered_cases ?? 0)
+            }
+            setPartialQty(seed)
+            setPartialOpen(true)
+          }}
         />
       ) : null}
 
@@ -238,7 +286,7 @@ export function DispatchDetailPage() {
         open={ackOpen}
         onOpenChange={setAckOpen}
         title="Record proof of delivery"
-        description="This confirms the shop received the cartons. It does not change inventory."
+        description="This confirms the shop received the cartons. It does not change inventory. Signature images are not stored; enter a local proof reference only."
         footer={
           <>
             <Button type="button" variant="outline" onClick={() => setAckOpen(false)}>
@@ -263,6 +311,16 @@ export function DispatchDetailPage() {
               onChange={(event) => setRecipientName(event.target.value)}
               maxLength={120}
               aria-label="Recipient name"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium">
+            Proof reference (optional)
+            <input
+              className="h-10 rounded-lg border border-input px-2.5 text-sm font-normal"
+              value={proofReference}
+              onChange={(event) => setProofReference(event.target.value)}
+              maxLength={200}
+              aria-label="Proof reference"
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
@@ -309,6 +367,56 @@ export function DispatchDetailPage() {
           />
         </label>
       </AppModal>
+      <AppModal
+        open={partialOpen}
+        onOpenChange={setPartialOpen}
+        title="Record partial delivery"
+        description="Undelivered cases stay deducted. This does not create a credit note or restore stock."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setPartialOpen(false)}>
+              Back
+            </Button>
+            <Button
+              type="button"
+              onClick={() => partial.mutate()}
+              disabled={partial.isPending || partialReason.trim() === ""}
+            >
+              {partial.isPending ? "Saving" : "Record partial delivery"}
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3">
+          {(request?.delivery_lines ?? []).map((line) => (
+            <label key={line.order_line_id} className="grid gap-1 text-sm font-medium">
+              {line.sku} · delivered of {line.dispatched_cases} dispatched
+              <input
+                className="h-10 rounded-lg border border-input px-2.5 text-sm font-normal"
+                inputMode="numeric"
+                value={partialQty[line.order_line_id] ?? "0"}
+                onChange={(event) =>
+                  setPartialQty((current) => ({
+                    ...current,
+                    [line.order_line_id]: event.target.value,
+                  }))
+                }
+                aria-label={`Delivered cases for ${line.sku}`}
+              />
+            </label>
+          ))}
+          <label className="grid gap-1 text-sm font-medium">
+            Reason
+            <textarea
+              className="min-h-20 rounded-lg border border-input px-3 py-2 text-sm font-normal"
+              value={partialReason}
+              onChange={(event) => setPartialReason(event.target.value)}
+              maxLength={500}
+              aria-label="Partial delivery reason"
+            />
+          </label>
+        </div>
+      </AppModal>
     </section>
   )
 }
@@ -320,8 +428,11 @@ function DispatchBody({
   canExecute,
   canException,
   assignees,
+  vehicles,
   assignee,
+  vehicle,
   setAssignee,
+  setVehicle,
   actionError,
   pending,
   onConfirm,
@@ -330,6 +441,7 @@ function DispatchBody({
   onStart,
   onAck,
   onFail,
+  onPartial,
 }: {
   request: DispatchDetail
   canConfirm: boolean
@@ -337,8 +449,11 @@ function DispatchBody({
   canExecute: boolean
   canException: boolean
   assignees: { id: string; full_name: string }[]
+  vehicles: AssignableVehicle[]
   assignee: string
+  vehicle: string
   setAssignee: (value: string) => void
+  setVehicle: (value: string) => void
   actionError: string | null
   pending: boolean
   onConfirm: () => void
@@ -347,8 +462,15 @@ function DispatchBody({
   onStart: () => void
   onAck: () => void
   onFail: () => void
+  onPartial: () => void
 }) {
   const deliveryReady = request.stock_consumed && ["dispatched", "in_transit"].includes(request.status)
+  const canAssignNow = canAssign && canReassignDelivery(request.status, request.stock_consumed)
+  const startReady = canExecute && canStartDelivery({
+    status: request.status,
+    assignedTo: request.assigned_to,
+    vehicleId: request.vehicle_id ?? null,
+  })
 
   return (
     <div className="grid gap-6">
@@ -410,10 +532,28 @@ function DispatchBody({
           <dd>{request.assigned_to_name ?? "Unassigned"}</dd>
         </div>
         <div>
+          <dt className="text-slate-500">Vehicle</dt>
+          <dd>
+            {request.vehicle_name
+              ? `${request.vehicle_name} · ${request.vehicle_registration}`
+              : "Unassigned"}
+          </dd>
+        </div>
+        <div>
           <dt className="text-slate-500">Recipient</dt>
           <dd>{request.recipient_name ?? "—"}</dd>
         </div>
-        {request.physical_return_status ? (
+        <div>
+          <dt className="text-slate-500">Proof reference</dt>
+          <dd>{request.proof_reference ?? "—"}</dd>
+        </div>
+        {request.delivery_outcome ? (
+          <div>
+            <dt className="text-slate-500">Delivery outcome</dt>
+            <dd>{request.delivery_outcome}</dd>
+          </div>
+        ) : null}
+        {request.physical_return_status || request.return_required ? (
           <div>
             <dt className="text-slate-500">Physical return</dt>
             <dd>Pending verification (stock not restored)</dd>
@@ -444,7 +584,7 @@ function DispatchBody({
             Cancel before consumption
           </Button>
         ) : null}
-        {canExecute && request.status === "dispatched" && request.assigned_to ? (
+        {startReady ? (
           <Button type="button" onClick={onStart} disabled={pending}>
             {pending ? "Updating" : "Start delivery"}
           </Button>
@@ -459,9 +599,14 @@ function DispatchBody({
             Report failed delivery
           </Button>
         ) : null}
+        {canException && deliveryReady ? (
+          <Button type="button" variant="outline" onClick={onPartial} disabled={pending}>
+            Record partial delivery
+          </Button>
+        ) : null}
       </div>
 
-      {canAssign && deliveryReady ? (
+      {canAssignNow ? (
         <form
           className="flex flex-wrap items-end gap-2"
           onSubmit={(event) => {
@@ -485,7 +630,32 @@ function DispatchBody({
               ))}
             </select>
           </label>
-          <Button type="submit" variant="outline" disabled={pending || assignee === ""}>
+          <label className="grid gap-1 text-sm font-medium">
+            Assign vehicle
+            <select
+              className="h-10 min-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
+              value={vehicle}
+              onChange={(event) => setVehicle(event.target.value)}
+              aria-label="Delivery vehicle"
+            >
+              <option value="">Select vehicle</option>
+              {vehicles.map((row) => (
+                <option
+                  key={row.id}
+                  value={row.id}
+                  disabled={row.in_use && row.id !== request.vehicle_id}
+                >
+                  {row.display_name} · {row.registration_number}
+                  {row.in_use && row.id !== request.vehicle_id ? " (in use)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={pending || assignee === "" || vehicle === ""}
+          >
             Assign
           </Button>
         </form>
@@ -527,6 +697,38 @@ function DispatchBody({
       </section>
 
       <section>
+        <h2 className="mb-2 text-base font-semibold">Delivery quantities</h2>
+        {(request.delivery_lines ?? []).length === 0 ? (
+          <p className="text-sm text-slate-600">No dispatched lines yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200/80">
+            <table className="w-min min-w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Product</th>
+                  <th className="px-4 py-3 font-medium">Dispatched</th>
+                  <th className="px-4 py-3 font-medium">Delivered</th>
+                  <th className="px-4 py-3 font-medium">Undelivered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(request.delivery_lines ?? []).map((line) => (
+                  <tr key={line.order_line_id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-3">
+                      {line.sku} · {line.product_name}
+                    </td>
+                    <td className="px-4 py-3">{line.dispatched_cases}</td>
+                    <td className="px-4 py-3">{line.delivered_cases ?? "—"}</td>
+                    <td className="px-4 py-3">{line.undelivered_cases ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section>
         <h2 className="mb-2 text-base font-semibold">Assignment history</h2>
         {request.assignments.length === 0 ? (
           <p className="text-sm text-slate-600">No delivery assignment yet.</p>
@@ -536,6 +738,23 @@ function DispatchBody({
               <li key={item.id} className="rounded-lg bg-slate-50 px-3 py-2">
                 {item.assignee_name ?? "Employee"} · {new Date(item.assigned_at).toLocaleString()}
                 {item.unassigned_at ? ` · unassigned ${new Date(item.unassigned_at).toLocaleString()}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-base font-semibold">Delivery attempts</h2>
+        {(request.attempts ?? []).length === 0 ? (
+          <p className="text-sm text-slate-600">No delivery attempt recorded yet.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {(request.attempts ?? []).map((item) => (
+              <li key={item.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                Attempt {item.attempt_number} · {item.outcome}
+                {item.reason ? ` · ${item.reason}` : ""}
+                {` · ${new Date(item.attempted_at).toLocaleString()}`}
               </li>
             ))}
           </ul>

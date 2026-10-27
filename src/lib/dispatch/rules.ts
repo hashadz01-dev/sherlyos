@@ -42,6 +42,31 @@ export const dispatchEventLabel: Record<string, string> = {
   in_transit: "Out for delivery",
   delivered: "Delivery acknowledged",
   exception_recorded: "Delivery exception",
+  partial_recorded: "Partial delivery recorded",
+}
+
+export const vehicleTypeLabel: Record<string, string> = {
+  truck: "Truck",
+  van: "Van",
+  two_wheeler: "Two-wheeler",
+  other: "Other",
+}
+
+/** Reassignment is allowed only after consume and before the run starts. */
+export function canReassignDelivery(
+  status: DispatchRequestStatus,
+  stockConsumed: boolean,
+) {
+  return stockConsumed && status === "dispatched"
+}
+
+/** Start requires a posted dispatch plus an assigned driver and vehicle. */
+export function canStartDelivery(input: {
+  status: DispatchRequestStatus
+  assignedTo: string | null
+  vehicleId: string | null
+}) {
+  return input.status === "dispatched" && Boolean(input.assignedTo) && Boolean(input.vehicleId)
 }
 
 export function isStaleDispatchVersion(error: { message: string; code?: string }) {

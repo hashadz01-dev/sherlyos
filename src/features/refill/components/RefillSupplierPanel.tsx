@@ -231,7 +231,11 @@ export function RefillSupplierPanel({
     isValidRefillShortText(trackingReference)
 
   return (
-    <section className="grid gap-4" aria-labelledby="refill-supplier-heading">
+    <section
+      className="grid gap-4"
+      id="refill-supplier"
+      aria-labelledby="refill-supplier-heading"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="refill-supplier-heading" className="text-base font-semibold">

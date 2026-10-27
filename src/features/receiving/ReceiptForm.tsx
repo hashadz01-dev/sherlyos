@@ -119,14 +119,19 @@ export function ReceiptForm({
             {formatRefillReceivingLabel(reconciliation.data.receiving.summary.completion_label)}
           </p>
           <p className="text-muted-foreground">
-            Requested quantities below are outstanding on the refill request. Count this
-            delivery separately. Damaged cases do not become accepted stock.
+            Outstanding is verified accepted against the request. Reserved includes
+            drafts and unverified linked receipts. Damaged cases do not become accepted
+            stock.
           </p>
           <ul className="grid gap-1">
             {reconciliation.data.receiving.lines.map((line) => (
               <li key={line.product_id}>
-                {line.product_sku}: requested {formatCases(line.requested_cases)}, accepted{" "}
+                {line.product_sku}: requested {formatCases(line.requested_cases)}, reserved{" "}
+                {formatCases(line.reserved_cases ?? 0)}, verified{" "}
                 {formatCases(line.accepted_cases)}, outstanding {formatCases(line.outstanding_cases)}
+                {(line.draft_reserved_cases ?? 0) > 0
+                  ? `, draft reserved ${formatCases(line.draft_reserved_cases)}`
+                  : ""}
                 {line.excess_cases > 0 ? `, excess ${formatCases(line.excess_cases)}` : ""}
               </li>
             ))}

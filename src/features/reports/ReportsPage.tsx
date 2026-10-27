@@ -9,6 +9,7 @@ import {
   inventoryReportPermissions,
   operationsReportPermissions,
   orderReportPermissions,
+  refillReportPermissions,
 } from "@/lib/reports/access"
 
 const cards = [
@@ -47,6 +48,13 @@ const cards = [
     title: "Operational exceptions",
     description: "Existing blockers, failed deliveries, unclassified products, and open adjustments.",
     permissions: operationsReportPermissions,
+  },
+  {
+    to: "/reports/refill",
+    title: "Stock refill",
+    description:
+      "Supplier replenishment progress, reserved unverified cases, and outstanding requested quantity. Approval is not a stock receipt.",
+    permissions: refillReportPermissions,
   },
 ]
 

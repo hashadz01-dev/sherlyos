@@ -56,6 +56,7 @@ import {
   NewRefillRequestPage,
   RefillDetailPage,
   RefillPage,
+  RefillReportPage,
   ReportsPage,
   SettingsPage,
   ShopsPage,
@@ -71,6 +72,7 @@ import { RequirePermission } from "@/lib/access/RequirePermission"
 import {
   refillCreatePermissions,
   refillNavPermissions,
+  refillReportPermissions,
 } from "@/lib/refill/rules"
 import {
   damageCreatePermissions,
@@ -646,7 +648,9 @@ export const appRouteObjects: RouteObject[] = [
           {
             path: "reports",
             element: (
-              <RequireAnyPermission permissions={operationsReportPermissions}>
+              <RequireAnyPermission
+                permissions={[...operationsReportPermissions, ...refillReportPermissions]}
+              >
                 <ReportsPage />
               </RequireAnyPermission>
             ),
@@ -696,6 +700,14 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequireAnyPermission permissions={operationsReportPermissions}>
                 <ExceptionsReportPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "reports/refill",
+            element: (
+              <RequireAnyPermission permissions={[...refillReportPermissions]}>
+                <RefillReportPage />
               </RequireAnyPermission>
             ),
           },

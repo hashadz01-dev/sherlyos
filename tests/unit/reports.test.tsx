@@ -67,5 +67,6 @@ describe("reports hub", () => {
     expect(screen.getAllByRole("link", { name: /Inventory/ }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole("link", { name: /Dispatch and delivery/ }).length).toBeGreaterThan(0)
     expect(screen.queryByText("ORD-001")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Stock refill/ })).not.toBeInTheDocument()
   })
 })

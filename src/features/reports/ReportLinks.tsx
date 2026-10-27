@@ -7,10 +7,16 @@ import {
   inventoryReportPermissions,
   operationsReportPermissions,
   orderReportPermissions,
+  refillReportPermissions,
 } from "@/lib/reports/access"
 
 const links = [
-  { to: "/reports", label: "All reports", permissions: operationsReportPermissions, end: true },
+  {
+    to: "/reports",
+    label: "All reports",
+    permissions: [...operationsReportPermissions, ...refillReportPermissions],
+    end: true,
+  },
   {
     to: "/reports/inventory",
     label: "Inventory",
@@ -40,6 +46,11 @@ const links = [
     to: "/reports/exceptions",
     label: "Exceptions",
     permissions: operationsReportPermissions,
+  },
+  {
+    to: "/reports/refill",
+    label: "Refill",
+    permissions: refillReportPermissions,
   },
 ]
 

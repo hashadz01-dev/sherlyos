@@ -302,6 +302,11 @@ export const ExceptionsReportPage = lazy(() =>
     default: m.ExceptionsReportPage,
   })),
 )
+export const RefillReportPage = lazy(() =>
+  import("@/features/reports/RefillReportPage").then((m) => ({
+    default: m.RefillReportPage,
+  })),
+)
 export const SettingsPage = lazy(() =>
   import("@/features/administration/SettingsPage").then((m) => ({
     default: m.SettingsPage,

@@ -71,6 +71,8 @@ export type RefillReceivingLine = {
   product_sku: string
   product_name: string
   requested_cases: number
+  reserved_cases: number
+  draft_reserved_cases: number
   accepted_cases: number
   outstanding_cases: number
   excess_cases: number
@@ -94,6 +96,8 @@ export type RefillLinkedReceipt = {
 export type RefillReceivingSnapshot = {
   summary: {
     requested_cases: number
+    reserved_cases: number
+    draft_reserved_cases: number
     accepted_cases: number
     outstanding_cases: number
     excess_cases: number
@@ -167,9 +171,47 @@ export type RefillRequestSummary = {
   expected_arrival_on: string | null
   version: number
   total_requested_cases: number
+  reserved_cases?: number
+  draft_reserved_cases?: number
+  accepted_cases?: number
+  outstanding_cases?: number
+  pending_receipt_cases?: number
+  completion_label?: RefillReceivingCompletionLabel
   created_at: string
   submitted_at: string | null
   created_by: string
+}
+
+export type RefillListFilters = {
+  page?: number
+  pageSize?: number
+  status?: string | null
+  godownId?: string | null
+  supplierId?: string | null
+  search?: string | null
+  communication?: string | null
+  acknowledgement?: string | null
+  dispatch?: string | null
+  receiving?: string | null
+  createdFrom?: string | null
+  createdTo?: string | null
+}
+
+export type RefillReportResult = {
+  timezone: "UTC"
+  page: number
+  page_size: number
+  total_count: number
+  summary: {
+    requested_cases: number
+    reserved_cases: number
+    draft_reserved_cases: number
+    accepted_cases: number
+    outstanding_cases: number
+    pending_receipt_cases: number
+    fully_received_requests: number
+  }
+  rows: RefillRequestSummary[]
 }
 
 export type RefillListResult = {
@@ -195,15 +237,8 @@ export function listStockRefillOptions() {
   return callRpc<RefillOptions>("list_stock_refill_options", {})
 }
 
-export function listStockRefillRequests(args: {
-  page?: number
-  pageSize?: number
-  status?: string | null
-  godownId?: string | null
-  supplierId?: string | null
-  search?: string | null
-}) {
-  return callRpc<RefillListResult>("list_stock_refill_requests", {
+function refillListRpcArgs(args: RefillListFilters) {
+  return {
     page: args.page ?? 1,
     page_size: args.pageSize ?? 25,
     status_filter: args.status && args.status !== "all" ? args.status : null,
@@ -211,6 +246,50 @@ export function listStockRefillRequests(args: {
     target_supplier:
       args.supplierId && args.supplierId !== "all" ? args.supplierId : null,
     search_text: args.search?.trim() ? args.search.trim() : null,
+    communication_filter:
+      args.communication && args.communication !== "all" ? args.communication : null,
+    acknowledgement_filter:
+      args.acknowledgement && args.acknowledgement !== "all"
+        ? args.acknowledgement
+        : null,
+    dispatch_filter: args.dispatch && args.dispatch !== "all" ? args.dispatch : null,
+    receiving_filter: args.receiving && args.receiving !== "all" ? args.receiving : null,
+    created_from: args.createdFrom || null,
+    created_to: args.createdTo || null,
+  }
+}
+
+export function listStockRefillRequests(args: RefillListFilters) {
+  return callRpc<RefillListResult>("list_stock_refill_requests", refillListRpcArgs(args))
+}
+
+/** Authorized refill reporting. Same row scope as the queue. Zero stock. */
+export function listStockRefillReport(args: RefillListFilters) {
+  return callRpc<RefillReportResult>("list_stock_refill_report", {
+    ...refillListRpcArgs({ ...args, pageSize: args.pageSize ?? 50 }),
+  })
+}
+
+export function exportStockRefillReport(args: RefillListFilters) {
+  const rpcArgs = refillListRpcArgs(args)
+  return callRpc<{
+    timezone: "UTC"
+    report_kind: string
+    row_count: number
+    total_count: number
+    truncated: boolean
+    csv: string
+  }>("export_stock_refill_report", {
+    status_filter: rpcArgs.status_filter,
+    target_godown: rpcArgs.target_godown,
+    target_supplier: rpcArgs.target_supplier,
+    search_text: rpcArgs.search_text,
+    communication_filter: rpcArgs.communication_filter,
+    acknowledgement_filter: rpcArgs.acknowledgement_filter,
+    dispatch_filter: rpcArgs.dispatch_filter,
+    receiving_filter: rpcArgs.receiving_filter,
+    created_from: rpcArgs.created_from,
+    created_to: rpcArgs.created_to,
   })
 }
 

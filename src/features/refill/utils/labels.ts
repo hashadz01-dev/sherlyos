@@ -144,3 +144,23 @@ export function formatRefillReceivingLabel(label: string) {
     refillReceivingLabelCopy[label as RefillReceivingCompletionLabel] ?? label
   )
 }
+
+export const receiptStatusLabels: Record<string, string> = {
+  draft: "Draft — reserves requested quantity",
+  submitted: "Submitted — pending verification",
+  held: "Held",
+  posted: "Verified and posted",
+  cancelled: "Cancelled — no longer reserved",
+}
+
+export function formatLinkedReceiptStatus(status: string) {
+  return receiptStatusLabels[status] ?? status
+}
+
+export const receiptStatusTone: Record<string, StatusTone> = {
+  draft: "warning",
+  submitted: "info",
+  held: "warning",
+  posted: "success",
+  cancelled: "neutral",
+}

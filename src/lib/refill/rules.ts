@@ -11,6 +11,8 @@ export type RefillStatus = (typeof refillStatuses)[number]
 
 export const refillNavPermissions = ["refill.request", "refill.approve"] as const
 
+export const refillReportPermissions = ["refill.request", "refill.approve"] as const
+
 export const refillCreatePermissions = ["refill.request"] as const
 
 export function isRefillStatus(value: string): value is RefillStatus {

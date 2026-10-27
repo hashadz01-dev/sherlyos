@@ -1,6 +1,9 @@
 import type { AccessState } from "@/lib/access/use-access"
+import { refillReportPermissions } from "@/lib/refill/rules"
 
 export const inventoryReportPermissions = ["stock.read", "operations.monitor"]
+
+export { refillReportPermissions }
 
 export const orderReportPermissions = [
   "orders.capture",
@@ -32,6 +35,6 @@ export const operationsReportPermissions = [
   "stock.lots.legacy.reconcile",
 ]
 
-export function canAny(access: AccessState, permissions: string[]) {
+export function canAny(access: AccessState, permissions: readonly string[]) {
   return permissions.some((permission) => access.can(permission))
 }

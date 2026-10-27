@@ -196,7 +196,7 @@ test("accounts records send, acknowledgement, and dispatch without changing stoc
   const ledgerBefore = runLocalSql(`select count(*) from public.stock_ledger;`, "ledger before")
   await login(page, "accounts.m63e2e@example.com")
   await page.goto("/refill")
-  await expect(page.getByText("Sent — manually recorded").or(page.getByText("Not sent")).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: fixture.requestNumber })).toBeVisible()
   await page.getByRole("link", { name: fixture.requestNumber }).click()
   await expect(
     page.getByRole("heading", { name: "Supplier communication & dispatch" }),

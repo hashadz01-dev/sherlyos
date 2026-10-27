@@ -242,7 +242,12 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
                   {receipt.refill_request_number ?? "Linked refill"}
                 </Link>
               ) : (
-                receipt.refill_request_number ?? "Linked refill"
+                <span>
+                  {receipt.refill_request_number ?? "Linked refill"}
+                  <span className="ml-1 text-muted-foreground">
+                    (open refill from an Accounts or Admin session)
+                  </span>
+                </span>
               )}
             </dd>
           </div>

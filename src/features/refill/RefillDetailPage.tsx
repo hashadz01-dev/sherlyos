@@ -199,6 +199,24 @@ export function RefillDetailPage() {
             Admin approval is not a stock receipt. Accepted inventory is posted only
             after Branch 03 receiving verification.
           </aside>
+          <nav aria-label="Request sections" className="flex flex-wrap gap-3 text-sm">
+            <a className="underline-offset-4 hover:underline" href="#refill-lines">
+              Requested SKUs
+            </a>
+            {request.status === "approved" || request.communication ? (
+              <a className="underline-offset-4 hover:underline" href="#refill-supplier-heading">
+                Supplier communication
+              </a>
+            ) : null}
+            {request.receiving ? (
+              <a className="underline-offset-4 hover:underline" href="#refill-receiving">
+                Receiving
+              </a>
+            ) : null}
+            <a className="underline-offset-4 hover:underline" href="#refill-audit">
+              Audit history
+            </a>
+          </nav>
           <dl className="grid gap-3 rounded-2xl bg-card p-4 text-sm ring-1 ring-border sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <dt className="text-muted-foreground">Status</dt>
@@ -250,7 +268,7 @@ export function RefillDetailPage() {
               </div>
             ) : null}
           </dl>
-          <div className="overflow-x-auto rounded-2xl bg-card ring-1 ring-border">
+          <div id="refill-lines" className="overflow-x-auto rounded-2xl bg-card ring-1 ring-border">
             <table className="w-full min-w-[28rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
@@ -286,7 +304,7 @@ export function RefillDetailPage() {
               can("operations.monitor")
             }
           />
-          <section>
+          <section id="refill-audit">
             <h2 className="mb-3 text-base font-semibold">Audit history</h2>
             {request.events.length === 0 ? (
               <EmptyState title="No events" description="Lifecycle events will appear here." />
@@ -300,6 +318,9 @@ export function RefillDetailPage() {
                     <p className="font-medium">{formatRefillEvent(event.action)}</p>
                     <p className="text-muted-foreground">
                       {event.actor_name ?? "—"} · {formatTimestamp(event.created_at)}
+                      {event.previous_status && event.next_status
+                        ? ` · ${formatRefillStatus(event.previous_status)} → ${formatRefillStatus(event.next_status)}`
+                        : null}
                     </p>
                     {event.reason ? <p className="mt-1">{event.reason}</p> : null}
                   </li>

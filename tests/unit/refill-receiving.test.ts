@@ -94,6 +94,16 @@ describe("partial receipt reconciliation", () => {
     expect(outstandingCases(100, acceptedCases(40, 5))).toBe(65)
   })
 
+  it("keeps reserved unverified cases separate from posted accepted stock", () => {
+    const requested = 100
+    const postedAccepted = 40
+    const draftReserved = 25
+    const reserved = postedAccepted + draftReserved
+    expect(outstandingCases(requested, postedAccepted)).toBe(60)
+    expect(reserved).toBe(65)
+    expect(reserved).not.toBe(postedAccepted)
+  })
+
   it("treats another open receipt accepted quantity as reserved against the request", () => {
     const requested = 100
     const openAccepted = [39, 70]

@@ -284,10 +284,10 @@ export const navigationItems: AppNavItem[] = [
     label: "Reports",
     title: "Reports",
     description:
-      "Read-only operational dashboards, inventory, movements, orders, dispatch, and exceptions.",
+      "Read-only operational dashboards, inventory, movements, orders, dispatch, refill, and exceptions.",
     group: "Workspace",
     icon: ChartColumn,
-    anyPermissions: operationsReportPermissions,
+    anyPermissions: [...operationsReportPermissions, "refill.request", "refill.approve"],
   },
   {
     to: "/settings",

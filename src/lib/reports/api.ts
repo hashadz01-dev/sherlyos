@@ -209,6 +209,8 @@ export const reportKeys = {
     ["dispatch-report", reportViewer(userId), filters] as const,
   exceptions: (userId: string | undefined, filters: Record<string, unknown>) =>
     ["exception-report", reportViewer(userId), filters] as const,
+  refill: (userId: string | undefined, filters: Record<string, unknown>) =>
+    ["refill-report", reportViewer(userId), filters] as const,
 }
 
 export function getOperationsDashboard(filter_branch?: string | null) {

@@ -43,6 +43,7 @@ export function ReportDateField({
         className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-label={label}
       />
     </label>
   )

@@ -136,6 +136,11 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
   body {
     background: white;
     color: black;
@@ -143,5 +148,27 @@
 
   .dn-print {
     padding: 0 !important;
+  }
+
+  .invoice-handover {
+    padding: 0 !important;
+  }
+
+  .invoice-handover-print {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .invoice-handover-print thead {
+    display: table-header-group;
+  }
+
+  .invoice-handover-print tr {
+    break-inside: avoid;
+  }
+
+  .invoice-handover-watermark {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

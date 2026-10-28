@@ -44,16 +44,40 @@ export const priceNavPermissions = [
 ] as const
 
 export const INVOICE_DRAFT_WATERMARK = "DRAFT INVOICE NOTE — NOT A TAX INVOICE"
+export const INVOICE_PREVIEW_WATERMARK = "DRAFT INVOICE PREVIEW — NOT A TAX INVOICE"
 export const INVOICE_NO_LEGAL_SEAL = "NO LEGAL SEAL — DRAFT ONLY"
 export const TAX_PREVIEW_WATERMARK = "TAX CALCULATION PREVIEW — NOT A TAX INVOICE"
 
-export const invoicePreviewCopies = ["recipient", "transporter", "accounts"] as const
+/** Printable handover copies. RPC still accepts recipient/transporter as driver aliases. */
+export const invoiceHandoverCopies = ["driver", "accounts"] as const
+export type InvoiceHandoverCopy = (typeof invoiceHandoverCopies)[number]
+
+export const invoicePreviewCopies = [
+  "driver",
+  "accounts",
+  "recipient",
+  "transporter",
+] as const
 export type InvoicePreviewCopy = (typeof invoicePreviewCopies)[number]
 
 export const invoicePreviewCopyLabel: Record<InvoicePreviewCopy, string> = {
+  driver: "Driver / delivery handover",
+  accounts: "Accounts / financial preview",
   recipient: "Recipient copy",
   transporter: "Transporter / driver copy",
-  accounts: "Accounts copy",
+}
+
+export const invoiceAccountsPreviewPermissions = [
+  "invoice_notes.prepare",
+  "invoices.review",
+] as const
+
+export function isInvoiceHandoverCopy(value: string): value is InvoiceHandoverCopy {
+  return (invoiceHandoverCopies as readonly string[]).includes(value)
+}
+
+export function isDriverHandoverCopy(copy: InvoicePreviewCopy) {
+  return copy === "driver" || copy === "recipient" || copy === "transporter"
 }
 
 export function isInvoiceNoteStatus(value: string): value is InvoiceNoteStatus {

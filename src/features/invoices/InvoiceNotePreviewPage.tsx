@@ -1,145 +1,140 @@
-import { useState } from "react"
-import { Link, useParams } from "react-router"
+import { Link, useParams, useSearchParams } from "react-router"
 import { useQuery } from "@tanstack/react-query"
+import { InvoiceHandoverDocument } from "@/features/invoices/InvoiceHandoverDocument"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
-import { getInvoiceNotePreview } from "@/lib/invoices/api"
+import { useAccess } from "@/lib/access/use-access"
+import { getInvoiceNote, getInvoiceNotePreview, invoiceKeys } from "@/lib/invoices/api"
+import { downloadInvoiceHandoverPdf } from "@/lib/invoices/handover-pdf"
 import {
-  INVOICE_DRAFT_WATERMARK,
-  INVOICE_NO_LEGAL_SEAL,
-  formatInr,
+  INVOICE_PREVIEW_WATERMARK,
+  invoiceAccountsPreviewPermissions,
   invoicePreviewCopyLabel,
-  invoicePreviewCopies,
-  type InvoicePreviewCopy,
+  isInvoiceHandoverCopy,
+  type InvoiceHandoverCopy,
 } from "@/lib/invoices/rules"
 
 export function InvoiceNotePreviewPage() {
   const { noteId = "" } = useParams()
-  const [copy, setCopy] = useState<InvoicePreviewCopy>("accounts")
-  const preview = useQuery({
-    queryKey: ["invoice-note-preview", noteId, copy],
-    queryFn: () => getInvoiceNotePreview(noteId, copy),
-    enabled: noteId !== "",
+  const { can } = useAccess()
+  const [params, setParams] = useSearchParams()
+  const requested = params.get("copy") ?? ""
+  const copy = isInvoiceHandoverCopy(requested) ? requested : null
+  const canAccounts = invoiceAccountsPreviewPermissions.some((permission) => can(permission))
+
+  const note = useQuery({
+    queryKey: invoiceKeys.detail(noteId),
+    queryFn: () => getInvoiceNote(noteId),
+    enabled: noteId !== "" && copy === null,
   })
-  const note = preview.data
-  useDocumentTitle(note ? `Preview ${note.note_number}` : "Preview invoice note")
+  const preview = useQuery({
+    queryKey: invoiceKeys.preview(noteId, copy ?? "driver"),
+    queryFn: () => getInvoiceNotePreview(noteId, copy ?? "driver"),
+    enabled: noteId !== "" && copy !== null,
+  })
+
+  useDocumentTitle(
+    preview.data
+      ? `${preview.data.copy_label ?? "Preview"} ${preview.data.note_number}`
+      : note.data
+        ? `Handover ${note.data.note_number}`
+        : "Invoice handover",
+  )
+
+  function openCopy(next: InvoiceHandoverCopy) {
+    setParams({ copy: next })
+  }
 
   return (
-    <section className="min-w-0 bg-background px-4 py-6 text-foreground sm:px-8">
+    <section className="invoice-handover min-w-0 bg-background px-4 py-6 text-foreground sm:px-8">
       <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
         <Button asChild variant="outline">
-          <Link to={`/invoices/${noteId}`}>Back</Link>
+          <Link to={copy ? `/invoices/${noteId}/preview` : `/invoices/${noteId}`}>Back</Link>
         </Button>
-        <label className="grid gap-1 text-sm font-medium">
-          Copy
-          <select
-            className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-            value={copy}
-            onChange={(event) => setCopy(event.target.value as InvoicePreviewCopy)}
-            aria-label="Invoice copy"
-          >
-            {invoicePreviewCopies.map((value) => (
-              <option key={value} value={value}>
-                {invoicePreviewCopyLabel[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button type="button" onClick={() => window.print()}>
-          Print draft
-        </Button>
+        {copy && preview.data ? (
+          <>
+            <Button type="button" variant="outline" onClick={() => window.print()}>
+              Print A4
+            </Button>
+            <Button type="button" onClick={() => downloadInvoiceHandoverPdf(preview.data)}>
+              Download PDF
+            </Button>
+          </>
+        ) : null}
       </div>
 
-      {preview.isLoading ? <LoadingBlock label="Loading preview" /> : null}
-      {preview.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {preview.error.message}
-        </p>
-      ) : null}
-
-      {note ? (
-        <article className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl bg-white p-6 ring-1 ring-slate-200/80">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-center justify-center"
-          >
-            <p className="rotate-[-24deg] text-center text-3xl font-semibold tracking-widest text-red-500/20 uppercase">
-              {note.watermark || INVOICE_DRAFT_WATERMARK}
+      {copy === null ? (
+        <>
+          {note.isLoading ? <LoadingBlock label="Loading handover" /> : null}
+          {note.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {note.error.message}
             </p>
-          </div>
-
-          <header className="relative mb-6 border-b border-border pb-4">
-            <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              {note.copy_label ?? invoicePreviewCopyLabel[copy]}
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold">
-              {note.company.legal_name ?? "Company identity not configured"}
-            </h1>
-            {note.company.registered_address ? (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                {note.company.registered_address}
+          ) : null}
+          {note.data ? (
+            <div className="mx-auto grid max-w-3xl gap-4">
+              <p
+                role="note"
+                className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200"
+              >
+                {INVOICE_PREVIEW_WATERMARK}. Viewing or printing these copies does not dispatch
+                goods, post stock, or issue a tax invoice.
               </p>
-            ) : null}
-            <p className="mt-3 text-sm font-medium text-red-700">
-              {note.legal_seal_caption ?? INVOICE_NO_LEGAL_SEAL}
+              <article className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
+                <h1 className="text-lg font-semibold">Driver / delivery handover</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Shop, dispatch, cases, and acknowledgement lines only. Prices and GST stay off
+                  this copy.
+                </p>
+                <Button className="mt-4" type="button" onClick={() => openCopy("driver")}>
+                  Open driver copy
+                </Button>
+              </article>
+              <article className="rounded-2xl bg-white p-5 ring-1 ring-slate-200/80">
+                <h1 className="text-lg font-semibold">Accounts / financial preview</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Reviewed price snapshots and tax-preview figures when a current snapshot exists.
+                  Still not a tax invoice.
+                </p>
+                {note.data.status !== "reviewed" ? (
+                  <p className="mt-2 text-sm text-amber-900">
+                    Available after Accounts review. Current status: {note.data.status}.
+                  </p>
+                ) : null}
+                {canAccounts && note.data.status === "reviewed" ? (
+                  <Button className="mt-4" type="button" onClick={() => openCopy("accounts")}>
+                    Open accounts copy
+                  </Button>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Accounts financial preview requires invoice-note prepare or review permission
+                    and a reviewed note.
+                  </p>
+                )}
+              </article>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {preview.isLoading ? <LoadingBlock label="Loading document" /> : null}
+          {preview.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {preview.error.message}
             </p>
-          </header>
-
-          <dl className="relative mb-6 grid gap-3 sm:grid-cols-2 text-sm">
-            <div>
-              <dt className="text-muted-foreground">Draft number</dt>
-              <dd className="font-medium">{note.note_number}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Shop</dt>
-              <dd className="font-medium">{note.shop.name}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Dispatch</dt>
-              <dd>{note.dispatch_number}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Date</dt>
-              <dd>{note.as_of_date}</dd>
-            </div>
-          </dl>
-
-          <table className="relative w-full text-left text-sm">
-            <thead className="border-b border-border text-xs text-muted-foreground">
-              <tr>
-                <th className="py-2">SKU</th>
-                <th className="py-2">Product</th>
-                <th className="py-2">Qty</th>
-                <th className="py-2">Rate</th>
-                <th className="py-2">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {note.lines.map((line) => (
-                <tr key={line.id} className="border-b border-slate-100">
-                  <td className="py-2">{line.product_sku}</td>
-                  <td className="py-2">{line.product_name}</td>
-                  <td className="py-2">
-                    {String(line.billed_quantity)} {line.billing_unit}
-                  </td>
-                  <td className="py-2">{formatInr(line.unit_amount)}</td>
-                  <td className="py-2">{formatInr(line.line_amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <p className="relative mt-4 text-sm font-medium">
-            Total {formatInr(note.grand_total)} · Tax pending accountant
-          </p>
-          <p className="relative mt-1 text-sm text-muted-foreground">{note.amount_in_words}</p>
-          <p className="relative mt-6 text-xs text-muted-foreground">
-            {note.signature_block?.reason ??
-              "Signature and seal appear only on a finalized tax invoice."}
-          </p>
-        </article>
-      ) : null}
+          ) : null}
+          {preview.data ? (
+            <>
+              <p className="mb-3 text-center text-xs font-medium text-red-800 print:hidden">
+                {invoicePreviewCopyLabel[copy]} · Print uses A4. Download PDF is a separate file
+                export, not the browser print dialog.
+              </p>
+              <InvoiceHandoverDocument note={preview.data} />
+            </>
+          ) : null}
+        </>
+      )}
     </section>
   )
 }

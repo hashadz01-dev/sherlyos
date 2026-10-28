@@ -106,7 +106,7 @@ export function InvoiceNoteDetailPage() {
             </Button>
             {note ? (
               <Button asChild>
-                <Link to={`/invoices/${note.id}/preview`}>Print preview</Link>
+                <Link to={`/invoices/${note.id}/preview`}>Handover documents</Link>
               </Button>
             ) : null}
           </div>

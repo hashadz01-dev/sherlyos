@@ -103,7 +103,7 @@ export const navigationItems: AppNavItem[] = [
     label: "Invoice notes",
     title: "Invoice notes",
     description:
-      "Prepare priced invoice-note drafts from confirmed dispatch. These are not tax invoices.",
+      "Prepare priced invoice-note drafts from confirmed dispatch, then print driver or Accounts preview copies. These are not tax invoices.",
     group: "Operations",
     icon: Receipt,
     anyPermissions: [...invoiceNavPermissions],

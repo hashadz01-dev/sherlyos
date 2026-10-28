@@ -1,4 +1,5 @@
 import { callRpc } from "@/lib/masters/api"
+import type { InvoiceTaxPreview } from "@/lib/invoices/tax-preview"
 import type {
   InvoiceNoteStatus,
   InvoicePreviewCopy,
@@ -41,12 +42,13 @@ export type InvoiceNoteLine = {
   billing_unit: string
   billed_units_per_case: number | string
   billed_quantity: number | string
-  unit_amount: number | string
-  line_amount: number | string
-  price_scope: "shop" | "default"
-  price_effective_from: string
-  price_effective_to: string | null
-  tax_amount: number | string
+  unit_amount?: number | string
+  line_amount?: number | string
+  price_scope?: "shop" | "default"
+  price_effective_from?: string
+  price_effective_to?: string | null
+  tax_amount?: number | string
+  hsn_sac_code?: string | null
 }
 
 export type InvoiceNoteEvent = {
@@ -82,6 +84,12 @@ export type InvoiceNoteDetail = {
     id: string
     name: string
     address: string | null
+    phone?: string | null
+  }
+  godown?: {
+    id: string
+    code: string
+    name: string
   }
   branch_id: string
   as_of_date: string
@@ -89,10 +97,10 @@ export type InvoiceNoteDetail = {
   currency_code: "INR"
   billed_cases: number
   billed_quantity: number | string
-  subtotal_amount: number | string
-  tax_amount: number | string
-  grand_total: number | string
-  amount_in_words: string
+  subtotal_amount?: number | string
+  tax_amount?: number | string
+  grand_total?: number | string
+  amount_in_words?: string
   remarks: string | null
   watermark: string
   legal_issuance_blocked: boolean
@@ -112,9 +120,52 @@ export type InvoiceNoteDetail = {
   events: InvoiceNoteEvent[]
   credit_note_candidates: InvoiceCreditNoteCandidate[]
   copy?: InvoicePreviewCopy
+  copy_family?: "driver" | "accounts"
   copy_label?: string
+  document_kind?: "driver" | "accounts"
+  generated_at?: string
+  legal_invoice_number?: string | null
   legal_seal_caption?: string
   signature_block?: { shown: boolean; reason: string }
+  handover_acknowledgement?: {
+    driver_signature_label: string
+    receiver_signature_label: string
+    note: string
+  }
+  seller_identity?: {
+    available: boolean
+    legal_name?: string
+    registered_address?: string
+    gstin?: string | null
+    state_code?: string | null
+    reason?: string
+  }
+  customer_identity?: {
+    available: boolean
+    billing_name?: string
+    billing_address?: string
+    gstin?: string | null
+    registration_status?: string
+    shop_name?: string
+    shop_address?: string | null
+    reason?: string
+  }
+  tax_preview?: InvoiceTaxPreview
+  tax_preview_watermark?: string
+  financial_preview_state?:
+    | "omitted_for_driver_copy"
+    | "tax_unavailable"
+    | "tax_stale"
+    | "tax_preview"
+  source?: {
+    invoice_note_id: string
+    invoice_note_version: number
+    dispatch_id: string
+    quantities_from?: string | null
+    prices_from?: string | null
+    tax_from?: string | null
+    tax_preview_id?: string | null
+  }
 }
 
 export type InvoiceNoteListRow = {

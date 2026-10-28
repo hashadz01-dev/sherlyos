@@ -64,6 +64,7 @@ import {
   ReportsPage,
   SettingsPage,
   ShopsPage,
+  StatutoryConfigPage,
   StartVerificationPage,
   StockVerificationPage,
   SuppliersPage,
@@ -78,6 +79,7 @@ import {
   invoiceNavPermissions,
   priceNavPermissions,
 } from "@/lib/invoices/rules"
+import { statutoryNavPermissions } from "@/lib/statutory/rules"
 import {
   refillCreatePermissions,
   refillNavPermissions,
@@ -765,6 +767,14 @@ export const appRouteObjects: RouteObject[] = [
             ),
           },
           { path: "settings", element: <SettingsPage /> },
+          {
+            path: "statutory",
+            element: (
+              <RequireAnyPermission permissions={[...statutoryNavPermissions]}>
+                <StatutoryConfigPage />
+              </RequireAnyPermission>
+            ),
+          },
           {
             path: "employees",
             element: (

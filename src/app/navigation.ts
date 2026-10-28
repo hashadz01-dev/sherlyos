@@ -26,6 +26,7 @@ import {
   Receipt,
 } from "lucide-react"
 import { invoiceNavPermissions, priceNavPermissions } from "@/lib/invoices/rules"
+import { statutoryNavPermissions } from "@/lib/statutory/rules"
 import { damageNavPermissions } from "@/lib/damage/rules"
 import { operationsReportPermissions } from "@/lib/reports/access"
 import type { AppNavItem, NavGroup } from "@/types/navigation"
@@ -334,6 +335,16 @@ export const navigationItems: AppNavItem[] = [
     description: "Workspace configuration and account details.",
     group: "Workspace",
     icon: Settings,
+  },
+  {
+    to: "/statutory",
+    label: "Statutory",
+    title: "Statutory configuration",
+    description:
+      "GST identity, HSN, and invoice policy drafts. Tax invoice issuance stays disabled.",
+    group: "Administration",
+    icon: Receipt,
+    anyPermissions: [...statutoryNavPermissions],
   },
   {
     to: "/employees",

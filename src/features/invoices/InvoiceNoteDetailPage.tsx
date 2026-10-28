@@ -210,8 +210,11 @@ export function InvoiceNoteDetailPage() {
 
           <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
             <h2 className="text-sm font-semibold">Statutory readiness</h2>
+            <p className="mt-1 text-sm font-semibold text-red-800">
+              CONFIGURATION ONLY — TAX INVOICE ISSUANCE DISABLED
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Finalization stays blocked. These are accountant-dependent, not operator toggles.
+              ready={String(note.statutory.ready)} · Finalization stays blocked until M7.5C.2.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
               {(note.statutory.blockers ?? []).map((blocker) => (

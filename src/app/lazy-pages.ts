@@ -357,3 +357,8 @@ export const AuditPage = lazy(() =>
     default: m.AuditPage,
   })),
 )
+export const StatutoryConfigPage = lazy(() =>
+  import("@/features/administration/statutory/StatutoryConfigPage").then((m) => ({
+    default: m.StatutoryConfigPage,
+  })),
+)

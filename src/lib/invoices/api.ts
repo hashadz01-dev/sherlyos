@@ -23,6 +23,7 @@ export type InvoiceStatutoryReadiness = {
   ready: boolean
   legal_issuance_blocked: boolean
   currency_code: string
+  issuance_blocked_reason?: string
   blockers: InvoiceStatutoryBlocker[]
 }
 
@@ -174,8 +175,10 @@ export function listInvoiceEligibleDispatches() {
   return callRpc<InvoiceEligibleDispatch[]>("list_invoice_eligible_dispatches", {})
 }
 
-export function assessInvoiceFinalizationReadiness() {
-  return callRpc<InvoiceStatutoryReadiness>("assess_invoice_finalization_readiness", {})
+export function assessInvoiceFinalizationReadiness(noteId?: string) {
+  return callRpc<InvoiceStatutoryReadiness>("assess_invoice_finalization_readiness", {
+    p_invoice_note_id: noteId ?? null,
+  })
 }
 
 export function prepareInvoiceNote(options: {

@@ -272,6 +272,26 @@ export const VehiclesPage = lazy(() =>
     default: m.VehiclesPage,
   })),
 )
+export const PricesPage = lazy(() =>
+  import("@/features/masters/prices/PricesPage").then((m) => ({
+    default: m.PricesPage,
+  })),
+)
+export const InvoicesPage = lazy(() =>
+  import("@/features/invoices/InvoicesPage").then((m) => ({
+    default: m.InvoicesPage,
+  })),
+)
+export const InvoiceNoteDetailPage = lazy(() =>
+  import("@/features/invoices/InvoiceNoteDetailPage").then((m) => ({
+    default: m.InvoiceNoteDetailPage,
+  })),
+)
+export const InvoiceNotePreviewPage = lazy(() =>
+  import("@/features/invoices/InvoiceNotePreviewPage").then((m) => ({
+    default: m.InvoiceNotePreviewPage,
+  })),
+)
 export const ReportsPage = lazy(() =>
   import("@/features/reports/ReportsPage").then((m) => ({
     default: m.ReportsPage,

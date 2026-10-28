@@ -37,6 +37,8 @@ export const DISPOSABLE_SKU_PATTERNS = [
   // M7.4C search-fixture leftovers (covers m74c-pg- and zzz-m74c-*).
   "m74c%",
   "zzz-m74c%",
+  // M7.5B pricing / invoice-note fixtures.
+  "m75b%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {

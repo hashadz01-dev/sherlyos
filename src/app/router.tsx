@@ -29,6 +29,9 @@ import {
   HistoryPage,
   InventoryPage,
   InventoryReportPage,
+  InvoiceNoteDetailPage,
+  InvoiceNotePreviewPage,
+  InvoicesPage,
   LocationsPage,
   LotReconciliationDetailPage,
   LotReconciliationPage,
@@ -48,6 +51,7 @@ import {
   PickingDetailPage,
   PickingExceptionsPage,
   PickingPage,
+  PricesPage,
   ProductsPage,
   ReceiptDetailPage,
   ReceiptEditorPage,
@@ -70,6 +74,10 @@ import {
 } from "@/app/lazy-pages"
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
+import {
+  invoiceNavPermissions,
+  priceNavPermissions,
+} from "@/lib/invoices/rules"
 import {
   refillCreatePermissions,
   refillNavPermissions,
@@ -258,6 +266,30 @@ export const appRouteObjects: RouteObject[] = [
                 ]}
               >
                 <DeliveryRunsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "invoices",
+            element: (
+              <RequireAnyPermission permissions={[...invoiceNavPermissions]}>
+                <InvoicesPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "invoices/:noteId",
+            element: (
+              <RequireAnyPermission permissions={[...invoiceNavPermissions]}>
+                <InvoiceNoteDetailPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "invoices/:noteId/preview",
+            element: (
+              <RequireAnyPermission permissions={[...invoiceNavPermissions]}>
+                <InvoiceNotePreviewPage />
               </RequireAnyPermission>
             ),
           },
@@ -603,6 +635,7 @@ export const appRouteObjects: RouteObject[] = [
                   "shops.read",
                   "locations.read",
                   "vehicles.view",
+                  ...priceNavPermissions,
                 ]}
               >
                 <MastersPage />
@@ -647,6 +680,14 @@ export const appRouteObjects: RouteObject[] = [
               <RequirePermission permission="locations.read">
                 <LocationsPage />
               </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/prices",
+            element: (
+              <RequireAnyPermission permissions={[...priceNavPermissions]}>
+                <PricesPage />
+              </RequireAnyPermission>
             ),
           },
           {

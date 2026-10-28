@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { callRpc, loadRows } from "@/lib/masters/api"
-import { searchProducts } from "@/lib/masters/product-search"
+import { setProductBillingConversion } from "@/lib/pricing/api"
+import { getProduct, searchProducts } from "@/lib/masters/product-search"
 import { notify } from "@/lib/utilities/notify"
 import {
   emptyToNull,
@@ -35,6 +36,8 @@ type Product = {
   supplier_id: string | null
   is_active: boolean
   expiry_policy: "expiry_controlled" | "non_expiring" | null
+  billing_unit?: string | null
+  billed_units_per_case?: number | string | null
 }
 
 type Named = { id: string; name: string; is_active: boolean }
@@ -60,7 +63,11 @@ export function ProductsPage() {
   const [expiryPolicy, setExpiryPolicy] = useState<"expiry_controlled" | "non_expiring">(
     "expiry_controlled",
   )
+  const [billingTarget, setBillingTarget] = useState<Product | null>(null)
+  const [billingUnit, setBillingUnit] = useState("nos")
+  const [billedUnitsPerCase, setBilledUnitsPerCase] = useState("1")
   const canClassifyExpiry = can("products.expiry_policy.manage")
+  const canSetBilling = can("products.manage")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
   useEffect(() => {
@@ -138,6 +145,28 @@ export function ProductsPage() {
       setExpiryTarget(null)
       notify.success("Expiry policy updated")
       await queryClient.invalidateQueries({ queryKey: ["products-search"] })
+    },
+    onError: (error: Error) => notify.error(error.message),
+  })
+
+  const saveBilling = useMutation({
+    mutationFn: async () => {
+      if (!billingTarget) return
+      const units = Number(billedUnitsPerCase)
+      if (!Number.isFinite(units) || units <= 0) {
+        throw new Error("Billed units per case must be greater than zero.")
+      }
+      await setProductBillingConversion({
+        productId: billingTarget.id,
+        billingUnit,
+        billedUnitsPerCase: units,
+      })
+    },
+    onSuccess: async () => {
+      setBillingTarget(null)
+      notify.success("Billing conversion saved")
+      await queryClient.invalidateQueries({ queryKey: ["products-search"] })
+      await queryClient.invalidateQueries({ queryKey: ["product-by-id"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
@@ -225,6 +254,21 @@ export function ProductsPage() {
                     Classify expiry
                   </Button>
                 ) : null}
+                {canSetBilling ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      void getProduct(product.id).then((full) => {
+                        const next = full ?? product
+                        setBillingTarget(next)
+                        setBillingUnit(next.billing_unit ?? "nos")
+                        setBilledUnitsPerCase(String(next.billed_units_per_case ?? "1"))
+                      })
+                    }}
+                  >
+                    Billing units
+                  </Button>
+                ) : null}
                 {can("products.manage") ? (
                   <Button variant="outline" onClick={() => setStatusTarget(product)}>
                     {product.is_active ? "Deactivate" : "Activate"}
@@ -290,6 +334,45 @@ export function ProductsPage() {
             <option value="expiry_controlled">Expiry controlled</option>
             <option value="non_expiring">Non-expiring</option>
           </select>
+        </label>
+      </AppModal>
+      <AppModal
+        open={Boolean(billingTarget)}
+        onOpenChange={(open) => {
+          if (!open) setBillingTarget(null)
+        }}
+        title="Billing conversion"
+        description="Stock stays in carton cases. Invoice billed quantity is shipped cases multiplied by billed units per case. Do not assume 1 case equals 1 nos."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setBillingTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={saveBilling.isPending || !billingTarget}
+              onClick={() => saveBilling.mutate()}
+            >
+              Save conversion
+            </Button>
+          </>
+        }
+      >
+        <label className="grid gap-2 text-sm font-medium">
+          Billing unit
+          <input
+            className="h-10 rounded-lg border border-input px-3 text-sm font-normal"
+            value={billingUnit}
+            onChange={(event) => setBillingUnit(event.target.value)}
+          />
+        </label>
+        <label className="mt-3 grid gap-2 text-sm font-medium">
+          Billed units per case
+          <input
+            className="h-10 rounded-lg border border-input px-3 text-sm font-normal"
+            inputMode="decimal"
+            value={billedUnitsPerCase}
+            onChange={(event) => setBilledUnitsPerCase(event.target.value)}
+          />
         </label>
       </AppModal>
     </section>

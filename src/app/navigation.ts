@@ -23,7 +23,9 @@ import {
   Truck,
   UserRound,
   Users,
+  Receipt,
 } from "lucide-react"
+import { invoiceNavPermissions, priceNavPermissions } from "@/lib/invoices/rules"
 import { damageNavPermissions } from "@/lib/damage/rules"
 import { operationsReportPermissions } from "@/lib/reports/access"
 import type { AppNavItem, NavGroup } from "@/types/navigation"
@@ -94,6 +96,16 @@ export const navigationItems: AppNavItem[] = [
       "dispatch.view",
       "operations.monitor",
     ],
+  },
+  {
+    to: "/invoices",
+    label: "Invoice notes",
+    title: "Invoice notes",
+    description:
+      "Prepare priced invoice-note drafts from confirmed dispatch. These are not tax invoices.",
+    group: "Operations",
+    icon: Receipt,
+    anyPermissions: [...invoiceNavPermissions],
   },
   {
     to: "/deliveries",
@@ -271,6 +283,15 @@ export const navigationItems: AppNavItem[] = [
     permission: "locations.read",
   },
   {
+    to: "/masters/prices",
+    label: "Prices",
+    title: "Selling prices",
+    description: "INR selling prices by product, with optional shop-specific overrides. No GST.",
+    group: "Master data",
+    icon: Receipt,
+    anyPermissions: [...priceNavPermissions],
+  },
+  {
     to: "/masters/vehicles",
     label: "Vehicles",
     title: "Vehicles",
@@ -293,6 +314,7 @@ export const navigationItems: AppNavItem[] = [
       "shops.read",
       "locations.read",
       "vehicles.view",
+      ...priceNavPermissions,
     ],
   },
   {

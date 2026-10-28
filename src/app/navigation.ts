@@ -73,7 +73,11 @@ export const navigationItems: AppNavItem[] = [
       "Confirm ready-for-dispatch picks and consume reserved carton cases exactly once.",
     group: "Operations",
     icon: Send,
-    anyPermissions: ["dispatch.view", "dispatch.confirm", "operations.monitor"],
+    anyPermissions: [
+      "dispatch.view",
+      "dispatch.confirm",
+      "operations.monitor",
+    ],
   },
   {
     to: "/delivery-runs",
@@ -86,6 +90,7 @@ export const navigationItems: AppNavItem[] = [
     anyPermissions: [
       "deliveries.execute",
       "deliveries.assign",
+      "deliveries.return_view",
       "dispatch.view",
       "operations.monitor",
     ],

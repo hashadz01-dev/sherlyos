@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest"
 import {
   canReassignDelivery,
   canStartDelivery,
+  cutoverBlocksDeliveryReturn,
   cutoverBlocksDispatch,
   isStaleDispatchVersion,
+  lotClassificationTotal,
 } from "@/lib/dispatch/rules"
 
 describe("dispatch rules", () => {
@@ -20,6 +22,23 @@ describe("dispatch rules", () => {
     expect(isStaleDispatchVersion({ message: "nope", code: "PT409" })).toBe(true)
     expect(isStaleDispatchVersion({ message: "dispatch was changed by someone else" })).toBe(true)
     expect(isStaleDispatchVersion({ message: "insufficient unreserved stock" })).toBe(false)
+  })
+
+  it("blocks delivery-return posting while dual-write is off", () => {
+    expect(cutoverBlocksDeliveryReturn(false)).toMatch(/dual-write/)
+    expect(cutoverBlocksDeliveryReturn(true)).toBeNull()
+  })
+
+  it("requires lot classification to consume the dispatched grain", () => {
+    expect(
+      lotClassificationTotal({
+        delivered_cases: 1,
+        saleable_cases: 2,
+        damaged_cases: 1,
+        uncertain_cases: 0,
+        missing_cases: 1,
+      }),
+    ).toBe(5)
   })
 
   it("allows assignment only before transit and requires vehicle to start", () => {

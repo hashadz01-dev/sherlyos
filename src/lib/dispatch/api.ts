@@ -19,6 +19,8 @@ export const dispatchKeys = {
   assigned: ["delivery-runs"] as const,
   assignees: (branchId: string) => ["dispatch-assignees", branchId] as const,
   vehicles: (branchId: string) => ["dispatch-vehicles", branchId] as const,
+  deliveryReturn: (dispatchId: string) => ["delivery-return", dispatchId] as const,
+  returnCrates: (returnId: string) => ["delivery-return-crates", returnId] as const,
 }
 
 export type DispatchReservation = {
@@ -167,6 +169,10 @@ export type DispatchDetail = {
   posted_transaction_id: string | null
   physical_return_status: string | null
   return_required?: boolean
+  return_id?: string | null
+  return_number?: string | null
+  return_status?: string | null
+  return_version?: number | null
   delivery_outcome?: string | null
   proof_reference?: string | null
   attempted_at?: string | null
@@ -331,4 +337,138 @@ export function listAssignableVehicles(targetBranch: string) {
   return dispatchRpc<AssignableVehicle[]>("list_assignable_vehicles", {
     target_branch: targetBranch,
   }).then((rows) => asList<AssignableVehicle>(rows))
+}
+
+export type DeliveryReturnLot = {
+  id: string
+  order_line_id: string
+  product_id: string
+  sku: string
+  product_name: string
+  lot_id: string
+  manufacturer_lot_code: string | null
+  expiry_date: string | null
+  lot_status: string
+  source_crate_id: string
+  source_crate_code: string
+  dispatched_cases: number
+  delivered_cases: number
+  saleable_cases: number
+  damaged_cases: number
+  uncertain_cases: number
+  missing_cases: number
+  unresolved_cases: number
+  receiving_crate_id: string | null
+  receiving_crate_code: string | null
+  posted_crate_id: string | null
+  posted_crate_code: string | null
+}
+
+export type DeliveryReturnEvent = {
+  id: string
+  event_type: string
+  actor_id: string
+  from_status: string | null
+  to_status: string
+  return_version: number
+  payload: Record<string, unknown>
+  created_at: string
+}
+
+export type DeliveryReturnDetail = {
+  id: string
+  dispatch_id: string
+  dispatch_number: string
+  branch_id: string
+  return_number: string
+  status: string
+  version: number
+  declared_returned_cases: number
+  handed_back_at: string | null
+  handed_back_by: string | null
+  handback_notes: string | null
+  counted_at: string | null
+  counted_by: string | null
+  counted_by_name: string | null
+  approved_at: string | null
+  approved_by: string | null
+  posted_at: string | null
+  posted_by: string | null
+  posted_transaction_id: string | null
+  closed_at: string | null
+  related_damage_report_ids: string[]
+  unresolved_cases: number
+  cutover: { dual_write_enabled: boolean }
+  lots: DeliveryReturnLot[]
+  events: DeliveryReturnEvent[]
+}
+
+export type DeliveryReturnStorageCrate = {
+  id: string
+  code: string
+  name: string
+  zone_code: string
+}
+
+export function getDeliveryReturn(targetDispatch: string) {
+  return dispatchRpc<DeliveryReturnDetail>("get_delivery_return", {
+    target_dispatch: targetDispatch,
+  })
+}
+
+export function declareDeliveryReturnHandback(input: {
+  target_return: string
+  declared_returned_cases: number
+  handback_notes: string | null
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DeliveryReturnDetail>("declare_delivery_return_handback", input)
+}
+
+export function countDeliveryReturn(input: {
+  target_return: string
+  lot_counts: {
+    id: string
+    delivered_cases: number
+    saleable_cases: number
+    damaged_cases: number
+    uncertain_cases: number
+    missing_cases: number
+    receiving_crate_id: string | null
+  }[]
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DeliveryReturnDetail>("count_delivery_return", input)
+}
+
+export function approveDeliveryReturn(input: {
+  target_return: string
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DeliveryReturnDetail>("approve_delivery_return", input)
+}
+
+export function postDeliveryReturn(input: {
+  target_return: string
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DeliveryReturnDetail>("post_delivery_return", input)
+}
+
+export function closeDeliveryReturnMissing(input: {
+  target_return: string
+  expected_version: number
+  idempotency_key: string
+}) {
+  return dispatchRpc<DeliveryReturnDetail>("close_delivery_return_missing", input)
+}
+
+export function listDeliveryReturnStorageCrates(targetReturn: string) {
+  return dispatchRpc<DeliveryReturnStorageCrate[]>("list_delivery_return_storage_crates", {
+    target_return: targetReturn,
+  }).then((rows) => asList<DeliveryReturnStorageCrate>(rows))
 }

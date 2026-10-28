@@ -277,7 +277,7 @@ test("J: delivery person is denied protected operational URLs", async ({ page })
   await signIn(page, "driver.m14e2e@example.com")
   await page.goto("/reports")
   await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible({ timeout: 20_000 })
-  for (const path of ["/reports/inventory", "/picking", "/dispatch", "/inventory", "/orders", "/masters"]) {
+  for (const path of ["/reports/inventory", "/picking", "/inventory", "/orders", "/masters", "/dispatch"]) {
     await page.goto(path)
     await expect(page.getByRole("heading", { name: "You do not have access to this page" })).toBeVisible({
       timeout: 20_000,

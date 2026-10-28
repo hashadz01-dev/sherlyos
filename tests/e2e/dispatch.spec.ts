@@ -485,7 +485,7 @@ test("godown manager records a failed delivery without restocking", async ({ pag
   await page.getByLabel("Failed delivery reason").fill("Customer refused the cartons")
   await page.getByRole("button", { name: "Record exception" }).click()
   await expect(page.getByText("Delivery exception").first()).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText("Pending verification (stock not restored)")).toBeVisible()
+  await expect(page.getByText("Awaiting driver handback", { exact: true })).toBeVisible()
   const afterFail = lastLine(
     runLocalSql(
       `

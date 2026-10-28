@@ -43,6 +43,42 @@ export const dispatchEventLabel: Record<string, string> = {
   delivered: "Delivery acknowledged",
   exception_recorded: "Delivery exception",
   partial_recorded: "Partial delivery recorded",
+  return_posted: "Delivery return posted",
+  return_closed_missing: "Missing return closed",
+}
+
+export const deliveryReturnStatusLabel: Record<string, string> = {
+  awaiting_handback: "Awaiting driver handback",
+  handed_back: "Handed back — awaiting count",
+  counted: "Counted — awaiting approval",
+  approved: "Approved — awaiting stock posting",
+  posted: "Returned to stock",
+  closed_missing: "Closed — missing, no stock credit",
+  cancelled: "Return cancelled",
+}
+
+export const deliveryReturnStatusTone: Record<
+  string,
+  "neutral" | "info" | "success" | "warning" | "danger"
+> = {
+  awaiting_handback: "warning",
+  handed_back: "info",
+  counted: "info",
+  approved: "warning",
+  posted: "success",
+  closed_missing: "danger",
+  cancelled: "danger",
+}
+
+export const deliveryReturnEventLabel: Record<string, string> = {
+  opened: "Return opened",
+  handed_back: "Driver handback",
+  counted: "Store Keeper count",
+  approved: "Godown Manager approved",
+  returned_to_count: "Sent back to count",
+  posted: "Stock credited",
+  closed_missing: "Closed as missing",
+  cancelled: "Return cancelled",
 }
 
 export const vehicleTypeLabel: Record<string, string> = {
@@ -82,4 +118,28 @@ export function cutoverBlocksDispatch(input: {
     return "Lot-aware dispatch requires dual-write to be enabled. Aggregate-only stock has no valid lot identities."
   }
   return null
+}
+
+/** Dual-write off is a hard return-posting blocker; there is no aggregate credit path. */
+export function cutoverBlocksDeliveryReturn(dualWriteEnabled: boolean) {
+  if (!dualWriteEnabled) {
+    return "Lot-aware delivery returns require dual-write. Aggregate-only credit is not allowed."
+  }
+  return null
+}
+
+export function lotClassificationTotal(input: {
+  delivered_cases: number
+  saleable_cases: number
+  damaged_cases: number
+  uncertain_cases: number
+  missing_cases: number
+}) {
+  return (
+    input.delivered_cases +
+    input.saleable_cases +
+    input.damaged_cases +
+    input.uncertain_cases +
+    input.missing_cases
+  )
 }

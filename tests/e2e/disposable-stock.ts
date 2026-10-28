@@ -32,6 +32,8 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m73%",
   // M7.4A HTTP/SQL/concurrency leftovers (covers m74a- and m74ac_ families).
   "m74a%",
+  // M7.4B HTTP/SQL/concurrency leftovers (covers m74b-, m74bc_, m74bh_).
+  "m74b%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {
@@ -98,6 +100,24 @@ export function cleanupDisposableTestStock(
     set session_replication_role = replica;
     select set_config('app.picking_write', 'on', true);
     select set_config('app.shipment_write', 'on', true);
+    -- Disposable dual-write tests leave lot_id on ledger; later M1 wipes require it null.
+    update public.stock_ledger sl
+    set lot_id = null
+    from public.products p
+    where p.id = sl.product_id
+      and (${skuPred});
+    delete from public.stock_delivery_return_events
+    where return_id in (
+      select r.id
+      from public.stock_delivery_returns r
+      join public.stock_delivery_return_lots l on l.return_id = r.id
+      join public.products p on p.id = l.product_id
+      where ${skuPred}
+    );
+    delete from public.stock_delivery_return_lots l
+    using public.products p
+    where p.id = l.product_id
+      and (${skuPred});
     -- Shipment lots FK to reservations; remove disposable documents first.
     delete from public.order_shipment_events
     where shipment_id in (

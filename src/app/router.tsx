@@ -237,6 +237,7 @@ export const appRouteObjects: RouteObject[] = [
                   "dispatch.confirm",
                   "deliveries.execute",
                   "deliveries.assign",
+                  "deliveries.return_view",
                   "operations.monitor",
                 ]}
               >
@@ -251,6 +252,7 @@ export const appRouteObjects: RouteObject[] = [
                 permissions={[
                   "deliveries.execute",
                   "deliveries.assign",
+                  "deliveries.return_view",
                   "dispatch.view",
                   "operations.monitor",
                 ]}

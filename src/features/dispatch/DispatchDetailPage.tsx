@@ -23,9 +23,11 @@ import {
   type AssignableVehicle,
   type DispatchDetail,
 } from "@/lib/dispatch/api"
+import { DeliveryReturnPanel } from "@/features/dispatch/DeliveryReturnPanel"
 import {
   canReassignDelivery,
   canStartDelivery,
+  deliveryReturnStatusLabel,
   dispatchEventLabel,
   dispatchStatusLabel,
   dispatchStatusTone,
@@ -556,7 +558,12 @@ function DispatchBody({
         {request.physical_return_status || request.return_required ? (
           <div>
             <dt className="text-slate-500">Physical return</dt>
-            <dd>Pending verification (stock not restored)</dd>
+            <dd>
+              {request.return_number ? `${request.return_number} · ` : ""}
+              {deliveryReturnStatusLabel[request.return_status ?? ""] ??
+                deliveryReturnStatusLabel[request.physical_return_status ?? ""] ??
+                "Return required (stock not restored)"}
+            </dd>
           </div>
         ) : null}
         {request.exception_reason ? (
@@ -727,6 +734,10 @@ function DispatchBody({
           </div>
         )}
       </section>
+
+      {request.return_required || request.return_id ? (
+        <DeliveryReturnPanel dispatchId={request.id} />
+      ) : null}
 
       <section>
         <h2 className="mb-2 text-base font-semibold">Assignment history</h2>

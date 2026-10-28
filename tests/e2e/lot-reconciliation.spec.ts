@@ -412,6 +412,12 @@ function wipeLocalLotsIfSafe() {
       end if;
       perform set_config('app.lot_reconciliation_write', 'on', true);
       perform set_config('app.picking_write', 'on', true);
+      -- Return lots pin consumed reservations and original lots. Replica skips the
+      -- append-only guard so a local wipe can proceed.
+      execute 'set session_replication_role = replica';
+      delete from public.stock_delivery_return_events;
+      delete from public.stock_delivery_return_lots;
+      execute 'set session_replication_role = origin';
       -- Local lot wipe cannot leave reservation FKs pointing at deleted lots.
       delete from public.stock_picking_exceptions;
       delete from public.stock_reservations;

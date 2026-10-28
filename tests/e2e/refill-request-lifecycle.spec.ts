@@ -166,15 +166,8 @@ test("accounts creates and submits a refill request without changing stock", asy
       .textContent()
       .then((text) => text?.trim() ?? ""),
   })
-  await page.getByLabel("Product line 1").selectOption({
-    label: await page
-      .getByLabel("Product line 1")
-      .locator("option")
-      .filter({ hasText: fixture.productSku })
-      .first()
-      .textContent()
-      .then((text) => text?.trim() ?? ""),
-  })
+  await page.getByLabel("Product line 1").fill(fixture.productSku)
+  await page.getByRole("option", { name: `${fixture.productSku} · ${fixture.productName}` }).click()
   await page.getByLabel("Requested cases line 1").fill("5")
   await page.getByRole("button", { name: "Save draft" }).click()
   await expect(page.getByRole("heading", { name: /^RF-/ })).toBeVisible({ timeout: 20_000 })

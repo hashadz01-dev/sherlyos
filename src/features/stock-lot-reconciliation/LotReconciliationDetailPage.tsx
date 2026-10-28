@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ProductSearchField } from "@/components/forms/ProductSearchField"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAuth } from "@/hooks/use-auth"
@@ -687,7 +688,6 @@ function FoundProduct({
   onSaved: () => Promise<void>
   onMutationError: (error: unknown) => void
 }) {
-  const locations = useStockLocations()
   const [crateId, setCrateId] = useState(detail.crates[0]?.crate_id ?? "")
   const [productId, setProductId] = useState("")
   const add = useMutation({
@@ -706,7 +706,6 @@ function FoundProduct({
     onError: onMutationError,
   })
   if (!actions.foundProduct) return null
-  const products = (locations.products.data ?? []).filter((product) => product.is_active)
   return (
     <form
       className="grid gap-3 rounded-2xl bg-white p-4 text-sm ring-1 ring-slate-200"
@@ -736,22 +735,11 @@ function FoundProduct({
             ))}
           </select>
         </label>
-        <label className="grid gap-1">
-          Product
-          <select
-            aria-label="Unexpected product"
-            className="h-10 rounded-lg border border-input bg-transparent px-2.5"
-            value={productId}
-            onChange={(event) => setProductId(event.target.value)}
-          >
-            <option value="">Select a product</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.sku} · {product.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProductSearchField
+          label="Unexpected product"
+          value={productId}
+          onChange={(nextId) => setProductId(nextId)}
+        />
       </div>
       {add.error ? (
         <p role="alert" className="text-destructive">

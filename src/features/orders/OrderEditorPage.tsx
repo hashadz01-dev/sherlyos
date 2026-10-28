@@ -10,7 +10,6 @@ import {
   createOrder,
   getOrder,
   loadOrderBranches,
-  loadOrderProducts,
   loadOrderShops,
   setOrder,
 } from "@/lib/orders/api"
@@ -22,7 +21,6 @@ export function NewOrderPage() {
   const { can } = useAccess()
   const shops = useQuery({ queryKey: ["order-shops"], queryFn: loadOrderShops })
   const branches = useQuery({ queryKey: ["order-branches"], queryFn: loadOrderBranches })
-  const products = useQuery({ queryKey: ["order-products"], queryFn: loadOrderProducts })
   const create = useMutation({
     mutationFn: (values: OrderFormValues) =>
       createOrder({
@@ -50,19 +48,19 @@ export function NewOrderPage() {
         title="New order"
         description="Save a draft request for an authorized shop and godown. Stock is not reserved."
       />
-      {shops.isLoading || branches.isLoading || products.isLoading ? (
+      {shops.isLoading || branches.isLoading ? (
         <LoadingBlock label="Loading catalog" />
       ) : null}
-      {shops.error || branches.error || products.error ? (
+      {shops.error || branches.error ? (
         <p role="alert" className="text-sm text-destructive">
-          {(shops.error ?? branches.error ?? products.error)?.message}
+          {(shops.error ?? branches.error)?.message}
         </p>
       ) : null}
-      {shops.data && branches.data && products.data ? (
+      {shops.data && branches.data ? (
         <OrderForm
           shops={shops.data}
           branches={branches.data}
-          products={products.data}
+          products={[]}
           initial={{
             shopId: "",
             branchId: "",
@@ -94,7 +92,6 @@ export function EditOrderPage() {
   })
   const shops = useQuery({ queryKey: ["order-shops"], queryFn: loadOrderShops })
   const branches = useQuery({ queryKey: ["order-branches"], queryFn: loadOrderBranches })
-  const products = useQuery({ queryKey: ["order-products"], queryFn: loadOrderProducts })
   const save = useMutation({
     mutationFn: (values: OrderFormValues) => {
       if (!detail.data) {
@@ -130,12 +127,12 @@ export function EditOrderPage() {
         title={order ? `Edit ${order.order_number}` : "Edit order"}
         description="Replace the shop, godown, source, and lines. Status stays the same."
       />
-      {detail.isLoading || shops.isLoading || branches.isLoading || products.isLoading ? (
+      {detail.isLoading || shops.isLoading || branches.isLoading ? (
         <LoadingBlock label="Loading order" />
       ) : null}
-      {detail.error || shops.error || branches.error || products.error ? (
+      {detail.error || shops.error || branches.error ? (
         <p role="alert" className="text-sm text-destructive">
-          {(detail.error ?? shops.error ?? branches.error ?? products.error)?.message}
+          {(detail.error ?? shops.error ?? branches.error)?.message}
         </p>
       ) : null}
       {order && !editable ? (
@@ -143,11 +140,11 @@ export function EditOrderPage() {
           Only the creator can edit a draft or held order.
         </p>
       ) : null}
-      {editable && detail.data && shops.data && branches.data && products.data ? (
+      {editable && detail.data && shops.data && branches.data ? (
         <OrderForm
           shops={shops.data}
           branches={branches.data}
-          products={products.data}
+          products={[]}
           initial={{
             shopId: order.shop_id,
             branchId: order.branch_id,

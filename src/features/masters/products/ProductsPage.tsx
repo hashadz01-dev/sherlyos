@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { callRpc, loadRows } from "@/lib/masters/api"
+import { searchProducts } from "@/lib/masters/product-search"
 import { notify } from "@/lib/utilities/notify"
 import {
   emptyToNull,
@@ -24,7 +25,7 @@ import {
   FilterSelect,
   SearchField,
 } from "@/features/masters/MasterControls"
-import { matchesSearch, matchesStatus } from "@/lib/masters/filters"
+import { matchesStatus } from "@/lib/masters/filters"
 
 type Product = {
   id: string
@@ -60,15 +61,21 @@ export function ProductsPage() {
     "expiry_controlled",
   )
   const canClassifyExpiry = can("products.expiry_policy.manage")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(search.trim()), 200)
+    return () => window.clearTimeout(handle)
+  }, [search])
 
   const products = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products-search", debouncedSearch, statusFilter],
     queryFn: () =>
-      loadRows<Product>(
-        "products",
-        "id, sku, name, category_id, supplier_id, is_active, expiry_policy",
-        "name",
-      ),
+      searchProducts({
+        query: debouncedSearch,
+        activeOnly: statusFilter === "active",
+        limit: 50,
+      }),
   })
   const categories = useQuery({
     queryKey: ["product-categories"],
@@ -99,7 +106,7 @@ export function ProductsPage() {
     onSuccess: async () => {
       setEditing(null)
       notify.success("Product saved")
-      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products-search"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
@@ -114,7 +121,7 @@ export function ProductsPage() {
     onSuccess: async () => {
       setStatusTarget(null)
       notify.success("Product status updated")
-      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products-search"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
@@ -130,7 +137,7 @@ export function ProductsPage() {
     onSuccess: async () => {
       setExpiryTarget(null)
       notify.success("Expiry policy updated")
-      await queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products-search"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
@@ -139,7 +146,6 @@ export function ProductsPage() {
   const supplierName = new Map((suppliers.data ?? []).map((row) => [row.id, row.name]))
   const visible = (products.data ?? []).filter((product) => {
     return (
-      matchesSearch(search, [product.name, product.sku]) &&
       matchesStatus(statusFilter, product.is_active) &&
       (categoryFilter === "all" || product.category_id === categoryFilter) &&
       (supplierFilter === "all" || product.supplier_id === supplierFilter)
@@ -186,7 +192,7 @@ export function ProductsPage() {
         error={products.error}
         empty={visible.length === 0}
         emptyTitle="No products"
-        emptyDescription="No products match this view."
+        emptyDescription="No products match this search. Type a SKU or name to search the full catalog."
       >
         <ul className="divide-y divide-slate-200/80">
           {visible.map((product) => (

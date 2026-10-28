@@ -201,6 +201,92 @@ function enableLotDualWrite() {
   `
 }
 
+function restoreDualWrite() {
+  return `
+    set session_replication_role = replica;
+    update public.app_configuration set value = 'false'::jsonb
+    where key in (
+      'stock.lots.dual_write_enabled',
+      'stock.lots.aggregate_only_blocked',
+      'damage.stock_hold_ready'
+    );
+    set session_replication_role = origin;
+  `
+}
+
+function seedLotOpening(key, qty) {
+  return `
+    ${enableLotDualWrite()}
+    do $$
+    declare
+      admin_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'admin');
+      crate_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'crate');
+      p_product uuid;
+      selected_lot uuid;
+    begin
+      perform set_config('request.jwt.claim.sub', admin_id::text, true);
+      perform set_config('request.jwt.claims', jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text, true);
+      p_product := public.create_product('${PREFIX}-${key}', 'M54E ${key}', null, null);
+      perform public.set_product_expiry_policy(p_product, 'expiry_controlled');
+      perform public.post_opening_stock(
+        p_product, crate_id, ${qty}, '${PREFIX}-open-${key}', null, 'M54E-${key}', null, '2028-06-01'
+      );
+      select sl.id into selected_lot
+      from public.stock_lots sl
+      where sl.product_id = p_product
+      order by sl.created_at
+      limit 1;
+      insert into public.phase_m54e_race_target (name, value) values
+        ('product_${key}', p_product::text),
+        ('lot_${key}', selected_lot::text)
+      on conflict (name) do update set value = excluded.value;
+    end $$;
+  `
+}
+
+function attachStorageHold(key, qty) {
+  return `
+    set session_replication_role = replica;
+    do $$
+    declare
+      godown_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'godown');
+      crate_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'crate');
+      branch_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'branch');
+      p_product uuid := (select value::uuid from public.phase_m54e_race_target where name = 'product_${key}');
+      p_lot uuid := (select value::uuid from public.phase_m54e_race_target where name = 'lot_${key}');
+      report_id uuid;
+      line_id uuid;
+      ev_id uuid := gen_random_uuid();
+    begin
+      insert into public.damage_reports (
+        report_number, scenario, godown_id, status, version, reporter_user_id,
+        verifier_user_id, verified_at, idempotency_key, request_fingerprint, notes
+      ) values (
+        '${PREFIX}-${key}', 'storage', branch_id, 'verified', 1, godown_id,
+        godown_id, now(), '${PREFIX}-${key}-key', '${PREFIX}-${key}-fp', 'race ${key}'
+      ) returning id into report_id;
+      insert into public.damage_report_lines (
+        damage_report_id, product_id, crate_id, lot_id, quantity_cases, damage_reason
+      ) values (report_id, p_product, crate_id, p_lot, ${qty}, 'crushed')
+      returning id into line_id;
+      insert into public.damage_stock_holds (
+        damage_report_id, damage_report_line_id, product_id, crate_id, lot_id,
+        quantity_cases, hold_kind, status
+      ) values (report_id, line_id, p_product, crate_id, p_lot, ${qty}, 'on_hand_deduction', 'active');
+      -- Exceptional request requires verified photographic evidence before disposition.
+      insert into public.damage_evidence (
+        id, damage_report_id, storage_path, mime_type, uploaded_by, verified_at
+      ) values (
+        ev_id, report_id, report_id::text || '/' || ev_id::text, 'image/jpeg', godown_id, now()
+      );
+      insert into public.phase_m54e_race_target (name, value) values
+        ('report_${key}', report_id::text)
+      on conflict (name) do update set value = excluded.value;
+    end $$;
+    set session_replication_role = origin;
+  `
+}
+
 function seedVerifiedHold(key, qty, leftover = 0) {
   const opening = qty + leftover
   return `
@@ -807,15 +893,17 @@ async function racePostTransfer() {
 }
 
 async function racePostPicking() {
-  await seedApproved("pk", 2, 0)
+  await psql(seedLotOpening("pk", 2))
   await psql(`
     do $$
     declare
       accounts_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'accounts');
+      godown_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'godown');
       branch_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'branch');
       shop_id uuid := (select value::uuid from public.phase_m54e_race_target where name = 'shop');
       p_product uuid := (select value::uuid from public.phase_m54e_race_target where name = 'product_pk');
       order_id uuid;
+      payload jsonb;
     begin
       perform set_config('request.jwt.claim.sub', accounts_id::text, true);
       perform set_config('request.jwt.claims', jsonb_build_object('sub', accounts_id, 'role', 'authenticated')::text, true);
@@ -836,6 +924,40 @@ async function racePostPicking() {
       values ('order_pk', order_id::text)
       on conflict (name) do update set value = excluded.value;
     end $$;
+  `)
+  await psql(attachStorageHold("pk", 2))
+  await psql(`
+    begin;
+    ${asUser(
+      "godown",
+      `
+      select public.request_exceptional_damage_disposition(
+        (select value::uuid from public.phase_m54e_race_target where name = 'report_pk'),
+        1, 'destroy', 'race request pk', '${PREFIX}-req-pk'
+      );
+    `,
+    )}
+    commit;
+  `)
+  await psql(`
+    insert into public.phase_m54e_race_target (name, value)
+    select 'request_pk', id::text
+    from public.damage_exceptional_requests
+    where request_idempotency_key = '${PREFIX}-req-pk'
+    on conflict (name) do update set value = excluded.value;
+  `)
+  await psql(`
+    begin;
+    ${asUser(
+      "admin",
+      `
+      select public.approve_exceptional_damage_disposition(
+        (select value::uuid from public.phase_m54e_race_target where name = 'request_pk'),
+        1
+      );
+    `,
+    )}
+    commit;
   `)
   const [x, y] = await raceTwo(
     "PK",
@@ -873,6 +995,7 @@ async function racePostPicking() {
   }
   await assertNoNegative()
   ok("exceptional post vs picking", "held quantity stayed unreservable")
+  await psql(restoreDualWrite())
 }
 
 async function racePostDeact() {

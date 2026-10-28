@@ -622,9 +622,8 @@ test("refresh, unexpected stock, reject, and reopen stay on the session", async 
 
   await saveMatchedCount(page, "m1s2qa-soap", 3)
   await saveKnownLot(page, "m1s2qa-soap", "SOAP-A2", 3, "2028-01-01")
-  await page.getByLabel("Unexpected product", { exact: true }).selectOption({
-    label: "m1s2qa-found · QA Found",
-  })
+  await page.getByLabel("Unexpected product", { exact: true }).fill("m1s2qa-found")
+  await page.getByRole("option", { name: "m1s2qa-found · QA Found" }).click()
   await page.getByRole("button", { name: "Record unexpected product" }).click()
   await expect(page.getByRole("heading", { name: "m1s2qa-found QA Found" })).toBeVisible({
     timeout: 15_000,

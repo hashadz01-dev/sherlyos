@@ -235,7 +235,10 @@ test("salesperson captures a shop order", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "New order" })).toBeVisible({ timeout: 20_000 })
   await page.getByLabel("Shop").selectOption({ label: fixture.shopName })
   await page.getByLabel("Fulfilling godown").selectOption({ label: fixture.godownName })
-  await page.getByLabel("Product").selectOption({ label: fixture.productLabel })
+  const sku = fixture.productLabel.split(" · ")[0]
+  await page.getByLabel("Product", { exact: true }).click()
+  await page.getByLabel("Product", { exact: true }).fill(sku)
+  await page.getByRole("option", { name: fixture.productLabel }).click()
   await page.getByLabel("Cases").fill("1")
   await page.getByRole("button", { name: "Create draft" }).click()
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}/i, { timeout: 20_000 })

@@ -34,6 +34,9 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m74a%",
   // M7.4B HTTP/SQL/concurrency leftovers (covers m74b-, m74bc_, m74bh_).
   "m74b%",
+  // M7.4C search-fixture leftovers (covers m74c-pg- and zzz-m74c-*).
+  "m74c%",
+  "zzz-m74c%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {
@@ -89,6 +92,13 @@ function skuFamilySql(alias: string, patterns: readonly string[]) {
  * Matched stock on active test godowns is left in place. Does not delete
  * operational products, branches, or non-test SKUs. Restores cutover and
  * damage readiness flags to false.
+ *
+ * Product master rows from HTTP/Playwright runs accumulate by design:
+ * posted stock_transactions are never deleted just to tidy fixtures, and
+ * product rows are shared reference data. Pickers must search server-side
+ * instead of loading the first PostgREST page. A fresh local database is
+ * `npx supabase db reset --local` on a disposable instance only — never on
+ * the owner's existing development database.
  */
 export function cleanupDisposableTestStock(
   label = "disposable test stock cleanup",

@@ -65,6 +65,34 @@ vi.mock("@/hooks/use-auth", () => ({
   }),
 }))
 
+vi.mock("@/lib/masters/product-search", () => ({
+  productSearchLabel: (row: { sku: string; name: string }) => `${row.sku} · ${row.name}`,
+  searchProducts: vi.fn(async () => [
+    {
+      id: "product-2",
+      sku: "SKU-2",
+      name: "Found tea",
+      is_active: true,
+      expiry_policy: "expiry_controlled",
+      category_id: null,
+      supplier_id: null,
+    },
+  ]),
+  getProduct: vi.fn(async (id: string) =>
+    id === "product-2"
+      ? {
+          id: "product-2",
+          sku: "SKU-2",
+          name: "Found tea",
+          is_active: true,
+          expiry_policy: "expiry_controlled",
+          category_id: null,
+          supplier_id: null,
+        }
+      : null,
+  ),
+}))
+
 vi.mock("@/features/inventory/location-options", () => ({
   useStockLocations: () => ({
     branches: {

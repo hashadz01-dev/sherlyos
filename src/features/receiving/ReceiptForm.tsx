@@ -40,6 +40,8 @@ export function ReceiptForm({
   const allowedProductIds = new Set(
     (reconciliation.data?.receiving.lines ?? []).map((line) => line.product_id),
   )
+  // Keepers have stock.receive, not products.read, so this picker uses the
+  // receiving-options RPC catalog rather than search_products.
   const products = linked
     ? options.products.filter((product) => allowedProductIds.has(product.id))
     : options.products
@@ -60,6 +62,14 @@ export function ReceiptForm({
     if (!parsed.success) {
       setErrors(parsed.error.issues.map((issue) => issue.message))
       return
+    }
+    // Linked receipts may only credit SKUs that remain on the refill request.
+    if (linked && allowedProductIds.size > 0) {
+      const extra = parsed.data.lines.filter((line) => !allowedProductIds.has(line.productId))
+      if (extra.length > 0) {
+        setErrors(["Linked receiving can only use products from the approved refill request."])
+        return
+      }
     }
     setErrors([])
     onSubmit(parsed.data)

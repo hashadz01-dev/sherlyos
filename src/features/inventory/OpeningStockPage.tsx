@@ -6,6 +6,7 @@ import { AppModal } from "@/components/shared/AppModal"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { TextField } from "@/components/forms/TextField"
 import { Button } from "@/components/ui/button"
+import { ProductSearchField } from "@/components/forms/ProductSearchField"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -55,17 +56,16 @@ export function OpeningStockPage() {
   const crates = (locations.crates.data ?? []).filter(
     (crate) => crate.is_active && crate.zone_id === zoneId,
   )
-  const products = (locations.products.data ?? []).filter((product) => product.is_active)
   const branches = activeOperationalBranches(locations.branches.data)
-  const selectedProduct = products.find((product) => product.id === productId)
+  const selectedPolicy = form.watch("expiryPolicy")
 
   useEffect(() => {
     form.setValue("dualWriteEnabled", dualWriteEnabled)
   }, [dualWriteEnabled, form])
 
   useEffect(() => {
-    form.setValue("expiryPolicy", selectedProduct?.expiry_policy ?? null)
-  }, [selectedProduct?.expiry_policy, form])
+    if (!productId) form.setValue("expiryPolicy", null)
+  }, [productId, form])
 
   const post = useMutation({
     mutationFn: (values: OpeningStockValues) =>
@@ -141,19 +141,15 @@ export function OpeningStockPage() {
             </option>
           ))}
         </SelectField>
-        <SelectField
+        <ProductSearchField
           label="Product"
+          value={productId}
           error={form.formState.errors.productId?.message}
-          {...form.register("productId")}
-        >
-          <option value="">Choose a product</option>
-          {products.map((product) => (
-            <option key={product.id} value={product.id}>
-              {product.name} ({product.sku})
-              {product.expiry_policy ? ` · ${product.expiry_policy}` : " · unclassified"}
-            </option>
-          ))}
-        </SelectField>
+          onChange={(nextId, product) => {
+            form.setValue("productId", nextId, { shouldValidate: true })
+            form.setValue("expiryPolicy", product?.expiry_policy ?? null)
+          }}
+        />
         <TextField
           label="Carton cases"
           inputMode="numeric"
@@ -179,7 +175,7 @@ export function OpeningStockPage() {
             />
             <TextField
               label={
-                selectedProduct?.expiry_policy === "expiry_controlled"
+                selectedPolicy === "expiry_controlled"
                   ? "Expiry date"
                   : "Expiry date (leave blank for non-expiring)"
               }

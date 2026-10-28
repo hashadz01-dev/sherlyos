@@ -16,14 +16,6 @@ export type CrateOption = {
   name: string | null
   is_active: boolean
 }
-export type ProductOption = {
-  id: string
-  sku: string
-  name: string
-  is_active: boolean
-  expiry_policy: "expiry_controlled" | "non_expiring" | null
-}
-
 export function useStockLocations() {
   const branches = useQuery({
     queryKey: ["branches"],
@@ -39,15 +31,7 @@ export function useStockLocations() {
     queryFn: () =>
       loadRows<CrateOption>("crates", "id, zone_id, code, name, is_active", "code"),
   })
-  const products = useQuery({
-    queryKey: ["products"],
-    queryFn: () =>
-      loadRows<ProductOption>(
-        "products",
-        "id, sku, name, is_active, expiry_policy",
-        "name",
-      ),
-  })
 
-  return { branches, zones, crates, products }
+  // Product pickers use search_products. Do not dump the first PostgREST page here.
+  return { branches, zones, crates }
 }

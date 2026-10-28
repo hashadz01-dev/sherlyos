@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { ProductSearchField } from "@/components/forms/ProductSearchField"
 import { Button } from "@/components/ui/button"
 import { activeOperationalBranches } from "@/lib/branches/operational"
 import type { OrderCatalogBranch, OrderCatalogProduct, OrderCatalogShop, OrderLineInput, OrderSource } from "@/lib/orders/api"
@@ -48,7 +49,9 @@ export function OrderForm({
   )
   const activeShops = shops.filter((shop) => shop.is_active)
   const activeBranches = activeOperationalBranches(branches)
-  const activeProducts = products.filter((product) => product.is_active)
+  // Catalog prop is retained so existing loaders keep compiling; the picker
+  // searches server-side and no longer maps this array.
+  void products
   const valid =
     shopId !== "" &&
     branchId !== "" &&
@@ -132,29 +135,18 @@ export function OrderForm({
         <legend className="text-sm font-medium">Lines</legend>
         {lines.map((line, index) => (
           <div key={index} className="grid gap-2 sm:grid-cols-[1fr_8rem_auto]">
-            <label className="grid gap-1 text-sm">
-              Product
-              <select
-                className="rounded-xl border bg-card px-3 py-2"
-                value={line.product_id}
-                onChange={(event) => {
-                  const productId = event.target.value
-                  setLines((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, product_id: productId } : item,
-                    ),
-                  )
-                }}
-                required
-              >
-                <option value="">Select a product</option>
-                {activeProducts.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.sku} · {product.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ProductSearchField
+              label="Product"
+              value={line.product_id}
+              required
+              onChange={(productId) => {
+                setLines((current) =>
+                  current.map((item, itemIndex) =>
+                    itemIndex === index ? { ...item, product_id: productId } : item,
+                  ),
+                )
+              }}
+            />
             <label className="grid gap-1 text-sm">
               Cases
               <input

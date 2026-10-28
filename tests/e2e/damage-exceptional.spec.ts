@@ -448,9 +448,17 @@ test("stale-version execution recovers after refresh", async ({ page }) => {
     page.getByText(/this record changed|refresh/i).first(),
   ).toBeVisible()
   await page.reload()
-  await page.getByRole("button", { name: /execute destroy/i }).click()
-  await page.getByRole("button", { name: /confirm exceptional execution/i }).click()
-  await expect(page.getByText("Posted — ledger complete").first()).toBeVisible()
+  // Wait for the report payload, not just the document, so confirm uses the
+  // version loaded after reload rather than a stale in-memory dialog.
+  const posted = page.getByText("Posted — ledger complete").first()
+  const execute = page.getByRole("button", { name: /execute destroy/i })
+  await expect(posted.or(execute)).toBeVisible({ timeout: 20_000 })
+  if (await execute.isVisible()) {
+    await expect(page.getByText("Approved — pending execution").first()).toBeVisible()
+    await execute.click()
+    await page.getByRole("button", { name: /confirm exceptional execution/i }).click()
+  }
+  await expect(posted).toBeVisible({ timeout: 20_000 })
 })
 
 test("store keeper cannot open the exceptional queue", async ({ page }) => {

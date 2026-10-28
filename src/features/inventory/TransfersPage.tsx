@@ -6,6 +6,7 @@ import { AppModal } from "@/components/shared/AppModal"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { TextField } from "@/components/forms/TextField"
 import { Button } from "@/components/ui/button"
+import { ProductSearchField } from "@/components/forms/ProductSearchField"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useStockLocations } from "@/features/inventory/location-options"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -72,7 +73,6 @@ export function TransfersPage() {
       crate.zone_id === destinationZoneId &&
       crate.id !== sourceCrateId,
   )
-  const products = (locations.products.data ?? []).filter((product) => product.is_active)
   const branches = activeOperationalBranches(locations.branches.data)
   const sourceBalance =
     balances.data?.find(
@@ -196,18 +196,12 @@ export function TransfersPage() {
             </option>
           ))}
         </SelectField>
-        <SelectField
+        <ProductSearchField
           label="Product"
+          value={productId}
           error={form.formState.errors.productId?.message}
-          {...form.register("productId")}
-        >
-          <option value="">Choose a product</option>
-          {products.map((product) => (
-            <option key={product.id} value={product.id}>
-              {product.name} ({product.sku})
-            </option>
-          ))}
-        </SelectField>
+          onChange={(nextId) => form.setValue("productId", nextId, { shouldValidate: true })}
+        />
         <p className="text-sm text-muted-foreground">Source balance: {sourceBalance} carton cases</p>
         {dualWriteEnabled ? (
           <div className="grid gap-3 rounded-xl border border-input p-3">

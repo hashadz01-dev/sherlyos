@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
+import { ProductSearchField } from "@/components/forms/ProductSearchField"
 import { Button } from "@/components/ui/button"
 import { activeOperationalBranches } from "@/lib/branches/operational"
 import type { RefillLineInput, RefillOptions } from "@/lib/refill/api"
@@ -35,13 +36,9 @@ export function RefillForm({
 
   const godowns = activeOperationalBranches(options.godowns)
   const suppliers = options.suppliers.filter((row) => row.is_active)
-  const products = useMemo(
-    () =>
-      options.products.filter(
-        (row) => row.is_active && row.supplier_id === supplierId,
-      ),
-    [options.products, supplierId],
-  )
+  // Product rows come from search_products filtered by the selected supplier,
+  // not the truncated options.products dump.
+  void options.products
   const lineErrors = validateRefillLines(lines)
   const valid =
     supplierId !== "" &&
@@ -118,33 +115,20 @@ export function RefillForm({
         <legend className="text-sm font-medium">Requested SKUs</legend>
         {lines.map((line, index) => (
           <div key={index} className="grid gap-2 sm:grid-cols-[1fr_8rem_auto]">
-            <label className="grid gap-1 text-sm">
-              Product
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={line.product_id}
-                onChange={(event) => {
-                  const productId = event.target.value
-                  setLines((current) =>
-                    current.map((item, itemIndex) =>
-                      itemIndex === index ? { ...item, product_id: productId } : item,
-                    ),
-                  )
-                }}
-                required
-                aria-label={`Product line ${index + 1}`}
-                disabled={supplierId === ""}
-              >
-                <option value="">
-                  {supplierId ? "Select a product" : "Select a supplier first"}
-                </option>
-                {products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.sku} · {product.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ProductSearchField
+              label={`Product line ${index + 1}`}
+              value={line.product_id}
+              required
+              supplierId={supplierId || null}
+              disabled={supplierId === ""}
+              onChange={(productId) => {
+                setLines((current) =>
+                  current.map((item, itemIndex) =>
+                    itemIndex === index ? { ...item, product_id: productId } : item,
+                  ),
+                )
+              }}
+            />
             <label className="grid gap-1 text-sm">
               Cases
               <input

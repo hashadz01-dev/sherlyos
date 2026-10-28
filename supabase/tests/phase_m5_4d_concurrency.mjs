@@ -767,8 +767,15 @@ async function raceWriteoffTransfer() {
     where damage_report_id = (select value::uuid from public.phase_m54d_race_target where name = 'report_wt')
   `)
   const posted = kinds.split(/\r?\n/).filter(Boolean).at(-1) ?? ""
-  if (posted.includes("quarantine_transfer") && posted.includes("ordinary_writeoff")) {
-    throw new Error(`both transfer and write-off posted ${posted} ${JSON.stringify([x, y])}`)
+  const writeoffOnly = posted === "ordinary_writeoff"
+  const transferOnly = posted === "quarantine_transfer"
+  const transferThenWriteoff =
+    posted.includes("quarantine_transfer") && posted.includes("ordinary_writeoff")
+  // Unique index is per (report, kind). Transfer-then-write-off consumes
+  // remaining transferred holds (documented M5.4D pipeline), not two saleable
+  // crate debits. XOR was an incorrect harness expectation.
+  if (!writeoffOnly && !transferOnly && !transferThenWriteoff) {
+    throw new Error(`unexpected write-off/transfer kinds ${posted} ${JSON.stringify([x, y])}`)
   }
   await assertNoNegative()
   ok("write-off vs quarantine transfer")

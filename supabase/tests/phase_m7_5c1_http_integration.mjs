@@ -190,22 +190,35 @@ try {
   if (!open) throw new Error("operating ownership is required")
   ownership = open.ownership_code
 }
-const seller = await rpc(admin, "upsert_statutory_seller_identity", {
-  p_ownership_code: ownership,
-  p_legal_name: "Local QA Seller",
-  p_registered_address: "QA address",
-  p_state_code: "27",
-  p_gstin: "27AAAAA0000A1Z5",
-  p_signature_caption: "QA signatory",
-  p_effective_from: new Date().toISOString().slice(0, 10),
-  p_expected_version: 1,
-})
+let seller
+try {
+  seller = await rpc(admin, "upsert_statutory_seller_identity", {
+    p_ownership_code: ownership,
+    p_legal_name: "Local QA Seller",
+    p_registered_address: "QA address",
+    p_state_code: "27",
+    p_gstin: "27AAAAA0000A1Z5",
+    p_signature_caption: "QA signatory",
+    p_effective_from: new Date().toISOString().slice(0, 10),
+    p_expected_version: 1,
+  })
+} catch (error) {
+  if (!/unique|open|duplicate/i.test(error.message)) throw error
+  const listedSellers = await rpc(admin, "list_statutory_seller_identities")
+  seller = (listedSellers ?? []).find((row) =>
+    ["draft", "submitted", "verified"].includes(row.status),
+  )
+  if (!seller) throw error
+}
 ok("admin can prepare seller identity")
 
-const submitted = await rpc(admin, "submit_statutory_seller_identity", {
-  p_id: seller.id,
-  p_expected_version: seller.version,
-})
+let submitted = seller
+if (seller.status === "draft") {
+  submitted = await rpc(admin, "submit_statutory_seller_identity", {
+    p_id: seller.id,
+    p_expected_version: seller.version,
+  })
+}
 ok("admin can submit seller identity")
 
 let accountsBlocked = false

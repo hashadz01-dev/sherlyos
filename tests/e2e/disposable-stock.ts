@@ -39,6 +39,8 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "zzz-m74c%",
   // M7.5B pricing / invoice-note fixtures.
   "m75b%",
+  // M7.5C statutory / GST preview HTTP leftovers.
+  "m75c%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {
@@ -113,11 +115,17 @@ export function cleanupDisposableTestStock(
     select set_config('app.picking_write', 'on', true);
     select set_config('app.shipment_write', 'on', true);
     -- Disposable dual-write tests leave lot_id on ledger; later M1 wipes require it null.
+    -- Invoice-note lines pin lot_id with ON DELETE RESTRICT. Do not detach those lots.
     update public.stock_ledger sl
     set lot_id = null
     from public.products p
     where p.id = sl.product_id
-      and (${skuPred});
+      and (${skuPred})
+      and not exists (
+        select 1 from public.invoice_note_lines n
+        where n.lot_id = sl.lot_id
+           or n.product_id = sl.product_id
+      );
     delete from public.stock_delivery_return_events
     where return_id in (
       select r.id
@@ -249,6 +257,9 @@ export function cleanupDisposableTestStock(
     where l.product_id = disposable.product_id
       and not exists (
         select 1 from public.stock_lot_balances lb where lb.lot_id = l.id
+      )
+      and not exists (
+        select 1 from public.invoice_note_lines n where n.lot_id = l.id
       );
 
     with disposable as (
@@ -316,7 +327,10 @@ export function wipeDisposableSkuStock(
       where ${skuPred}
     );
     delete from public.stock_lots
-    where product_id in (select p.id from public.products p where ${skuPred});
+    where product_id in (select p.id from public.products p where ${skuPred})
+      and not exists (
+        select 1 from public.invoice_note_lines n where n.lot_id = stock_lots.id
+      );
     delete from public.stock_balances
     where product_id in (select p.id from public.products p where ${skuPred});
     delete from public.stock_transactions

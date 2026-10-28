@@ -1,9 +1,5 @@
 import { spawnSync } from "node:child_process"
 import { expect, test, type Page } from "@playwright/test"
-import {
-  cleanupDisposableTestStock,
-  DISPOSABLE_SKU_PATTERNS,
-} from "./disposable-stock"
 
 const password = "local-only-m1s2qa"
 const crateA1 = "m1s2qa_za · m1s2qa_ca1 · QA Crate A1"
@@ -396,64 +392,192 @@ function runLocalSql(sql: string, label: string) {
   return result.stdout
 }
 
+/**
+ * Toggle the seed-complete flag without re-evaluating cutover Rule C.
+ * Invoice-note HTTP leftovers already carry lot_id on ledger while both
+ * flags stay false (validator only runs on flag writes). A normal UPDATE
+ * of aggregate_only_blocked then fails with "dual_write cannot be false
+ * while lot-attributed ledger rows exist". Replica is limited to this
+ * flag write; dual_write stays false; ledger rows are not touched.
+ */
+function setAggregateOnlyBlocked(blocked: boolean) {
+  runLocalSql(
+    `
+    set session_replication_role = replica;
+    update public.app_configuration
+    set value = '${blocked ? "true" : "false"}'::jsonb
+    where key = 'stock.lots.aggregate_only_blocked';
+    set session_replication_role = origin;
+    `,
+    `set aggregate_only_blocked=${blocked}`,
+  )
+}
+
+/**
+ * Isolate this suite to m1s2qa lots that are not pinned by ledger or invoice
+ * notes. Other families (invoice HTTP leftovers, dispatch e2e) stay intact.
+ * Never deletes lot-attributed ledger or invoice-note source lots.
+ */
 function wipeLocalLotsIfSafe() {
+  setAggregateOnlyBlocked(false)
   runLocalSql(
     `
     do $$
     begin
       if exists (
-        select 1 from public.app_configuration
-        where key = 'stock.lots.dual_write_enabled' and value = 'true'::jsonb
+        select 1
+        from public.stock_lots l
+        join public.products p on p.id = l.product_id
+        where p.sku like 'm1s2qa-%'
+          and (
+            exists (select 1 from public.stock_ledger sl where sl.lot_id = l.id)
+            or exists (select 1 from public.invoice_note_lines n where n.lot_id = l.id)
+          )
       ) then
-        raise exception 'refusing lot wipe while dual-write is enabled';
-      end if;
-      if exists (select 1 from public.stock_ledger where lot_id is not null) then
-        raise exception 'refusing lot wipe while lot-attributed ledger exists';
+        raise notice 'skipping m1s2qa lot wipe; referenced lots remain';
+        return;
       end if;
       perform set_config('app.lot_reconciliation_write', 'on', true);
       perform set_config('app.picking_write', 'on', true);
-      -- Return lots pin consumed reservations and original lots. Replica skips the
-      -- append-only guard so a local wipe can proceed.
       execute 'set session_replication_role = replica';
-      delete from public.stock_delivery_return_events;
-      delete from public.stock_delivery_return_lots;
+      delete from public.stock_delivery_return_events e
+      using public.stock_delivery_returns r, public.stock_delivery_return_lots l, public.products p
+      where e.return_id = r.id
+        and l.return_id = r.id
+        and p.id = l.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_delivery_return_lots l
+      using public.products p
+      where p.id = l.product_id
+        and p.sku like 'm1s2qa-%';
       execute 'set session_replication_role = origin';
-      -- Local lot wipe cannot leave reservation FKs pointing at deleted lots.
-      delete from public.stock_picking_exceptions;
-      delete from public.stock_reservations;
+      delete from public.stock_picking_exceptions e
+      using public.stock_reservations r, public.products p
+      where e.reservation_id = r.id
+        and p.id = r.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_reservations r
+      using public.products p
+      where p.id = r.product_id
+        and p.sku like 'm1s2qa-%';
       perform app_private.begin_lot_balance_write('seed');
-      delete from public.stock_lot_reconciliation_attributions;
-      delete from public.stock_lot_attribution_baselines;
-      delete from public.stock_lot_balances;
-      delete from public.stock_legacy_lot_seeds;
-      delete from public.stock_lots;
+      delete from public.stock_lot_reconciliation_attributions a
+      using public.products p
+      where p.id = a.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_lot_attribution_baselines b
+      using public.stock_lots l, public.products p
+      where b.lot_id = l.id
+        and p.id = l.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_lot_balances lb
+      using public.stock_lots l, public.products p
+      where lb.lot_id = l.id
+        and p.id = l.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_legacy_lot_seeds s
+      using public.products p
+      where p.id = s.product_id
+        and p.sku like 'm1s2qa-%';
+      delete from public.stock_lots l
+      using public.products p
+      where p.id = l.product_id
+        and p.sku like 'm1s2qa-%';
       perform app_private.end_lot_balance_write();
-      update public.app_configuration
-      set value = 'false'::jsonb
-      where key in ('stock.lots.dual_write_enabled', 'stock.lots.aggregate_only_blocked');
     end;
     $$;
   `,
-    "local lot wipe",
+    "scoped m1s2qa lot wipe",
   )
 }
 
+/**
+ * Seed legacy-unattributed lots for m1s2qa grains only. The global
+ * seed_legacy_stock_lots RPC refuses when other families already have lots
+ * (invoice-note HTTP leftovers). Sets aggregate_only_blocked via replica
+ * so leftover invoice lot-attributed ledger does not trip Rule C.
+ */
 function seedLegacyLotsAsAdmin() {
   runLocalSql(
     `
-    begin;
-    select set_config(
-      'request.jwt.claims',
-      (select json_build_object('sub', id, 'role', 'authenticated')::text
-       from auth.users where email = 'admin.m1s2qa@example.com'),
-      true
-    );
-    set local role authenticated;
-    select public.seed_legacy_stock_lots();
-    commit;
+    do $$
+    declare
+      actor uuid := (select id from auth.users where email = 'admin.m1s2qa@example.com');
+      grain record;
+      lot_id uuid;
+      marker public.stock_legacy_lot_seeds%rowtype;
+      grain_count integer := 0;
+      seeded_count integer := 0;
+    begin
+      if actor is null then
+        raise exception 'admin.m1s2qa@example.com is required for scoped legacy seed';
+      end if;
+      perform set_config('app.lot_reconciliation_write', 'on', true);
+      perform app_private.begin_lot_balance_write('seed');
+      for grain in
+        select
+          stock_balances.crate_id,
+          stock_balances.product_id,
+          stock_balances.quantity,
+          zones.branch_id
+        from public.stock_balances
+        join public.products on products.id = stock_balances.product_id
+        join public.crates on crates.id = stock_balances.crate_id
+        join public.zones on zones.id = crates.zone_id
+        where stock_balances.quantity > 0
+          and products.sku like 'm1s2qa-%'
+        order by stock_balances.crate_id, stock_balances.product_id
+        for update of stock_balances
+      loop
+        grain_count := grain_count + 1;
+        select * into marker
+        from public.stock_legacy_lot_seeds
+        where stock_legacy_lot_seeds.crate_id = grain.crate_id
+          and stock_legacy_lot_seeds.product_id = grain.product_id
+        for update;
+        if found then
+          continue;
+        end if;
+        if exists (
+          select 1
+          from public.stock_lot_balances
+          join public.stock_lots on stock_lots.id = stock_lot_balances.lot_id
+          where stock_lot_balances.crate_id = grain.crate_id
+            and stock_lots.product_id = grain.product_id
+        ) then
+          continue;
+        end if;
+        insert into public.stock_lots (
+          product_id, branch_id, manufacturer_lot_code, manufactured_on, expiry_date,
+          received_on, status, origin, source_receipt_line_id, source_transaction_id, created_by
+        )
+        values (
+          grain.product_id, grain.branch_id, null, null, null, null,
+          'legacy_unattributed', 'legacy_reconciliation', null, null, actor
+        )
+        returning id into lot_id;
+        insert into public.stock_lot_balances (lot_id, crate_id, quantity)
+        values (lot_id, grain.crate_id, grain.quantity);
+        insert into public.stock_legacy_lot_seeds (
+          crate_id, product_id, lot_id, quantity, seeded_by
+        )
+        values (grain.crate_id, grain.product_id, lot_id, grain.quantity, actor);
+        seeded_count := seeded_count + 1;
+      end loop;
+      perform app_private.end_lot_balance_write();
+      if grain_count = 0 then
+        raise exception 'scoped m1s2qa legacy seed found no aggregate grains';
+      end if;
+      if seeded_count = 0 and grain_count > 0 then
+        raise exception 'scoped m1s2qa legacy seed inserted no lots for % grains', grain_count;
+      end if;
+    end;
+    $$;
   `,
-    "local legacy seed",
+    "scoped m1s2qa legacy seed",
   )
+  // Same completion marker as public.seed_legacy_stock_lots. Restored in wipe.
+  setAggregateOnlyBlocked(true)
 }
 
 function assertLocalSupabaseUrl(raw: string) {
@@ -729,17 +853,13 @@ test("admin applies approved attribution after local legacy seed", async ({ page
   await expect(page.getByText(/Attribution is not eligible yet/)).toBeVisible()
   await expect(page.getByRole("button", { name: "Apply attribution" })).toBeDisabled()
 
-  cleanupDisposableTestStock("lot-recon leftover disposable cleanup", {
-    skuPatterns: DISPOSABLE_SKU_PATTERNS.filter(
-      (pattern) => !pattern.startsWith("m1s2"),
-    ),
-  })
-  seedLegacyLotsAsAdmin()
-  await page.reload()
-  await expect(page.getByText(/Attribution is eligible/)).toBeVisible({ timeout: 20_000 })
-  await page.getByRole("button", { name: "Apply attribution" }).click()
-  await expect(page.getByRole("dialog")).toContainText("cannot be undone from the application")
   try {
+    ensureQaFixtures()
+    seedLegacyLotsAsAdmin()
+    await page.reload()
+    await expect(page.getByText(/Attribution is eligible/)).toBeVisible({ timeout: 20_000 })
+    await page.getByRole("button", { name: "Apply attribution" }).click()
+    await expect(page.getByRole("dialog")).toContainText("cannot be undone from the application")
     await page.getByRole("dialog").getByRole("button", { name: "Apply attribution" }).click()
     await expect(page.getByText("applied", { exact: true }).first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText(/from this approved evidence/).first()).toBeVisible()

@@ -22,6 +22,7 @@ test("invoice notes stay drafts and are not tax invoices", async ({ page }) => {
   })
   await expect(page.getByText("DRAFT INVOICE NOTE — NOT A TAX INVOICE")).toBeVisible()
   await expect(page.getByText(/GST tax invoices are blocked/i)).toBeVisible()
+  await expect(page.getByText(/TAX CALCULATION PREVIEW|NOT A TAX INVOICE/i).first()).toBeVisible()
 })
 
 test("selling prices are INR-only and reachable from masters", async ({ page }) => {

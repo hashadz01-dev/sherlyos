@@ -16,11 +16,13 @@ import {
 } from "@/lib/invoices/api"
 import {
   INVOICE_DRAFT_WATERMARK,
+  TAX_PREVIEW_WATERMARK,
   formatInr,
   invoiceEventLabel,
   invoiceNoteStatusLabel,
   invoiceNoteStatusTone,
 } from "@/lib/invoices/rules"
+import { getInvoiceTaxPreview, previewInvoiceTax } from "@/lib/invoices/tax-preview"
 import { notify } from "@/lib/utilities/notify"
 
 export function InvoiceNoteDetailPage() {
@@ -35,6 +37,11 @@ export function InvoiceNoteDetailPage() {
     enabled: noteId !== "",
   })
   const note = detail.data
+  const taxPreview = useQuery({
+    queryKey: invoiceKeys.taxPreview(noteId),
+    queryFn: () => getInvoiceTaxPreview(noteId),
+    enabled: noteId !== "" && note?.status === "reviewed",
+  })
   useDocumentTitle(note ? note.note_number : "Invoice note")
 
   async function refresh() {
@@ -73,6 +80,14 @@ export function InvoiceNoteDetailPage() {
 
   const canSubmit = can("invoice_notes.prepare") && note?.status === "draft"
   const canReview = can("invoices.review") && note?.status === "submitted"
+  const taxPreviewMutation = useMutation({
+    mutationFn: () => previewInvoiceTax(noteId, note?.version ?? 1),
+    onSuccess: async () => {
+      notify.success("Tax calculation preview refreshed. This is not a tax invoice.")
+      await queryClient.invalidateQueries({ queryKey: invoiceKeys.taxPreview(noteId) })
+    },
+    onError: (error: Error) => setActionError(error.message),
+  })
   const canCancel =
     note != null &&
     note.status !== "cancelled" &&
@@ -214,7 +229,7 @@ export function InvoiceNoteDetailPage() {
               CONFIGURATION ONLY — TAX INVOICE ISSUANCE DISABLED
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              ready={String(note.statutory.ready)} · Finalization stays blocked until M7.5C.2.
+              ready={String(note.statutory.ready)} · Tax preview cannot issue a tax invoice.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
               {(note.statutory.blockers ?? []).map((blocker) => (
@@ -222,6 +237,55 @@ export function InvoiceNoteDetailPage() {
               ))}
             </ul>
           </div>
+
+          {note.status === "reviewed" ? (
+            <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
+              <h2 className="text-sm font-semibold">GST calculation preview</h2>
+              <p className="mt-1 text-sm font-semibold text-red-800">{TAX_PREVIEW_WATERMARK}</p>
+              {(can("invoice_notes.prepare") || can("invoices.review")) ? (
+                <Button
+                  type="button"
+                  className="mt-3"
+                  onClick={() => taxPreviewMutation.mutate()}
+                  disabled={taxPreviewMutation.isPending}
+                >
+                  Calculate tax preview
+                </Button>
+              ) : null}
+              {taxPreview.data?.stale ? (
+                <p className="mt-2 text-sm text-amber-800">
+                  This preview is stale. Recalculate before relying on these figures.
+                </p>
+              ) : null}
+              {taxPreview.data?.calculated ? (
+                <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Treatment</dt>
+                    <dd>{taxPreview.data.pricing_treatment}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Supply</dt>
+                    <dd>{taxPreview.data.supply_kind}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Taxable</dt>
+                    <dd>{formatInr(taxPreview.data.taxable_value ?? 0)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Tax</dt>
+                    <dd>{formatInr(taxPreview.data.tax_amount ?? 0)}</dd>
+                  </div>
+                </dl>
+              ) : null}
+              {(taxPreview.data?.blockers ?? []).length > 0 ? (
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
+                  {taxPreview.data?.blockers?.map((blocker) => (
+                    <li key={blocker.code}>{blocker.message}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
 
           {(note.credit_note_candidates ?? []).length > 0 ? (
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">

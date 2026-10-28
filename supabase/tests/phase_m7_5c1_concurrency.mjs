@@ -65,8 +65,31 @@ await psql(`
     insert into public.user_roles (user_id, role_id, assigned_by)
     select admin_id, roles.id, admin_id from public.roles where roles.code = 'admin'
     on conflict do nothing;
+    insert into public.products (sku, name, is_active)
+    values ('${PREFIX}-sku', 'M75C1 conc product', true);
   end;
   $$;
+`)
+
+const productId = (await psql(`select id from public.products where sku = '${PREFIX}-sku'`)).trim()
+
+await psql(`
+begin;
+select set_config('request.jwt.claim.sub',
+  (select id::text from auth.users where email = 'admin.${PREFIX}@example.com'), true);
+select set_config(
+  'request.jwt.claims',
+  (select json_build_object('sub', id, 'role', 'authenticated')::text
+   from auth.users where email = 'admin.${PREFIX}@example.com'), true);
+set local role authenticated;
+do $own$
+begin
+  if public.registered_operating_ownership_code() is null then
+    perform public.upsert_statutory_operating_ownership('${PREFIX}', current_date, 1, null);
+  end if;
+end;
+$own$;
+commit;
 `)
 
 function upsertSql(suffix) {
@@ -79,14 +102,8 @@ select set_config(
   (select json_build_object('sub', id, 'role', 'authenticated')::text
    from auth.users where email = 'admin.${PREFIX}@example.com'), true);
 set local role authenticated;
-select public.upsert_statutory_seller_identity(
-  '${PREFIX}',
-  'Concurrent seller ${suffix}',
-  'Address ${suffix}',
-  current_date,
-  1,
-  null, '27', '27AAAAA0000A1Z5', null, null, null, null, null, null, null, null, null,
-  'Signatory', null, null, null
+select public.upsert_product_hsn_classification(
+  '${productId}'::uuid, 'hsn', '190${suffix === "a" ? "5" : "6"}', current_date, 1, null, null
 );
 commit;
 `
@@ -96,9 +113,9 @@ const races = await Promise.allSettled([psql(upsertSql("a")), psql(upsertSql("b"
 const wins = races.filter((row) => row.status === "fulfilled").length
 const losses = races.filter((row) => row.status === "rejected").length
 if (wins !== 1 || losses !== 1) {
-  throw new Error(`expected 1 open seller winner, got wins=${wins} losses=${losses}`)
+  throw new Error(`expected 1 open HSN winner, got wins=${wins} losses=${losses}`)
 }
-ok("duplicate open seller identities serialize to one winner")
+ok("duplicate open HSN classifications serialize to one winner")
 
 const flags = await psql(`
   select string_agg(key || '=' || value::text, ',')

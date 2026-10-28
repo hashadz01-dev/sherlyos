@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   INVOICE_DRAFT_WATERMARK,
   INVOICE_NO_LEGAL_SEAL,
+  TAX_PREVIEW_WATERMARK,
   formatInr,
   invoiceEventLabel,
   isInvoiceNoteStatus,
@@ -12,6 +13,7 @@ describe("invoice-note presentation", () => {
   it("keeps the draft watermark and withholds the legal seal", () => {
     expect(INVOICE_DRAFT_WATERMARK).toBe("DRAFT INVOICE NOTE — NOT A TAX INVOICE")
     expect(INVOICE_NO_LEGAL_SEAL).toMatch(/NO LEGAL SEAL/i)
+    expect(TAX_PREVIEW_WATERMARK).toBe("TAX CALCULATION PREVIEW — NOT A TAX INVOICE")
   })
 
   it("formats INR without inventing another currency", () => {

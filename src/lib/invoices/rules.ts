@@ -45,6 +45,7 @@ export const priceNavPermissions = [
 
 export const INVOICE_DRAFT_WATERMARK = "DRAFT INVOICE NOTE — NOT A TAX INVOICE"
 export const INVOICE_NO_LEGAL_SEAL = "NO LEGAL SEAL — DRAFT ONLY"
+export const TAX_PREVIEW_WATERMARK = "TAX CALCULATION PREVIEW — NOT A TAX INVOICE"
 
 export const invoicePreviewCopies = ["recipient", "transporter", "accounts"] as const
 export type InvoicePreviewCopy = (typeof invoicePreviewCopies)[number]

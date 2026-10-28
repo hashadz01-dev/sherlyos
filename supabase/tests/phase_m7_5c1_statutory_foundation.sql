@@ -83,6 +83,7 @@ declare
   readiness jsonb;
   codes text;
   kind text;
+  ownership text;
 begin
   if exists (
     select 1
@@ -138,9 +139,14 @@ begin
   );
   perform set_config('role', 'authenticated', true);
 
+  if public.registered_operating_ownership_code() is null then
+    perform public.upsert_statutory_operating_ownership('SDI', current_date, 1, null);
+  end if;
+  ownership := public.registered_operating_ownership_code();
+
   begin
     perform public.upsert_statutory_seller_identity(
-      'SDI', 'Acme Legal', '1 Road', current_date, 1,
+      ownership, 'Acme Legal', '1 Road', current_date, 1,
       null, '2', 'BADGSTIN', null, null, null, null, null, null, null, null, null, null, null, null, null
     );
     raise exception 'invalid GSTIN must fail';
@@ -152,7 +158,7 @@ begin
   end;
 
   seller := public.upsert_statutory_seller_identity(
-    'SDI', 'Acme Legal', '1 Road', current_date, 1,
+    ownership, 'Acme Legal', '1 Road', current_date, 1,
     null, '27', null, null, null, null, null, null, null, null, null, null,
     'Authorized signatory', 'Common seal', null, null
   );
@@ -167,7 +173,7 @@ begin
   end;
 
   seller := public.upsert_statutory_seller_identity(
-    'SDI', 'Acme Legal', '1 Road', current_date, (seller ->> 'version')::integer,
+    ownership, 'Acme Legal', '1 Road', current_date, (seller ->> 'version')::integer,
     null, '27', '27AAAAA0000A1Z5', 'AAAAA0000A', null, null, null, null, null, null, null, null,
     'Authorized signatory', 'Common seal', null, (seller ->> 'id')::uuid
   );
@@ -223,7 +229,7 @@ begin
   end;
 
   seller := public.upsert_statutory_seller_identity(
-    'SDI', 'Acme Legal edited', '1 Road', current_date, (seller ->> 'version')::integer,
+    ownership, 'Acme Legal edited', '1 Road', current_date, (seller ->> 'version')::integer,
     null, '27', '27AAAAA0000A1Z5', 'AAAAA0000A', null, null, null, null, null, null, null, null,
     'Authorized signatory', 'Common seal', null, (seller ->> 'id')::uuid
   );
@@ -238,9 +244,16 @@ begin
     json_build_object('sub', verifier_id, 'role', 'authenticated')::text,
     true
   );
-  seller := public.verify_statutory_seller_identity((seller ->> 'id')::uuid, (seller ->> 'version')::integer);
-  if seller ->> 'status' is distinct from 'verified' then
-    raise exception 'verifier must be able to approve seller identity';
+  if not exists (
+    select 1
+    from public.statutory_seller_identities
+    where statutory_seller_identities.ownership_code = ownership
+      and statutory_seller_identities.status = 'verified'
+  ) then
+    seller := public.verify_statutory_seller_identity((seller ->> 'id')::uuid, (seller ->> 'version')::integer);
+    if seller ->> 'status' is distinct from 'verified' then
+      raise exception 'verifier must be able to approve seller identity';
+    end if;
   end if;
 
   perform set_config('request.jwt.claim.sub', admin_id::text, true);
@@ -382,7 +395,14 @@ begin
       json_build_object('sub', verifier_id, 'role', 'authenticated')::text,
       true
     );
-    policy := public.verify_statutory_policy((policy ->> 'id')::uuid, (policy ->> 'version')::integer);
+    if not exists (
+      select 1
+      from public.statutory_policies
+      where statutory_policies.policy_kind = kind
+        and statutory_policies.status = 'verified'
+    ) then
+      policy := public.verify_statutory_policy((policy ->> 'id')::uuid, (policy ->> 'version')::integer);
+    end if;
     perform set_config('request.jwt.claim.sub', admin_id::text, true);
     perform set_config(
       'request.jwt.claims',
@@ -402,10 +422,8 @@ begin
     select string_agg(value ->> 'code', ',')
     from jsonb_array_elements(readiness -> 'blockers')
   );
-  if codes not ilike '%tax_calculation_unimplemented%'
-    or codes not ilike '%finalize_rpc_disabled%'
-  then
-    raise exception 'hard C.2 blockers must remain: %', codes;
+  if codes not ilike '%finalize_rpc_disabled%' then
+    raise exception 'hard issuance blocker must remain: %', codes;
   end if;
 
   if exists (

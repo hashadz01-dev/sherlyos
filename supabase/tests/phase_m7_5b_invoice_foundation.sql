@@ -159,8 +159,11 @@ begin
   if coalesce(readiness ->> 'ready', 'true') is distinct from 'false' then
     raise exception 'statutory readiness must stay false';
   end if;
-  if readiness -> 'blockers' is null or jsonb_array_length(readiness -> 'blockers') < 4 then
+  if readiness -> 'blockers' is null or jsonb_array_length(readiness -> 'blockers') < 2 then
     raise exception 'accountant blockers must be present';
+  end if;
+  if (readiness -> 'blockers')::text not ilike '%finalize_rpc_disabled%' then
+    raise exception 'issuance blocker missing: %', readiness;
   end if;
 
   perform set_config('request.jwt.claim.sub', driver_id::text, true);

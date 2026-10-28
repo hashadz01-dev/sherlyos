@@ -12,6 +12,7 @@ export const invoiceKeys = {
     ["invoice-note-preview", id, copy] as const,
   eligible: ["invoice-eligible-dispatches"] as const,
   readiness: ["invoice-finalization-readiness"] as const,
+  taxPreview: (id: string) => ["invoice-tax-preview", id] as const,
 }
 
 export type InvoiceStatutoryBlocker = {

@@ -48,6 +48,17 @@ export const INVOICE_PREVIEW_WATERMARK = "DRAFT INVOICE PREVIEW — NOT A TAX IN
 export const INVOICE_NO_LEGAL_SEAL = "NO LEGAL SEAL — DRAFT ONLY"
 export const TAX_PREVIEW_WATERMARK = "TAX CALCULATION PREVIEW — NOT A TAX INVOICE"
 
+/**
+ * Hard D.2 blockers. Completing configuration or reserving a foundation
+ * snapshot cannot remove these until a later owner-approved issuance phase.
+ */
+export const STATUTORY_ISSUANCE_HARD_BLOCKERS = [
+  "finalize_rpc_disabled",
+  "statutory_issuance_disabled",
+  "legal_numbering_allocation_disabled",
+  "tax_preview_is_not_a_tax_invoice",
+] as const
+
 /** Printable handover copies. RPC still accepts recipient/transporter as driver aliases. */
 export const invoiceHandoverCopies = ["driver", "accounts"] as const
 export type InvoiceHandoverCopy = (typeof invoiceHandoverCopies)[number]

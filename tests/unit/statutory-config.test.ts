@@ -26,6 +26,7 @@ describe("statutory configuration presentation", () => {
     expect(statutoryPolicyKindLabel.numbering).toBe("Invoice numbering")
     expect(statutoryNavPermissions).toContain("statutory.config.read")
     expect(statutoryNavPermissions).not.toContain("invoices.issue")
+    expect(statutoryNavPermissions).not.toContain("invoices.finalize")
   })
 
   it("does not treat short-shipment as operational", () => {

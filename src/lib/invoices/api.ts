@@ -26,6 +26,17 @@ export type InvoiceStatutoryReadiness = {
   legal_issuance_blocked: boolean
   currency_code: string
   issuance_blocked_reason?: string
+  numbering_allocation_enabled?: boolean
+  cancellation_blocked?: boolean
+  issued_invoice_count?: number
+  blockers: InvoiceStatutoryBlocker[]
+}
+
+export type InvoiceCancellationReadiness = {
+  ready: boolean
+  legal_cancellation_blocked: boolean
+  rewrites_financial_values: boolean
+  deletes_history: boolean
   blockers: InvoiceStatutoryBlocker[]
 }
 
@@ -230,6 +241,13 @@ export function listInvoiceEligibleDispatches() {
 export function assessInvoiceFinalizationReadiness(noteId?: string) {
   return callRpc<InvoiceStatutoryReadiness>("assess_invoice_finalization_readiness", {
     p_invoice_note_id: noteId ?? null,
+  })
+}
+
+/** Read-only. Never cancels an issued invoice or posts a credit note. */
+export function assessStatutoryCancellationReadiness(invoiceId?: string) {
+  return callRpc<InvoiceCancellationReadiness>("assess_statutory_cancellation_readiness", {
+    p_statutory_invoice_id: invoiceId ?? null,
   })
 }
 

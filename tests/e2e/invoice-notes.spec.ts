@@ -91,6 +91,7 @@ test("invoice notes stay drafts and are not tax invoices", async ({ page }) => {
   await expect(page.getByText("DRAFT INVOICE NOTE — NOT A TAX INVOICE")).toBeVisible()
   await expect(page.getByText(/GST tax invoices are blocked/i)).toBeVisible()
   await expect(page.getByText(/TAX CALCULATION PREVIEW|NOT A TAX INVOICE/i).first()).toBeVisible()
+  await expect(page.getByRole("button", { name: /finalize|issue tax invoice/i })).toHaveCount(0)
 })
 
 test("delivery personnel cannot open invoice handover URLs", async ({ page }) => {

@@ -8,6 +8,7 @@ import {
   INVOICE_DRAFT_WATERMARK,
   INVOICE_NO_LEGAL_SEAL,
   INVOICE_PREVIEW_WATERMARK,
+  STATUTORY_ISSUANCE_HARD_BLOCKERS,
   TAX_PREVIEW_WATERMARK,
   formatInr,
   invoiceEventLabel,
@@ -112,6 +113,19 @@ describe("invoice-note presentation", () => {
 
   it("does not treat short-shipment as operational", () => {
     expect(SHORT_SHIPMENT_OPERATIONAL).toBe(false)
+  })
+
+  it("keeps statutory issuance hard-blocked even after foundation records exist", () => {
+    expect(STATUTORY_ISSUANCE_HARD_BLOCKERS).toEqual(
+      expect.arrayContaining([
+        "finalize_rpc_disabled",
+        "statutory_issuance_disabled",
+        "legal_numbering_allocation_disabled",
+        "tax_preview_is_not_a_tax_invoice",
+      ]),
+    )
+    expect(sampleNote().statutory.ready).toBe(false)
+    expect(sampleNote().legal_invoice_number).toBeNull()
   })
 })
 

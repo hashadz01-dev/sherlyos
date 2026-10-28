@@ -20,7 +20,12 @@ test("statutory workspace is configuration-only for admin", async ({ page }) => 
   })
   await expect(page.getByText("CONFIGURATION ONLY — TAX INVOICE ISSUANCE DISABLED")).toBeVisible()
   await expect(page.getByText(/ready=false/i)).toBeVisible()
-  await expect(page.getByText(/Tax invoice issuance stays disabled|Issuance stays disabled|cannot enable finalization/i)).toBeVisible()
+  await expect(
+    page.getByText(
+      /Tax invoice issuance stays disabled|Issuance stays disabled|cannot enable finalization|Legal numbering allocation stays disabled/i,
+    ),
+  ).toBeVisible()
+  await expect(page.getByRole("button", { name: /finalize|issue tax invoice|allocate/i })).toHaveCount(0)
 })
 
 test("godown manager cannot open statutory configuration", async ({ page }) => {

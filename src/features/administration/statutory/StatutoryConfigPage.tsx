@@ -279,7 +279,8 @@ export function StatutoryConfigPage() {
           <h2 className="text-sm font-semibold">Statutory readiness</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             ready={String(readiness.data.ready)} · issuance blocked. Completing these
-            records cannot enable finalization until M7.5C.2.
+            records cannot enable finalization. Legal numbering allocation stays
+            disabled.
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
             {(readiness.data.blockers ?? []).map((blocker) => (

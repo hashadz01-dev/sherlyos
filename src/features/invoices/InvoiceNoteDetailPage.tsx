@@ -229,7 +229,9 @@ export function InvoiceNoteDetailPage() {
               CONFIGURATION ONLY — TAX INVOICE ISSUANCE DISABLED
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              ready={String(note.statutory.ready)} · Tax preview cannot issue a tax invoice.
+              ready={String(note.statutory.ready)} · legal_issuance_blocked=
+              {String(note.statutory.legal_issuance_blocked)} · numbering allocation
+              disabled. Tax preview cannot issue a tax invoice.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
               {(note.statutory.blockers ?? []).map((blocker) => (

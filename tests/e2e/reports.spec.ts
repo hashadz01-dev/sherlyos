@@ -162,7 +162,10 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   page,
 }) => {
   await signIn(page, "godown.m4e2e@example.com")
-  await expect(page.getByText("Cartons on hand")).toBeVisible()
+  // Local leftover branches make get_operations_dashboard exceed the 5s default.
+  await expect(page.getByText("Cartons on hand")).toBeVisible({
+    timeout: 20_000,
+  })
   await expect(page.getByText("7", { exact: true }).first()).toBeVisible()
   await expect(page.getByText("Available to pick")).toBeVisible()
   await expect(
@@ -243,7 +246,9 @@ test("admin reports include labeled inactive godown stock", async ({
   page,
 }) => {
   await signIn(page, "admin.m4e2e@example.com")
-  await expect(page.getByText("Cartons on hand")).toBeVisible()
+  await expect(page.getByText("Cartons on hand")).toBeVisible({
+    timeout: 20_000,
+  })
   // Scope to the KPI card. A global getByText("9") matches leftover branch codes.
   await expect(
     page

@@ -41,6 +41,16 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m75b%",
   // M7.5C statutory / GST preview HTTP leftovers.
   "m75c%",
+  // M7.5D handover / PDF HTTP leftovers.
+  "m75d%",
+  // M7.5E credit-adjustment HTTP/concurrency leftovers.
+  "m75e%",
+  // M7.5F commercial-workflow HTTP leftovers.
+  "m75f%",
+  // M7.6 readiness SQL/HTTP leftovers.
+  "m76%",
+  // phase_3_3 concurrency leftover (Phase 33 Race Soap). Test SKU only.
+  "p33-race%",
 ] as const
 
 export function runLocalSql(sql: string, label: string) {

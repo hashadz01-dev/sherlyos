@@ -6,7 +6,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import {
@@ -146,54 +146,33 @@ export function DeliveriesPage() {
 
       {notes.data ? (
         <>
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
+          <FilterToolbar>
             <SearchField label="Search delivery notes" value={search} onChange={setSearch} />
-            <label className="grid gap-2 text-sm font-medium">
-              Status
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                <option value="all">All statuses</option>
-                <option value="draft">Draft</option>
-                <option value="generated">Generated</option>
-                <option value="sent">Sent</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="voided">Voided</option>
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Shop
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={shopId}
-                onChange={(event) => setShopId(event.target.value)}
-              >
-                <option value="all">All shops</option>
-                {(shops.data ?? []).map((shop) => (
-                  <option key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Godown
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={branchId}
-                onChange={(event) => setBranchId(event.target.value)}
-              >
-                <option value="all">All godowns</option>
-                {(branches.data ?? []).map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <FilterSelect label="Status" value={status} onChange={setStatus}>
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="generated">Generated</option>
+              <option value="sent">Sent</option>
+              <option value="acknowledged">Acknowledged</option>
+              <option value="voided">Voided</option>
+            </FilterSelect>
+            <FilterSelect label="Shop" value={shopId} onChange={setShopId}>
+              <option value="all">All shops</option>
+              {(shops.data ?? []).map((shop) => (
+                <option key={shop.id} value={shop.id}>
+                  {shop.name}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect label="Godown" value={branchId} onChange={setBranchId}>
+              <option value="all">All godowns</option>
+              {(branches.data ?? []).map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterToolbar>
 
           {rows.length === 0 ? (
             <EmptyState

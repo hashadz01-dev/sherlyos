@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { matchesSearch } from "@/lib/masters/filters"
@@ -69,39 +69,25 @@ export function ReceivingPage() {
       ) : null}
       {receipts.data ? (
         <>
-          <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <FilterToolbar>
             <SearchField label="Search receipts" value={search} onChange={setSearch} />
-            <label className="grid gap-2 text-sm font-medium">
-              Status
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                <option value="all">All statuses</option>
-                <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="held">Held</option>
-                <option value="posted">Posted</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Godown
-              <select
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={godownId}
-                onChange={(event) => setGodownId(event.target.value)}
-              >
-                <option value="all">All godowns</option>
-                {godowns.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <FilterSelect label="Status" value={status} onChange={setStatus}>
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="held">Held</option>
+              <option value="posted">Posted</option>
+              <option value="cancelled">Cancelled</option>
+            </FilterSelect>
+            <FilterSelect label="Godown" value={godownId} onChange={setGodownId}>
+              <option value="all">All godowns</option>
+              {godowns.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterToolbar>
           {visible.length === 0 ? (
             <EmptyState
               icon={PackageOpen}

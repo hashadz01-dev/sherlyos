@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAuth } from "@/hooks/use-auth"
 import { useAccess } from "@/lib/access/use-access"
@@ -68,41 +68,25 @@ export function LotReconciliationPage() {
       ) : null}
       {sessions.data ? (
         <>
-          <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <FilterToolbar>
             <SearchField label="Search sessions" value={search} onChange={setSearch} />
-            <label className="grid gap-2 text-sm font-medium">
-              Godown
-              <select
-                aria-label="Godown"
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={godownId}
-                onChange={(event) => setGodownId(event.target.value)}
-              >
-                <option value="all">All authorized godowns</option>
-                {godowns.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Status
-              <select
-                aria-label="Status"
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                <option value="all">All statuses</option>
-                {lotReconciliationStatuses.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <FilterSelect label="Godown" value={godownId} onChange={setGodownId}>
+              <option value="all">All authorized godowns</option>
+              {godowns.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect label="Status" value={status} onChange={setStatus}>
+              <option value="all">All statuses</option>
+              {lotReconciliationStatuses.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterToolbar>
           {visible.length === 0 ? (
             <EmptyState
               icon={ClipboardCheck}

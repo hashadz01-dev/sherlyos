@@ -12,6 +12,15 @@ describe("toUserRpcMessage", () => {
     expect(toUserRpcMessage({ code: "PT409", message: "changed by someone else" })).toBe(
       "This record changed. Refresh and try again.",
     )
+    expect(
+      toUserRpcMessage({
+        code: "PGRST202",
+        message:
+          "Could not find the function public.list_invoice_notes(p_branch_id, p_shop_id, p_status) in the schema cache",
+      }),
+    ).toBe(
+      "This screen is not available on the connected database. Restart with npm run dev to use local Supabase.",
+    )
   })
 
   it("keeps operational cutover wording and strips SQL leaks", () => {

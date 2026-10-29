@@ -346,7 +346,7 @@ export const navigationItems: AppNavItem[] = [
     to: "/settings",
     label: "Settings",
     title: "Settings",
-    description: "Workspace configuration and account details.",
+    description: "Account details and app updates for this workspace.",
     group: "Workspace",
     icon: Settings,
   },

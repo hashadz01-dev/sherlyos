@@ -107,9 +107,11 @@ function DashboardBody({
 
   return (
     <>
-      <div className="mb-6 grid gap-3 md:grid-cols-[16rem_minmax(0,1fr)]">
-        <ReportBranchSelect value={branchId} onChange={onBranch} branches={branches} />
-        <p className="self-end text-sm text-muted-foreground">
+      <div className="mb-6 grid gap-3">
+        <div className="max-w-sm">
+          <ReportBranchSelect value={branchId} onChange={onBranch} branches={branches} />
+        </div>
+        <p className="text-sm text-muted-foreground">
           Timezone UTC.
           {cutoverOff
             ? " Operational lot cutover is inactive: lot-attributed stock and available-to-pick stay empty or not applicable."

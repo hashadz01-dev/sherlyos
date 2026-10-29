@@ -179,3 +179,26 @@ export function verificationErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) return error.message
   return "The verification could not be saved."
 }
+
+/**
+ * One line for the list banner. Listing every authorized godown repeats the same
+ * sentence dozens of times on fixture-heavy local databases.
+ */
+export function missingVerificationNotice(
+  indicators: { missing_today: boolean; last_verification_date: string | null }[],
+): string | null {
+  const missing = indicators.filter((item) => item.missing_today)
+  if (missing.length === 0) return null
+  const noneClosed = missing.filter((item) => !item.last_verification_date).length
+  const subject =
+    missing.length === 1
+      ? "1 authorized godown has no verification for today."
+      : `${missing.length} authorized godowns have no verification for today.`
+  const closedNote =
+    noneClosed === 0
+      ? ""
+      : noneClosed === missing.length
+        ? " No closed verification is on record."
+        : ` ${noneClosed} have no closed verification on record.`
+  return `${subject}${closedNote} Receiving and transfers remain available.`
+}

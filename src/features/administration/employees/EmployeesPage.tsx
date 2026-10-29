@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import { fetchAllRows } from "@/lib/supabase/fetch-all"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { notify } from "@/lib/utilities/notify"
 
@@ -44,13 +45,30 @@ async function loadEmployees(): Promise<{
 
   const [profiles, memberships, assignments, roles, branches] =
     await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, full_name, employee_code, is_active"),
-      supabase.from("user_roles").select("user_id, roles(id, code, name)"),
-      supabase
-        .from("user_branch_assignments")
-        .select("user_id, branches(id, code, name)"),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("profiles")
+          .select("id, full_name, employee_code, is_active")
+          .order("full_name")
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("user_roles")
+          .select("user_id, roles(id, code, name)")
+          .order("user_id")
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("user_branch_assignments")
+          .select("user_id, branches(id, code, name)")
+          .order("user_id")
+          .order("id")
+          .range(from, to),
+      ),
       supabase.from("roles").select("id, code, name").order("name"),
       supabase
         .from("branches")
@@ -58,15 +76,11 @@ async function loadEmployees(): Promise<{
         .order("name"),
     ])
 
-  const failed = [profiles, memberships, assignments, roles, branches].find(
-    (result) => result.error,
-  )
-  if (failed?.error) {
-    throw new Error(failed.error.message)
-  }
+  if (roles.error) throw new Error(roles.error.message)
+  if (branches.error) throw new Error(branches.error.message)
 
   const rolesByUser = new Map<string, Named[]>()
-  for (const row of memberships.data ?? []) {
+  for (const row of memberships) {
     const role = one((row as { roles: Named | Named[] | null }).roles)
     if (!role) continue
     const list = rolesByUser.get(row.user_id) ?? []
@@ -75,7 +89,7 @@ async function loadEmployees(): Promise<{
   }
 
   const branchesByUser = new Map<string, Named[]>()
-  for (const row of assignments.data ?? []) {
+  for (const row of assignments) {
     const branch = one((row as { branches: Named | Named[] | null }).branches)
     if (!branch) continue
     const list = branchesByUser.get(row.user_id) ?? []
@@ -83,7 +97,7 @@ async function loadEmployees(): Promise<{
     branchesByUser.set(row.user_id, list)
   }
 
-  const employees = ((profiles.data ?? []) as Profile[]).map((profile) => ({
+  const employees = (profiles as Profile[]).map((profile) => ({
     ...profile,
     roles: rolesByUser.get(profile.id) ?? [],
     branches: branchesByUser.get(profile.id) ?? [],

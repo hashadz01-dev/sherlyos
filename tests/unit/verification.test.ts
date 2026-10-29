@@ -14,6 +14,7 @@ import {
   startVerificationIssues,
   suggestedClosureResult,
   verificationActions,
+  missingVerificationNotice,
   verificationErrorMessage,
 } from "@/lib/verification/rules"
 
@@ -183,6 +184,19 @@ describe("verification rules", () => {
   it("returns the database message for an API error", () => {
     expect(verificationErrorMessage(new Error("recount is required"))).toBe("recount is required")
     expect(verificationErrorMessage("no")).toBe("The verification could not be saved.")
+  })
+
+  it("collapses missing-today indicators into one banner", () => {
+    expect(missingVerificationNotice([])).toBeNull()
+    expect(
+      missingVerificationNotice([
+        { missing_today: true, last_verification_date: null },
+        { missing_today: true, last_verification_date: null },
+        { missing_today: false, last_verification_date: "2026-10-28" },
+      ]),
+    ).toBe(
+      "2 authorized godowns have no verification for today. No closed verification is on record. Receiving and transfers remain available.",
+    )
   })
 
   it("shows verification only to counting and monitoring roles", () => {

@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import { useAuth } from "@/hooks/use-auth"
+import { fetchAllRows } from "@/lib/supabase/fetch-all"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { emailInitial } from "@/lib/utilities/email-initial"
 import { notify } from "@/lib/utilities/notify"
@@ -59,18 +61,28 @@ async function loadPeople(): Promise<{
   }
 
   const [profiles, memberships, roles] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, phone_number, is_active"),
-    supabase.from("user_roles").select("user_id, roles(name)"),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, phone_number, is_active")
+        .order("full_name")
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllRows((from, to) =>
+      supabase
+        .from("user_roles")
+        .select("user_id, roles(name)")
+        .order("user_id")
+        .order("id")
+        .range(from, to),
+    ),
     supabase.from("roles").select("code, name").order("name"),
   ])
-  if (profiles.error) throw new Error(profiles.error.message)
-  if (memberships.error) throw new Error(memberships.error.message)
   if (roles.error) throw new Error(roles.error.message)
 
   const rolesByUser = new Map<string, string[]>()
-  for (const row of memberships.data ?? []) {
+  for (const row of memberships) {
     const role = one(
       (row as { roles: { name: string } | { name: string }[] | null }).roles,
     )
@@ -81,7 +93,7 @@ async function loadPeople(): Promise<{
   }
 
   return {
-    people: (profiles.data ?? []).map((profile) => ({
+    people: profiles.map((profile) => ({
       id: profile.id,
       full_name: profile.full_name,
       email: profile.email,
@@ -113,7 +125,9 @@ async function readFunctionError(error: unknown) {
 
 export function UsersRolesPage() {
   useDocumentTitle("Users & role")
+  const { session } = useAuth()
   const access = useAccess()
+  const signedInId = session?.user.id
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [role, setRole] = useState("all")
@@ -133,19 +147,25 @@ export function UsersRolesPage() {
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return (directory.data?.people ?? []).filter((person) => {
-      const matchesRole = role === "all" || person.roles.includes(role)
-      const haystack = [
-        person.full_name,
-        person.email ?? "",
-        person.phone_number ?? "",
-        ...person.roles,
-      ]
-        .join(" ")
-        .toLowerCase()
-      return matchesRole && (term.length === 0 || haystack.includes(term))
-    })
-  }, [directory.data?.people, role, search])
+    return (directory.data?.people ?? [])
+      .filter((person) => {
+        const matchesRole = role === "all" || person.roles.includes(role)
+        const haystack = [
+          person.full_name,
+          person.email ?? "",
+          person.phone_number ?? "",
+          ...person.roles,
+        ]
+          .join(" ")
+          .toLowerCase()
+        return matchesRole && (term.length === 0 || haystack.includes(term))
+      })
+      .sort((left, right) => {
+        if (signedInId && left.id === signedInId) return -1
+        if (signedInId && right.id === signedInId) return 1
+        return left.full_name.localeCompare(right.full_name)
+      })
+  }, [directory.data?.people, role, search, signedInId])
 
   const createUser = useMutation({
     mutationFn: async (next: Draft) => {
@@ -265,7 +285,12 @@ export function UsersRolesPage() {
                       <span className="flex size-10 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold text-brand">
                         {emailInitial(label)}
                       </span>
-                      <p className="truncate text-sm font-medium">{label}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{label}</p>
+                        {signedInId === person.id ? (
+                          <p className="text-xs text-muted-foreground">Signed in</p>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <StatusBadge

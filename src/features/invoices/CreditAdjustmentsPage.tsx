@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
-import { FilterSelect, SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { invoiceKeys, listCreditAdjustments } from "@/lib/invoices/api"
 import {
@@ -44,13 +44,13 @@ export function CreditAdjustmentsPage() {
       />
       <p
         role="note"
-        className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200"
+        className="mb-4 max-w-3xl text-sm leading-6 text-muted-foreground"
       >
         {CREDIT_ADJUSTMENT_WATERMARK}. Viewing a preview does not issue a credit note, post
         stock, or allocate a legal number.
       </p>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+      <FilterToolbar>
         <SearchField label="Search credit adjustments" value={search} onChange={setSearch} />
         <FilterSelect label="Status" value={status} onChange={setStatus}>
           <option value="all">All statuses</option>
@@ -59,7 +59,7 @@ export function CreditAdjustmentsPage() {
           <option value="approved">Approved (internal)</option>
           <option value="rejected">Rejected</option>
         </FilterSelect>
-      </div>
+      </FilterToolbar>
 
       {rowsQuery.isLoading ? <LoadingBlock label="Loading credit adjustments" /> : null}
       {rowsQuery.error ? (

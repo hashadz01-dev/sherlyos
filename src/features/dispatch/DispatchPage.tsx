@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { dispatchKeys, listDispatchQueue, type DispatchQueueRow } from "@/lib/dispatch/api"
@@ -48,24 +48,16 @@ export function DispatchPage() {
       ) : null}
       {queue.data ? (
         <>
-          <div className="mb-4 grid gap-3 md:grid-cols-2">
+          <FilterToolbar>
             <SearchField label="Search dispatch" value={search} onChange={setSearch} />
-            <label className="grid gap-2 text-sm font-medium">
-              Status
-              <select
-                aria-label="Dispatch status"
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                {queueStatuses.map((value) => (
-                  <option key={value} value={value}>
-                    {dispatchStatusLabel[value]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <FilterSelect label="Status" value={status} onChange={setStatus}>
+              {queueStatuses.map((value) => (
+                <option key={value} value={value}>
+                  {dispatchStatusLabel[value]}
+                </option>
+              ))}
+            </FilterSelect>
+          </FilterToolbar>
           {can("deliveries.execute") || can("deliveries.assign") ? (
             <p className="mb-4 text-sm">
               <Link className="underline" to="/delivery-runs">

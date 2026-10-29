@@ -6,7 +6,7 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { FilterSelect, SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import {
@@ -70,12 +70,12 @@ export function InvoicesPage() {
       />
       <p
         role="note"
-        className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200"
+        className="mb-4 max-w-3xl text-sm leading-6 text-muted-foreground"
       >
         {INVOICE_DRAFT_WATERMARK}. Statutory numbering, GST, and legal seal are not available.
       </p>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+      <FilterToolbar>
         <SearchField label="Search invoice notes" value={search} onChange={setSearch} />
         <FilterSelect label="Status" value={status} onChange={setStatus}>
           <option value="all">All statuses</option>
@@ -85,7 +85,7 @@ export function InvoicesPage() {
             </option>
           ))}
         </FilterSelect>
-      </div>
+      </FilterToolbar>
 
       {canPrepare ? (
         <div className="mb-6 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">

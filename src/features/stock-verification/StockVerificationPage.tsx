@@ -7,12 +7,12 @@ import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { SearchField } from "@/features/masters/MasterControls"
+import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { matchesSearch } from "@/lib/masters/filters"
 import { listStockVerifications, type VerificationSummary } from "@/lib/verification/api"
-import type { VerificationStatus } from "@/lib/verification/rules"
+import { missingVerificationNotice, type VerificationStatus } from "@/lib/verification/rules"
 
 const statusTone: Record<VerificationStatus, StatusTone> = {
   draft: "neutral",
@@ -36,6 +36,7 @@ export function StockVerificationPage() {
   })
   const rows = verifications.data?.verifications ?? []
   const indicators = verifications.data?.indicators ?? []
+  const missingNotice = missingVerificationNotice(indicators)
   const godowns = [...new Map(rows.map((row) => [row.godown_id, row.godown_name])).entries()]
   const visible = rows.filter((row) => {
     if (status !== "all" && row.status !== status) return false
@@ -71,26 +72,18 @@ export function StockVerificationPage() {
       ) : null}
       {verifications.data ? (
         <>
-          {indicators.some((item) => item.missing_today) ? (
-            <div className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-              {indicators
-                .filter((item) => item.missing_today)
-                .map((item) => (
-                  <p key={item.godown_id}>
-                    {item.godown_name} has no verification for today.
-                    {item.last_verification_date
-                      ? ` Last closed verification: ${item.last_verification_date}.`
-                      : " No closed verification is on record."}
-                    {" "}
-                    Receiving and transfers remain available.
-                  </p>
-                ))}
-            </div>
+          {missingNotice ? (
+            <p
+              role="status"
+              className="mb-4 max-w-3xl rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900 ring-1 ring-amber-200"
+            >
+              {missingNotice}
+            </p>
           ) : null}
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
+          <FilterToolbar>
             <SearchField label="Search verifications" value={search} onChange={setSearch} />
-            <label className="grid gap-2 text-sm font-medium">
-              Date
+            <label className="grid w-full min-w-[12rem] gap-1.5 text-sm font-medium sm:w-56 sm:flex-none">
+              <span className="leading-none">Date</span>
               <input
                 type="date"
                 aria-label="Business date"
@@ -99,39 +92,23 @@ export function StockVerificationPage() {
                 onChange={(event) => setBusinessDate(event.target.value)}
               />
             </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Godown
-              <select
-                aria-label="Godown"
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={godownId}
-                onChange={(event) => setGodownId(event.target.value)}
-              >
-                <option value="all">All godowns</option>
-                {godowns.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Status
-              <select
-                aria-label="Status"
-                className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
-                <option value="all">All statuses</option>
-                <option value="counting">Counting</option>
-                <option value="submitted">Submitted</option>
-                <option value="recount">Recount</option>
-                <option value="review">Review</option>
-                <option value="closed">Closed</option>
-              </select>
-            </label>
-          </div>
+            <FilterSelect label="Godown" value={godownId} onChange={setGodownId}>
+              <option value="all">All godowns</option>
+              {godowns.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect label="Status" value={status} onChange={setStatus}>
+              <option value="all">All statuses</option>
+              <option value="counting">Counting</option>
+              <option value="submitted">Submitted</option>
+              <option value="recount">Recount</option>
+              <option value="review">Review</option>
+              <option value="closed">Closed</option>
+            </FilterSelect>
+          </FilterToolbar>
           {visible.length === 0 ? (
             <EmptyState
               icon={ClipboardCheck}

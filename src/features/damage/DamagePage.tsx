@@ -66,7 +66,15 @@ export function DamagePage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {dashboard.data ? (
+        <div className="mb-4 max-w-xl">
+          <DamageReadinessBanner
+            stockHoldReady={dashboard.data.stock_hold_ready}
+          />
+        </div>
+      ) : null}
+
+      <div className="mb-4">
         <label className="grid max-w-sm gap-2 text-sm font-medium">
           Godown filter
           <select
@@ -83,11 +91,6 @@ export function DamagePage() {
             ))}
           </select>
         </label>
-        {dashboard.data ? (
-          <DamageReadinessBanner
-            stockHoldReady={dashboard.data.stock_hold_ready}
-          />
-        ) : null}
       </div>
 
       {dashboard.isLoading ? (

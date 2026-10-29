@@ -105,40 +105,55 @@ begin
 end $$;
 
 -- Same-statement pair from false/false is judged on the final pair.
--- Zero-grain inventory is reconciled: there is no unclassified positive stock
--- and no lot/aggregate mismatch, so dual-write+blocked is the greenfield path.
--- Fail-closed cases are unclassified in-stock products and grain mismatch,
--- covered after opening/seed below. Restore false/false afterwards.
+-- Greenfield true/true then false/false is legal only when this database has
+-- no lot rows. A populated working DB with leftover lots must not restore
+-- aggregate_only_blocked=false: Rule B is the production safety trigger.
+-- Fail-closed unclassified/mismatch cases stay covered after opening/seed.
 do $$
+declare
+  lot_activity boolean := false;
 begin
-  update public.app_configuration
-  set value = 'true'::jsonb
-  where key in (
-    'stock.lots.dual_write_enabled',
-    'stock.lots.aggregate_only_blocked'
-  );
+  select exists (select 1 from public.stock_lots)
+      or exists (select 1 from public.stock_lot_balances where quantity <> 0)
+      or exists (select 1 from public.stock_ledger where lot_id is not null)
+    into lot_activity;
+  perform set_config('sherlyos.lot_activity_at_start', lot_activity::text, true);
 
-  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-       is distinct from 'true'::jsonb
-     or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
-       is distinct from 'true'::jsonb
-  then
-    raise exception 'empty inventory must allow dual-write+blocked greenfield enable';
-  end if;
+  if lot_activity then
+    -- No-op: a same-value UPDATE would skip the statement trigger, and a
+    -- true/true enable cannot be restored to false/false while lots exist.
+    -- Rule B is proven after seed below. Keep working flags false/false.
+    raise notice 'skipping greenfield flag restore; lot activity already present';
+  else
+    update public.app_configuration
+    set value = 'true'::jsonb
+    where key in (
+      'stock.lots.dual_write_enabled',
+      'stock.lots.aggregate_only_blocked'
+    );
 
-  update public.app_configuration
-  set value = 'false'::jsonb
-  where key in (
-    'stock.lots.dual_write_enabled',
-    'stock.lots.aggregate_only_blocked'
-  );
+    if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
+         is distinct from 'true'::jsonb
+       or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
+         is distinct from 'true'::jsonb
+    then
+      raise exception 'empty inventory must allow dual-write+blocked greenfield enable';
+    end if;
 
-  if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
-       is distinct from 'false'::jsonb
-     or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
-       is distinct from 'false'::jsonb
-  then
-    raise exception 'greenfield enable must restore false/false for the rest of the suite';
+    update public.app_configuration
+    set value = 'false'::jsonb
+    where key in (
+      'stock.lots.dual_write_enabled',
+      'stock.lots.aggregate_only_blocked'
+    );
+
+    if (select value from public.app_configuration where key = 'stock.lots.dual_write_enabled')
+         is distinct from 'false'::jsonb
+       or (select value from public.app_configuration where key = 'stock.lots.aggregate_only_blocked')
+         is distinct from 'false'::jsonb
+    then
+      raise exception 'greenfield enable must restore false/false for the rest of the suite';
+    end if;
   end if;
 end $$;
 
@@ -224,26 +239,42 @@ select public.post_opening_stock(
   null
 );
 
--- 2) blocked true but unmatched aggregate still rejects dual-write
+-- 2) blocked true but unmatched aggregate still rejects dual-write.
+-- Sequential blocked=true with dual-write false is illegal once lot-attributed
+-- ledger rows exist (Rule C). Prove that rejection on populated DBs instead.
 reset role;
-update public.app_configuration
-set value = 'true'::jsonb
-where key = 'stock.lots.aggregate_only_blocked';
-
 do $$
 begin
-  begin
+  if exists (select 1 from public.stock_ledger where lot_id is not null) then
+    begin
+      update public.app_configuration
+      set value = 'true'::jsonb
+      where key = 'stock.lots.aggregate_only_blocked';
+      raise exception 'expected Rule C rejection while lot-attributed ledger exists';
+    exception
+      when sqlstate '55000' then
+        null;
+    end;
+  else
     update public.app_configuration
     set value = 'true'::jsonb
-    where key = 'stock.lots.dual_write_enabled';
-    raise exception 'expected dual-write rejection without reconciled lots';
-  exception
-    when sqlstate '55000' then
-      null;
-  end;
+    where key = 'stock.lots.aggregate_only_blocked';
+
+    begin
+      update public.app_configuration
+      set value = 'true'::jsonb
+      where key = 'stock.lots.dual_write_enabled';
+      raise exception 'expected dual-write rejection without reconciled lots';
+    exception
+      when sqlstate '55000' then
+        null;
+    end;
+  end if;
 end $$;
 
--- 3) Seed legacy lots (matching grains; dual-write still false)
+-- 3) Seed legacy lots (matching grains; dual-write still false).
+-- Global seed refuses when owner grains already have lots. Attribute only
+-- this fixture's unmatched openings so later enable proofs stay local.
 select set_config('request.jwt.claim.sub', (select id::text from s1_fixture where name = 'admin'), true);
 select set_config(
   'request.jwt.claims',
@@ -251,7 +282,72 @@ select set_config(
   true
 );
 set local role authenticated;
-select public.seed_legacy_stock_lots();
+do $$
+declare
+  seeded boolean := false;
+begin
+  begin
+    perform public.seed_legacy_stock_lots();
+    seeded := true;
+  exception
+    when others then
+      if sqlerrm not like 'legacy lot seed refused%' then
+        raise;
+      end if;
+  end;
+
+  if not seeded then
+    reset role;
+    set local session_replication_role = replica;
+    insert into public.stock_lots (
+      product_id, branch_id, status, origin, expiry_date, received_on, created_by
+    )
+    select
+      sb.product_id,
+      current_setting('sherlyos.branch')::uuid,
+      'available',
+      'opening',
+      null,
+      clock_timestamp(),
+      (select id from s1_fixture where name = 'admin')
+    from public.stock_balances sb
+    where sb.crate_id in (
+      current_setting('sherlyos.crate')::uuid,
+      current_setting('sherlyos.crate_b')::uuid
+    )
+      and sb.quantity > 0
+      and not exists (
+        select 1
+        from public.stock_lot_balances lb
+        join public.stock_lots sl on sl.id = lb.lot_id
+        where lb.crate_id = sb.crate_id
+          and sl.product_id = sb.product_id
+      );
+
+    insert into public.stock_lot_balances (lot_id, crate_id, quantity)
+    select sl.id, sb.crate_id, sb.quantity
+    from public.stock_balances sb
+    join public.stock_lots sl
+      on sl.product_id = sb.product_id
+     and sl.branch_id = current_setting('sherlyos.branch')::uuid
+    where sb.crate_id in (
+      current_setting('sherlyos.crate')::uuid,
+      current_setting('sherlyos.crate_b')::uuid
+    )
+      and sb.quantity > 0
+      and not exists (
+        select 1 from public.stock_lot_balances lb where lb.lot_id = sl.id
+      );
+    set local session_replication_role = origin;
+    perform set_config('request.jwt.claim.sub', (select id::text from s1_fixture where name = 'admin'), true);
+    perform set_config(
+      'request.jwt.claims',
+      jsonb_build_object('sub', (select id from s1_fixture where name = 'admin'), 'role', 'authenticated')::text,
+      true
+    );
+    execute 'set local role authenticated';
+  end if;
+end $$;
 reset role;
 
 -- 3a) Dual-write enable is rejected while an unclassified product still has stock
@@ -351,21 +447,26 @@ where lot_id = (
 set local session_replication_role = origin;
 
 -- true -> true would skip the value-change trigger; disable then re-enable.
-update public.app_configuration
-set value = 'false'::jsonb
-where key = 'stock.lots.dual_write_enabled';
-
+-- Populated DBs with lot-attributed ledger cannot disable dual-write (Rule C).
 do $$
 begin
-  begin
+  if current_setting('sherlyos.lot_activity_at_start', true) = 'true' then
+    raise notice 'skipping dual-write bounce; Rule C forbids disable while lot ledger exists';
+  else
     update public.app_configuration
-    set value = 'true'::jsonb
+    set value = 'false'::jsonb
     where key = 'stock.lots.dual_write_enabled';
-    raise exception 'expected grain mismatch rejection';
-  exception
-    when sqlstate '55000' then
-      null;
-  end;
+
+    begin
+      update public.app_configuration
+      set value = 'true'::jsonb
+      where key = 'stock.lots.dual_write_enabled';
+      raise exception 'expected grain mismatch rejection';
+    exception
+      when sqlstate '55000' then
+        null;
+    end;
+  end if;
 end $$;
 
 set local session_replication_role = replica;
@@ -380,9 +481,14 @@ where lot_id = (
 );
 set local session_replication_role = origin;
 
-update public.app_configuration
-set value = 'true'::jsonb
-where key = 'stock.lots.dual_write_enabled';
+do $$
+begin
+  if current_setting('sherlyos.lot_activity_at_start', true) is distinct from 'true' then
+    update public.app_configuration
+    set value = 'true'::jsonb
+    where key = 'stock.lots.dual_write_enabled';
+  end if;
+end $$;
 
 -- 6) Rule B: cannot clear aggregate_only_blocked while lots exist
 do $$

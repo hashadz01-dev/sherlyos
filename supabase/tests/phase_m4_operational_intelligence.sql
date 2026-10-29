@@ -415,7 +415,20 @@ select set_config(
   true
 );
 select public.submit_order(current_setting('sherlyos.order')::uuid, 1, 'm4qi-sub-1');
-select public.verify_order(current_setting('sherlyos.order')::uuid, 2, 'm4qi-ver-1');
+-- M7.2 ATP: verify_order fail-closes while dual-write is off. Aggregate
+-- on-hand is not pickable FEFO/FIFO. Do not weaken that gate for M4 KPIs.
+do $$
+begin
+  begin
+    perform public.verify_order(current_setting('sherlyos.order')::uuid, 2, 'm4qi-ver-1');
+    raise exception 'verify_order must fail closed while dual-write is off';
+  exception
+    when sqlstate 'P0001' then
+      if sqlerrm not ilike '%insufficient stock%' then
+        raise;
+      end if;
+  end;
+end $$;
 
 select pg_temp.as_user('sales');
 select set_config(
@@ -434,20 +447,30 @@ select set_config(
   true
 );
 
+select pg_temp.as_user('accounts');
+do $$
+declare
+  payload jsonb;
+begin
+  payload := public.get_order(current_setting('sherlyos.order')::uuid);
+  perform pg_temp.expect(payload -> 'order' ->> 'status' = 'submitted', 'submitted survives fail-closed verify');
+end $$;
+
 select pg_temp.as_user('godown');
 do $$
 declare
   dash jsonb;
   orders jsonb;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
 begin
-  dash := public.get_operations_dashboard(null);
-  perform pg_temp.expect((dash -> 'orders' ->> 'verified')::int >= 1, 'verified orders');
-  perform pg_temp.expect((dash -> 'orders' ->> 'awaiting_picking')::int >= 1, 'awaiting picking');
+  -- Scope to this fixture godown. Leftover verified orders on other sites
+  -- must not satisfy the cutover-off assertions.
+  dash := public.get_operations_dashboard(branch);
+  perform pg_temp.expect((dash -> 'orders' ->> 'verified')::int = 0, 'no verified orders before dual-write');
+  perform pg_temp.expect((dash -> 'orders' ->> 'awaiting_picking')::int = 0, 'no awaiting picking before dual-write');
   perform pg_temp.expect((dash -> 'orders' ->> 'draft')::int = 0, 'godown does not see salesperson drafts');
-  orders := public.list_order_picking_report(null, null, null, 'verified', 'none', null, null, 1, 50);
-  perform pg_temp.expect((orders ->> 'total_count')::int >= 1, 'verified awaiting allocation');
-  perform pg_temp.expect((orders -> 'rows' -> 0 ->> 'stock_dispatched')::boolean is false, 'not dispatched');
-  perform pg_temp.expect((orders -> 'rows' -> 0 ->> 'awaiting_allocation')::boolean, 'awaiting allocation');
+  orders := public.list_order_picking_report(branch, null, null, 'verified', 'none', null, null, 1, 50);
+  perform pg_temp.expect((orders ->> 'total_count')::int = 0, 'no verified awaiting allocation while cutover off');
 end $$;
 
 -- Salesperson cannot filter by another salesperson and sees only own rows.
@@ -546,8 +569,10 @@ begin
   perform pg_temp.expect((dash -> 'orders' ->> 'draft')::int = 0, 'keeper cannot count salesperson drafts');
   orders := public.list_order_picking_report(null, null, null, 'draft', null, null, null, 1, 50);
   perform pg_temp.expect((orders ->> 'total_count')::int = 0, 'keeper cannot list capture drafts');
-  orders := public.list_order_picking_report(null, null, null, 'verified', null, null, null, 1, 50);
-  perform pg_temp.expect((orders ->> 'total_count')::int >= 1, 'keeper can list verified workload');
+  orders := public.list_order_picking_report(
+    current_setting('sherlyos.branch')::uuid, null, null, 'verified', null, null, null, 1, 50
+  );
+  perform pg_temp.expect((orders ->> 'total_count')::int = 0, 'keeper sees no verified workload before dual-write');
   begin
     perform public.list_dispatch_delivery_report(null, null, null, null, 1, 50);
     raise exception 'store keeper must not read dispatch report';
@@ -565,32 +590,38 @@ begin
   end;
 end $$;
 
--- Delivery-note paperwork must not count as customer proof of delivery.
+-- Unverified orders cannot receive delivery-note paperwork. POD KPIs stay 0.
 select pg_temp.as_user('accounts');
-select set_config(
-  'sherlyos.dn',
-  (
-    public.create_delivery_note(
+do $$
+begin
+  begin
+    perform public.create_delivery_note(
       current_setting('sherlyos.order')::uuid,
       'm4qi-dn-create-01'
-    ) -> 'delivery_note' ->> 'id'
-  ),
-  true
-);
+    );
+    raise exception 'delivery note must require a verified order';
+  exception
+    when sqlstate '23514' then
+      if sqlerrm not ilike '%verified order%' then
+        raise;
+      end if;
+  end;
+end $$;
 
 select pg_temp.as_user('godown');
 do $$
 declare
   dash jsonb;
   note_count integer;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
 begin
   select count(*) into note_count
   from public.delivery_notes
   where delivery_notes.order_id = current_setting('sherlyos.order')::uuid;
-  perform pg_temp.expect(note_count = 1, 'delivery note exists');
-  dash := public.get_operations_dashboard(null);
-  perform pg_temp.expect((dash -> 'dispatch' ->> 'delivered')::int = 0, 'dn paperwork is not customer pod');
-  perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched')::int = 0, 'dn does not consume stock');
+  perform pg_temp.expect(note_count = 0, 'no DN on fail-closed submitted order');
+  dash := public.get_operations_dashboard(branch);
+  perform pg_temp.expect((dash -> 'dispatch' ->> 'delivered')::int = 0, 'no customer pod before dispatch');
+  perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched')::int = 0, 'submitted order does not consume stock');
 end $$;
 
 -- Bounded inventory pages and formula-prefixed user text in export.
@@ -767,6 +798,39 @@ select set_config(
 select public.submit_order(current_setting('sherlyos.dispatch_order')::uuid, 1, 'm4qi-sub-d');
 select public.verify_order(current_setting('sherlyos.dispatch_order')::uuid, 2, 'm4qi-ver-d');
 select pg_temp.handshake_dn(current_setting('sherlyos.dispatch_order')::uuid, 'm4qi-hd');
+
+-- Verified workload and DN paperwork appear only after dual-write ATP.
+select pg_temp.as_user('godown');
+do $$
+declare
+  dash jsonb;
+  orders jsonb;
+  note_count integer;
+  branch uuid := current_setting('sherlyos.branch')::uuid;
+begin
+  dash := public.get_operations_dashboard(branch);
+  perform pg_temp.expect((dash -> 'orders' ->> 'verified')::int >= 1, 'verified after dual-write ATP');
+  perform pg_temp.expect((dash -> 'orders' ->> 'awaiting_picking')::int >= 1, 'awaiting picking after verify');
+  orders := public.list_order_picking_report(branch, null, null, 'verified', 'none', null, null, 1, 50);
+  perform pg_temp.expect((orders ->> 'total_count')::int >= 1, 'verified awaiting allocation after dual-write');
+  select count(*) into note_count
+  from public.delivery_notes
+  where delivery_notes.order_id = current_setting('sherlyos.dispatch_order')::uuid;
+  perform pg_temp.expect(note_count = 1, 'acknowledged DN exists after handshake');
+  perform pg_temp.expect((dash -> 'dispatch' ->> 'delivered')::int = 0, 'dn paperwork is not customer pod');
+  perform pg_temp.expect((dash -> 'dispatch' ->> 'dispatched')::int = 0, 'dn does not consume stock');
+end $$;
+
+select pg_temp.as_user('keeper');
+do $$
+declare
+  orders jsonb;
+begin
+  orders := public.list_order_picking_report(
+    current_setting('sherlyos.branch')::uuid, null, null, 'verified', null, null, null, 1, 50
+  );
+  perform pg_temp.expect((orders ->> 'total_count')::int >= 1, 'keeper can list verified workload after dual-write');
+end $$;
 
 select pg_temp.as_user('godown');
 do $$

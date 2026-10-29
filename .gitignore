@@ -22,6 +22,9 @@ playwright/.cache
 # Supabase CLI cache. Do not commit local link state.
 supabase/.temp/
 
+# M8.1B disposable rehearsal dumps and connection files. Never commit.
+.rehearsal/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

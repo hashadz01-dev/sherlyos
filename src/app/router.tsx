@@ -32,6 +32,8 @@ import {
   InvoiceNoteDetailPage,
   InvoiceNotePreviewPage,
   InvoicesPage,
+  CreditAdjustmentsPage,
+  CreditAdjustmentPreviewPage,
   LocationsPage,
   LotReconciliationDetailPage,
   LotReconciliationPage,
@@ -76,6 +78,7 @@ import {
 import { RequireAnyPermission } from "@/lib/access/RequireAnyPermission"
 import { RequirePermission } from "@/lib/access/RequirePermission"
 import {
+  creditAdjustmentNavPermissions,
   invoiceNavPermissions,
   priceNavPermissions,
 } from "@/lib/invoices/rules"
@@ -292,6 +295,22 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequireAnyPermission permissions={[...invoiceNavPermissions]}>
                 <InvoiceNotePreviewPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "credit-adjustments",
+            element: (
+              <RequireAnyPermission permissions={[...creditAdjustmentNavPermissions]}>
+                <CreditAdjustmentsPage />
+              </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "credit-adjustments/:adjustmentId",
+            element: (
+              <RequireAnyPermission permissions={[...creditAdjustmentNavPermissions]}>
+                <CreditAdjustmentPreviewPage />
               </RequireAnyPermission>
             ),
           },

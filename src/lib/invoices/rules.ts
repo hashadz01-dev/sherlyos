@@ -38,6 +38,7 @@ export const invoiceNavPermissions = [
 
 export const invoicePreparePermissions = ["invoice_notes.prepare"] as const
 export const invoiceReviewPermissions = ["invoices.review"] as const
+export const creditAdjustmentNavPermissions = ["invoices.review"] as const
 export const priceNavPermissions = [
   "products.price.manage",
   "products.price.read",
@@ -47,6 +48,8 @@ export const INVOICE_DRAFT_WATERMARK = "DRAFT INVOICE NOTE — NOT A TAX INVOICE
 export const INVOICE_PREVIEW_WATERMARK = "DRAFT INVOICE PREVIEW — NOT A TAX INVOICE"
 export const INVOICE_NO_LEGAL_SEAL = "NO LEGAL SEAL — DRAFT ONLY"
 export const TAX_PREVIEW_WATERMARK = "TAX CALCULATION PREVIEW — NOT A TAX INVOICE"
+export const CREDIT_ADJUSTMENT_WATERMARK =
+  "CREDIT ADJUSTMENT PREVIEW — NOT A GST CREDIT NOTE"
 
 /**
  * Hard D.2 blockers. Completing configuration or reserving a foundation

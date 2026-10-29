@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useParams } from "react-router"
+import { Link, useNavigate, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -11,10 +11,12 @@ import {
   cancelInvoiceNote,
   getInvoiceNote,
   invoiceKeys,
+  prepareCreditAdjustment,
   reviewInvoiceNote,
   submitInvoiceNote,
 } from "@/lib/invoices/api"
 import {
+  CREDIT_ADJUSTMENT_WATERMARK,
   INVOICE_DRAFT_WATERMARK,
   TAX_PREVIEW_WATERMARK,
   formatInr,
@@ -28,6 +30,7 @@ import { notify } from "@/lib/utilities/notify"
 export function InvoiceNoteDetailPage() {
   const { noteId = "" } = useParams()
   const { can } = useAccess()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -93,6 +96,22 @@ export function InvoiceNoteDetailPage() {
     note.status !== "cancelled" &&
     ((can("invoice_notes.prepare") && (note.status === "draft" || note.status === "submitted")) ||
       (can("invoices.review") && (note.status === "submitted" || note.status === "reviewed")))
+  const canPrepareCredit = can("invoices.review") && note?.status === "reviewed"
+  const prepareCredit = useMutation({
+    mutationFn: (candidate: { return_id: string; version?: number }) =>
+      prepareCreditAdjustment({
+        returnId: candidate.return_id,
+        idempotencyKey: `credit-adj-${candidate.return_id}`,
+        expectedVersion: candidate.version ?? 1,
+      }),
+    onSuccess: async (adjustment) => {
+      notify.success("Credit-adjustment preview prepared. This is not a GST credit note.")
+      setActionError(null)
+      await refresh()
+      navigate(`/credit-adjustments/${adjustment.id}`)
+    },
+    onError: (error: Error) => setActionError(error.message),
+  })
 
   return (
     <section className="min-w-0">
@@ -293,12 +312,33 @@ export function InvoiceNoteDetailPage() {
             <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
               <h2 className="text-sm font-semibold">Related returns</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Documented only. Credit notes are not issued in this phase.
+                {CREDIT_ADJUSTMENT_WATERMARK}. GST credit notes are not issued.
               </p>
-              <ul className="mt-3 space-y-2 text-sm">
+              <ul className="mt-3 space-y-3 text-sm">
                 {note.credit_note_candidates.map((row) => (
-                  <li key={row.return_id}>
-                    {row.return_number} · {row.status} · not issuable
+                  <li
+                    key={row.return_id}
+                    className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <span>
+                      {row.return_number} · {row.status} · not issuable
+                    </span>
+                    {row.existing_adjustment_id ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/credit-adjustments/${row.existing_adjustment_id}`}>
+                          Open preview
+                        </Link>
+                      </Button>
+                    ) : canPrepareCredit && row.credit_eligible ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => prepareCredit.mutate(row)}
+                        disabled={prepareCredit.isPending}
+                      >
+                        Prepare credit-adjustment preview
+                      </Button>
+                    ) : null}
                   </li>
                 ))}
               </ul>

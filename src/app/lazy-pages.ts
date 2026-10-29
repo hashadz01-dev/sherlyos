@@ -292,6 +292,16 @@ export const InvoiceNotePreviewPage = lazy(() =>
     default: m.InvoiceNotePreviewPage,
   })),
 )
+export const CreditAdjustmentsPage = lazy(() =>
+  import("@/features/invoices/CreditAdjustmentsPage").then((m) => ({
+    default: m.CreditAdjustmentsPage,
+  })),
+)
+export const CreditAdjustmentPreviewPage = lazy(() =>
+  import("@/features/invoices/CreditAdjustmentPreviewPage").then((m) => ({
+    default: m.CreditAdjustmentPreviewPage,
+  })),
+)
 export const ReportsPage = lazy(() =>
   import("@/features/reports/ReportsPage").then((m) => ({
     default: m.ReportsPage,

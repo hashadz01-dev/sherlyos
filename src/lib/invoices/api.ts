@@ -14,6 +14,9 @@ export const invoiceKeys = {
   eligible: ["invoice-eligible-dispatches"] as const,
   readiness: ["invoice-finalization-readiness"] as const,
   taxPreview: (id: string) => ["invoice-tax-preview", id] as const,
+  creditAdjustments: (status: string, branchId: string) =>
+    ["credit-adjustments", status, branchId] as const,
+  creditAdjustment: (id: string) => ["credit-adjustment", id] as const,
 }
 
 export type InvoiceStatutoryBlocker = {
@@ -76,8 +79,97 @@ export type InvoiceCreditNoteCandidate = {
   return_id: string
   return_number: string
   status: string
+  version?: number
   issuable: boolean
+  credit_eligible?: boolean
+  existing_adjustment_id?: string | null
   reason: string
+}
+
+export type CreditAdjustmentStatus = "preview" | "blocked"
+
+export type CreditAdjustmentBlocker = {
+  code: string
+  message: string
+}
+
+export type CreditAdjustmentLine = {
+  id: string
+  line_no: number
+  product_id: string
+  product_sku: string
+  product_name: string
+  original_shipped_cases: number
+  credited_cases: number
+  billing_unit: string
+  billed_units_per_case: number | string
+  billed_quantity: number | string
+  unit_amount: number | string
+  line_subtotal: number | string
+  taxable_value: number | string
+  cgst_rate?: number | string | null
+  sgst_rate?: number | string | null
+  igst_rate?: number | string | null
+  cgst_amount: number | string
+  sgst_amount: number | string
+  igst_amount: number | string
+  tax_amount: number | string
+  line_total: number | string
+}
+
+export type CreditAdjustmentDetail = {
+  id: string
+  adjustment_number: string
+  status: CreditAdjustmentStatus
+  version: number
+  watermark: string
+  legal_credit_note_number: string | null
+  legal_issuance_blocked: boolean
+  tax_preview_state: "tax_preview" | "tax_unavailable" | "tax_stale" | "tax_incomplete"
+  tax_preview_id: string | null
+  tax_input_fingerprint: string | null
+  return_id: string
+  return_number: string
+  return_status: string
+  dispatch_id: string
+  dispatch_number: string
+  invoice_note_id: string
+  invoice_note_number: string
+  invoice_note_version: number
+  shop_id: string
+  shop_name: string
+  branch_id: string
+  credited_cases: number
+  credited_quantity: number | string
+  subtotal_amount: number | string
+  cgst_amount: number | string
+  sgst_amount: number | string
+  igst_amount: number | string
+  tax_amount: number | string
+  adjustment_total: number | string
+  blockers: CreditAdjustmentBlocker[]
+  created_at: string
+  generated_at?: string
+  lines: CreditAdjustmentLine[]
+}
+
+export type CreditAdjustmentListRow = {
+  id: string
+  adjustment_number: string
+  status: CreditAdjustmentStatus
+  watermark: string
+  return_id: string
+  return_number?: string
+  invoice_note_id: string
+  invoice_note_number?: string
+  shop_id: string
+  shop_name?: string
+  branch_id: string
+  credited_cases: number
+  adjustment_total: number | string
+  tax_preview_state: string
+  legal_issuance_blocked: boolean
+  created_at: string
 }
 
 export type InvoiceNoteDetail = {
@@ -283,5 +375,31 @@ export function cancelInvoiceNote(noteId: string, expectedVersion: number) {
   return callRpc<InvoiceNoteDetail>("cancel_invoice_note", {
     p_invoice_note_id: noteId,
     p_expected_version: expectedVersion,
+  })
+}
+
+/** Accounts preview only. Never issues a GST credit note or writes stock. */
+export function prepareCreditAdjustment(options: {
+  returnId: string
+  idempotencyKey: string
+  expectedVersion: number
+}) {
+  return callRpc<CreditAdjustmentDetail>("prepare_credit_adjustment", {
+    p_return_id: options.returnId,
+    p_idempotency_key: options.idempotencyKey,
+    p_expected_version: options.expectedVersion,
+  })
+}
+
+export function getCreditAdjustment(adjustmentId: string) {
+  return callRpc<CreditAdjustmentDetail>("get_credit_adjustment", {
+    p_adjustment_id: adjustmentId,
+  })
+}
+
+export function listCreditAdjustments(options: { status?: string; branchId?: string } = {}) {
+  return callRpc<CreditAdjustmentListRow[]>("list_credit_adjustments", {
+    p_status: options.status && options.status !== "all" ? options.status : null,
+    p_branch_id: options.branchId && options.branchId !== "all" ? options.branchId : null,
   })
 }

@@ -172,9 +172,18 @@ test.beforeAll(() => {
         jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text,
         true
       );
-      perform public.post_opening_stock(
-        product_id, crate_id, 20, '${PREFIX}-open', 'M54D E2E opening'
-      );
+      -- Classify before opening stock so dual-write left on by another spec cannot fail closed.
+      perform public.set_product_expiry_policy(product_id, 'expiry_controlled');
+      if app_private.stock_lots_dual_write_enabled() then
+        perform public.post_opening_stock(
+          product_id, crate_id, 20, '${PREFIX}-open', 'M54D E2E opening',
+          '${PREFIX}-LOT', null, '2028-06-01'
+        );
+      else
+        perform public.post_opening_stock(
+          product_id, crate_id, 20, '${PREFIX}-open', 'M54D E2E opening'
+        );
+      end if;
     end $$;
 
     set session_replication_role = replica;

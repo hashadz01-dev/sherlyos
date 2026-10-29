@@ -25,7 +25,11 @@ import {
   Users,
   Receipt,
 } from "lucide-react"
-import { invoiceNavPermissions, priceNavPermissions } from "@/lib/invoices/rules"
+import {
+  creditAdjustmentNavPermissions,
+  invoiceNavPermissions,
+  priceNavPermissions,
+} from "@/lib/invoices/rules"
 import { statutoryNavPermissions } from "@/lib/statutory/rules"
 import { damageNavPermissions } from "@/lib/damage/rules"
 import { operationsReportPermissions } from "@/lib/reports/access"
@@ -107,6 +111,16 @@ export const navigationItems: AppNavItem[] = [
     group: "Operations",
     icon: Receipt,
     anyPermissions: [...invoiceNavPermissions],
+  },
+  {
+    to: "/credit-adjustments",
+    label: "Credit adjustments",
+    title: "Credit adjustments",
+    description:
+      "Accounts previews of internal credit adjustments from verified customer returns. These are not GST credit notes.",
+    group: "Operations",
+    icon: Receipt,
+    anyPermissions: [...creditAdjustmentNavPermissions],
   },
   {
     to: "/deliveries",

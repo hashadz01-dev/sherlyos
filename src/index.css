@@ -171,4 +171,26 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+
+  .credit-adjustment {
+    padding: 0 !important;
+  }
+
+  .credit-adjustment-print {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .credit-adjustment-print thead {
+    display: table-header-group;
+  }
+
+  .credit-adjustment-print tr {
+    break-inside: avoid;
+  }
+
+  .credit-adjustment-watermark {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

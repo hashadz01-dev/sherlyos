@@ -73,6 +73,9 @@ declare
   snap_amount numeric;
   ledger_before bigint;
   ledger_after bigint;
+  fy_probe_note uuid;
+  fy_probe_as_of date;
+  covering_fy boolean;
 begin
   if exists (
     select 1
@@ -154,14 +157,85 @@ begin
     select string_agg(value ->> 'code', ',')
     from jsonb_array_elements(readiness -> 'blockers')
   );
+  -- Hard issuance gates are independent of whether a verified FY row exists.
   if codes not ilike '%finalize_rpc_disabled%'
     or codes not ilike '%statutory_issuance_disabled%'
     or codes not ilike '%legal_numbering_allocation_disabled%'
     or codes not ilike '%tax_preview_is_not_a_tax_invoice%'
-    or codes not ilike '%numbering_policy_unapproved%'
-    or codes not ilike '%financial_year_unconfigured%'
   then
-    raise exception 'required foundation blockers missing: %', codes;
+    raise exception 'required hard issuance blockers missing: %', codes;
+  end if;
+
+  if exists (
+    select 1 from public.invoice_financial_years
+    where invoice_financial_years.legal_allocation_enabled
+  ) or exists (
+    select 1 from public.invoice_number_series
+    where invoice_number_series.legal_allocation_enabled
+  ) then
+    raise exception 'legal numbering allocation must stay disabled';
+  end if;
+
+  covering_fy := exists (
+    select 1
+    from public.invoice_financial_years
+    where invoice_financial_years.status = 'verified'
+      and invoice_financial_years.starts_on <= CURRENT_DATE
+      and invoice_financial_years.ends_on >= CURRENT_DATE
+  );
+  if covering_fy then
+    if codes ilike '%financial_year_unconfigured%' then
+      raise exception 'covering verified FY must not report unconfigured: %', codes;
+    end if;
+  else
+    if codes not ilike '%financial_year_unconfigured%' then
+      raise exception 'missing covering FY must report financial_year_unconfigured: %', codes;
+    end if;
+  end if;
+
+  -- Isolated missing-FY coverage. Do not delete owner financial-year rows.
+  select invoice_notes.id, invoice_notes.as_of_date
+  into fy_probe_note, fy_probe_as_of
+  from public.invoice_notes
+  where invoice_notes.status = 'reviewed'
+  order by invoice_notes.created_at desc
+  limit 1;
+  if fy_probe_note is not null then
+    reset role;
+    set local session_replication_role = replica;
+    update public.invoice_notes
+    set as_of_date = date '1990-01-01'
+    where invoice_notes.id = fy_probe_note;
+    set local session_replication_role = origin;
+
+    perform set_config('role', 'authenticated', true);
+    perform set_config('request.jwt.claim.sub', admin_id::text, true);
+    perform set_config(
+      'request.jwt.claims',
+      json_build_object('sub', admin_id, 'role', 'authenticated')::text,
+      true
+    );
+    readiness := public.assess_invoice_finalization_readiness(fy_probe_note);
+    if coalesce(readiness ->> 'ready', 'true') is distinct from 'false'
+      or coalesce(readiness ->> 'legal_issuance_blocked', 'false') is distinct from 'true'
+      or (readiness -> 'blockers')::text not ilike '%financial_year_unconfigured%'
+    then
+      raise exception 'as_of outside every FY must stay blocked and unconfigured: %', readiness;
+    end if;
+
+    reset role;
+    set local session_replication_role = replica;
+    update public.invoice_notes
+    set as_of_date = fy_probe_as_of
+    where invoice_notes.id = fy_probe_note;
+    set local session_replication_role = origin;
+    perform set_config('role', 'authenticated', true);
+    perform set_config('request.jwt.claim.sub', admin_id::text, true);
+    perform set_config(
+      'request.jwt.claims',
+      json_build_object('sub', admin_id, 'role', 'authenticated')::text,
+      true
+    );
   end if;
 
   cancellation := public.assess_statutory_cancellation_readiness();

@@ -10,6 +10,7 @@ import {
   INVOICE_PREVIEW_WATERMARK,
   STATUTORY_ISSUANCE_HARD_BLOCKERS,
   TAX_PREVIEW_WATERMARK,
+  CREDIT_ADJUSTMENT_WATERMARK,
   formatInr,
   invoiceEventLabel,
   isDriverHandoverCopy,
@@ -95,6 +96,9 @@ describe("invoice-note presentation", () => {
     expect(INVOICE_PREVIEW_WATERMARK).toBe("DRAFT INVOICE PREVIEW — NOT A TAX INVOICE")
     expect(INVOICE_NO_LEGAL_SEAL).toMatch(/NO LEGAL SEAL/i)
     expect(TAX_PREVIEW_WATERMARK).toBe("TAX CALCULATION PREVIEW — NOT A TAX INVOICE")
+    expect(CREDIT_ADJUSTMENT_WATERMARK).toBe(
+      "CREDIT ADJUSTMENT PREVIEW — NOT A GST CREDIT NOTE",
+    )
     expect(isDriverHandoverCopy("transporter")).toBe(true)
     expect(isInvoiceHandoverCopy("accounts")).toBe(true)
     expect(isInvoiceHandoverCopy("recipient")).toBe(false)

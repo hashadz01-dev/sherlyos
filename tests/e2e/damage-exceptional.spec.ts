@@ -178,12 +178,25 @@ test.beforeAll(() => {
         jsonb_build_object('sub', admin_id, 'role', 'authenticated')::text,
         true
       );
-      perform public.post_opening_stock(
-        product_id, crate_id, 30, '${PREFIX}-open', 'M54E E2E opening'
-      );
-      perform public.post_opening_stock(
-        product_id, qcrate_id, 10, '${PREFIX}-open-q', 'M54E E2E quarantine opening'
-      );
+      -- Classify before opening stock so dual-write left on by another spec cannot fail closed.
+      perform public.set_product_expiry_policy(product_id, 'expiry_controlled');
+      if app_private.stock_lots_dual_write_enabled() then
+        perform public.post_opening_stock(
+          product_id, crate_id, 30, '${PREFIX}-open', 'M54E E2E opening',
+          '${PREFIX}-LOT', null, '2028-06-01'
+        );
+        perform public.post_opening_stock(
+          product_id, qcrate_id, 10, '${PREFIX}-open-q', 'M54E E2E quarantine opening',
+          '${PREFIX}-LOT-Q', null, '2028-06-01'
+        );
+      else
+        perform public.post_opening_stock(
+          product_id, crate_id, 30, '${PREFIX}-open', 'M54E E2E opening'
+        );
+        perform public.post_opening_stock(
+          product_id, qcrate_id, 10, '${PREFIX}-open-q', 'M54E E2E quarantine opening'
+        );
+      end if;
     end $$;
     set session_replication_role = replica;
     update public.zones set location_role = 'quarantine' where code = '${PREFIX}_q';

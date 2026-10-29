@@ -461,7 +461,7 @@ try {
         financial_year_id, series_code, prefix, pad_width, is_synthetic, created_by
       )
       values (
-        '${fyId}'::uuid, 'PROOF-${PREFIX}', 'PROOF-CN-${PREFIX}', 5, true, '${users.admin}'::uuid
+        '${fyId}'::uuid, 'PROOF-${PREFIX}-${RUN}', 'PROOF-CN-${RUN}', 5, true, '${users.admin}'::uuid
       )
       returning id;
     `),

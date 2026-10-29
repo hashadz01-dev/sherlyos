@@ -51,7 +51,23 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m76%",
   // phase_3_3 concurrency leftover (Phase 33 Race Soap). Test SKU only.
   "p33-race%",
+  // M8.1C isolated full-stack fixtures.
+  "m81c%",
 ] as const
+
+const OWNER_PSQL_CONTAINER = "supabase_db_sherlyos"
+
+/**
+ * Isolated M8.1C runs must set SHERLYOS_PSQL_CONTAINER to the disposable
+ * stack. Default remains the owner local container for historical specs.
+ */
+export function localPsqlContainer() {
+  const container = process.env.SHERLYOS_PSQL_CONTAINER?.trim() || OWNER_PSQL_CONTAINER
+  if (process.env.SHERLYOS_ISOLATED === "1" && container === OWNER_PSQL_CONTAINER) {
+    throw new Error("isolated tests refused to use the owner Postgres container")
+  }
+  return container
+}
 
 export function runLocalSql(sql: string, label: string) {
   const result = spawnSync(
@@ -59,7 +75,7 @@ export function runLocalSql(sql: string, label: string) {
     [
       "exec",
       "-i",
-      "supabase_db_sherlyos",
+      localPsqlContainer(),
       "psql",
       "-U",
       "postgres",

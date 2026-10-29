@@ -22,9 +22,10 @@ function parseEnvFile(path: string) {
   return values
 }
 
-/** Vite --mode m1s2 overlay order. Later files win. */
+/** Vite --mode overlay order. Later files win. Isolated M8.1C uses mode m81c. */
 export function effectiveViteSupabaseUrl(root = process.cwd()) {
-  const files = [".env", ".env.local", ".env.m1s2", ".env.m1s2.local"]
+  const mode = process.env.SHERLYOS_VITE_MODE?.trim() || "m1s2"
+  const files = [".env", ".env.local", `.env.${mode}`, `.env.${mode}.local`]
   let url = ""
   for (const file of files) {
     const next = parseEnvFile(resolve(root, file)).VITE_SUPABASE_URL
@@ -58,5 +59,9 @@ export function assertLocalPlaywrightTarget(root = process.cwd()) {
     throw new Error(
       "Playwright refused to start because VITE_SUPABASE_URL is not the local Supabase API.",
     )
+  }
+  const port = new URL(url).port || "443"
+  if (process.env.SHERLYOS_ISOLATED === "1" && port === "54321") {
+    throw new Error("isolated Playwright refused the owner API port 54321")
   }
 }

@@ -10,7 +10,10 @@ import { useDocumentTitle } from "@/hooks/use-document-title"
 import { invoiceKeys, listCreditAdjustments } from "@/lib/invoices/api"
 import {
   CREDIT_ADJUSTMENT_WATERMARK,
+  creditAdjustmentStatusLabel,
+  creditAdjustmentStatusTone,
   formatInr,
+  isCreditAdjustmentStatus,
 } from "@/lib/invoices/rules"
 import { matchesSearch } from "@/lib/masters/filters"
 
@@ -51,8 +54,10 @@ export function CreditAdjustmentsPage() {
         <SearchField label="Search credit adjustments" value={search} onChange={setSearch} />
         <FilterSelect label="Status" value={status} onChange={setStatus}>
           <option value="all">All statuses</option>
-          <option value="preview">Preview</option>
+          <option value="preview">Prepared</option>
           <option value="blocked">Blocked</option>
+          <option value="approved">Approved (internal)</option>
+          <option value="rejected">Rejected</option>
         </FilterSelect>
       </div>
 
@@ -81,8 +86,16 @@ export function CreditAdjustmentsPage() {
                     {row.shop_name} · {row.credited_cases} cases · {formatInr(row.adjustment_total)}
                   </span>
                 </span>
-                <StatusBadge tone={row.status === "blocked" ? "warning" : "info"}>
-                  {row.status}
+                <StatusBadge
+                  tone={
+                    isCreditAdjustmentStatus(row.status)
+                      ? creditAdjustmentStatusTone[row.status]
+                      : "info"
+                  }
+                >
+                  {isCreditAdjustmentStatus(row.status)
+                    ? creditAdjustmentStatusLabel[row.status]
+                    : row.status}
                 </StatusBadge>
               </Link>
             </li>

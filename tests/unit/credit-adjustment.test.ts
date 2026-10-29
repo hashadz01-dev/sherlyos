@@ -7,7 +7,9 @@ import {
 import {
   CREDIT_ADJUSTMENT_WATERMARK,
   creditAdjustmentNavPermissions,
+  creditAdjustmentStatusLabel,
   formatInr,
+  isValidCreditAdjustmentReviewReason,
 } from "@/lib/invoices/rules"
 
 function sampleAdjustment(
@@ -90,6 +92,9 @@ describe("credit-adjustment presentation", () => {
     expect(sampleAdjustment().legal_credit_note_number).toBeNull()
     expect(sampleAdjustment().legal_issuance_blocked).toBe(true)
     expect(sampleAdjustment().status).toBe("preview")
+    expect(creditAdjustmentStatusLabel.approved).toBe("Approved (internal)")
+    expect(isValidCreditAdjustmentReviewReason("Accounts review")).toBe(true)
+    expect(isValidCreditAdjustmentReviewReason("")).toBe(false)
   })
 
   it("formats independent snapshot totals in INR", () => {

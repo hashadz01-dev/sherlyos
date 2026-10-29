@@ -6,7 +6,11 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { CreditAdjustmentDetail } from "@/lib/invoices/api"
-import { CREDIT_ADJUSTMENT_WATERMARK } from "@/lib/invoices/rules"
+import {
+  CREDIT_ADJUSTMENT_WATERMARK,
+  creditAdjustmentStatusLabel,
+  isCreditAdjustmentStatus,
+} from "@/lib/invoices/rules"
 
 function inr(amount: number | string | null | undefined) {
   const value = typeof amount === "number" ? amount : Number(amount ?? Number.NaN)
@@ -78,6 +82,17 @@ export function buildCreditAdjustmentPdf(row: CreditAdjustmentDetail): Uint8Arra
     ["Verified return", text(row.return_number)],
     ["Return status", text(row.return_status)],
     ["Tax preview", text(row.tax_preview_state)],
+    [
+      "Internal status",
+      isCreditAdjustmentStatus(row.status)
+        ? creditAdjustmentStatusLabel[row.status]
+        : text(row.status),
+    ],
+    ["Reviewer", text(row.reviewer_name)],
+    [
+      "Remaining eligible",
+      row.reconciliation ? String(row.reconciliation.remaining_eligible_cases) : "—",
+    ],
     ["Snapshot", generated],
     ["Legal credit note", "not allocated"],
   ]

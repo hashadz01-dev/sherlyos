@@ -1,5 +1,10 @@
 import type { CreditAdjustmentDetail } from "@/lib/invoices/api"
-import { CREDIT_ADJUSTMENT_WATERMARK, formatInr } from "@/lib/invoices/rules"
+import {
+  CREDIT_ADJUSTMENT_WATERMARK,
+  creditAdjustmentStatusLabel,
+  formatInr,
+  isCreditAdjustmentStatus,
+} from "@/lib/invoices/rules"
 
 function stamp(value: string | null | undefined) {
   if (!value) return "—"
@@ -56,8 +61,24 @@ export function CreditAdjustmentDocument({ row }: { row: CreditAdjustmentDetail 
           </dd>
         </div>
         <div>
+          <dt className="text-neutral-600">Internal status</dt>
+          <dd>
+            {isCreditAdjustmentStatus(row.status)
+              ? creditAdjustmentStatusLabel[row.status]
+              : row.status}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-neutral-600">Reviewer</dt>
+          <dd>{dash(row.reviewer_name)}</dd>
+        </div>
+        <div>
           <dt className="text-neutral-600">Tax preview</dt>
           <dd>{dash(row.tax_preview_state)}</dd>
+        </div>
+        <div>
+          <dt className="text-neutral-600">Remaining eligible cases</dt>
+          <dd>{row.reconciliation?.remaining_eligible_cases ?? "—"}</dd>
         </div>
         <div>
           <dt className="text-neutral-600">Snapshot</dt>

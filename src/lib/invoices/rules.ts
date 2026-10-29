@@ -51,6 +51,42 @@ export const TAX_PREVIEW_WATERMARK = "TAX CALCULATION PREVIEW — NOT A TAX INVO
 export const CREDIT_ADJUSTMENT_WATERMARK =
   "CREDIT ADJUSTMENT PREVIEW — NOT A GST CREDIT NOTE"
 
+export const creditAdjustmentStatuses = [
+  "preview",
+  "blocked",
+  "approved",
+  "rejected",
+] as const
+
+export type CreditAdjustmentStatus = (typeof creditAdjustmentStatuses)[number]
+
+export const creditAdjustmentStatusLabel: Record<CreditAdjustmentStatus, string> = {
+  preview: "Prepared",
+  blocked: "Blocked",
+  approved: "Approved (internal)",
+  rejected: "Rejected",
+}
+
+export const creditAdjustmentStatusTone: Record<
+  CreditAdjustmentStatus,
+  "neutral" | "info" | "success" | "warning" | "danger"
+> = {
+  preview: "info",
+  blocked: "warning",
+  approved: "success",
+  rejected: "danger",
+}
+
+export function isCreditAdjustmentStatus(value: string): value is CreditAdjustmentStatus {
+  return (creditAdjustmentStatuses as readonly string[]).includes(value)
+}
+
+/** Accounts review reason. Backend still enforces 1–500 trimmed characters. */
+export function isValidCreditAdjustmentReviewReason(value: string) {
+  const cleaned = value.trim()
+  return cleaned.length >= 1 && cleaned.length <= 500
+}
+
 /**
  * Hard D.2 blockers. Completing configuration or reserving a foundation
  * snapshot cannot remove these until a later owner-approved issuance phase.
@@ -115,5 +151,8 @@ export function invoiceEventLabel(eventType: string) {
   if (eventType === "submitted") return "Submitted for review"
   if (eventType === "reviewed") return "Reviewed by Accounts"
   if (eventType === "cancelled") return "Cancelled"
+  if (eventType === "approved") return "Approved for internal reconciliation"
+  if (eventType === "rejected") return "Rejected"
+  if (eventType === "previewed") return "Preview opened"
   return eventType
 }

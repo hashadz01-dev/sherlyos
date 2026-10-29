@@ -24,6 +24,7 @@ test("credit adjustments stay preview-only and are not GST credit notes", async 
   await expect(page.getByText("CREDIT ADJUSTMENT PREVIEW — NOT A GST CREDIT NOTE")).toBeVisible()
   await expect(page.getByRole("button", { name: /issue|finalize|post credit|allocate/i })).toHaveCount(0)
   await expect(page.getByRole("link", { name: /issue|finalize/i })).toHaveCount(0)
+  await expect(page.getByLabel("Status")).toContainText("Approved (internal)")
 })
 
 test("delivery personnel cannot open credit-adjustment URLs", async ({ page }) => {

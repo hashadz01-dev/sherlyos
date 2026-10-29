@@ -1,9 +1,12 @@
 import { callRpc } from "@/lib/masters/api"
 import type { InvoiceTaxPreview } from "@/lib/invoices/tax-preview"
 import type {
+  CreditAdjustmentStatus,
   InvoiceNoteStatus,
   InvoicePreviewCopy,
 } from "@/lib/invoices/rules"
+
+export type { CreditAdjustmentStatus }
 
 export const invoiceKeys = {
   list: (status: string, branchId: string, shopId: string) =>
@@ -86,11 +89,56 @@ export type InvoiceCreditNoteCandidate = {
   reason: string
 }
 
-export type CreditAdjustmentStatus = "preview" | "blocked"
-
 export type CreditAdjustmentBlocker = {
   code: string
   message: string
+}
+
+export type CreditAdjustmentEvent = {
+  id: string
+  event_type: string
+  actor_id: string
+  payload?: Record<string, unknown>
+  created_at: string
+}
+
+export type CreditAdjustmentReconciliationLine = {
+  invoice_note_line_id: string
+  line_no: number
+  product_sku: string
+  product_name: string
+  billed_cases: number
+  dispatched_cases: number
+  returned_cases: number
+  this_adjustment_cases: number
+  prepared_cases: number
+  approved_cases: number
+  remaining_eligible_cases: number
+  unit_amount: number | string
+  billing_unit: string
+  billed_units_per_case: number | string
+  missing_return_lot?: boolean
+}
+
+export type CreditAdjustmentReconciliation = {
+  billed_cases: number
+  dispatched_cases: number
+  returned_cases: number
+  prepared_cases: number
+  approved_cases: number
+  remaining_eligible_cases: number
+  arithmetic: string
+  prices_from: string
+  lines: CreditAdjustmentReconciliationLine[]
+  discrepancies: CreditAdjustmentBlocker[]
+}
+
+export type CreditNoteIssuanceReadiness = {
+  ready: boolean
+  legal_issuance_blocked: boolean
+  numbering_allocation_enabled?: boolean
+  issuance_blocked_reason?: string
+  blockers: CreditAdjustmentBlocker[]
 }
 
 export type CreditAdjustmentLine = {
@@ -148,8 +196,18 @@ export type CreditAdjustmentDetail = {
   tax_amount: number | string
   adjustment_total: number | string
   blockers: CreditAdjustmentBlocker[]
+  reviewed_at?: string | null
+  reviewed_by?: string | null
+  reviewer_name?: string | null
+  review_reason?: string | null
+  approved_at?: string | null
+  approved_by?: string | null
+  internal_reconciliation_only?: boolean
   created_at: string
   generated_at?: string
+  reconciliation?: CreditAdjustmentReconciliation
+  tax_readiness?: CreditNoteIssuanceReadiness
+  events?: CreditAdjustmentEvent[]
   lines: CreditAdjustmentLine[]
 }
 
@@ -169,6 +227,8 @@ export type CreditAdjustmentListRow = {
   adjustment_total: number | string
   tax_preview_state: string
   legal_issuance_blocked: boolean
+  reviewed_at?: string | null
+  reviewed_by?: string | null
   created_at: string
 }
 
@@ -401,5 +461,32 @@ export function listCreditAdjustments(options: { status?: string; branchId?: str
   return callRpc<CreditAdjustmentListRow[]>("list_credit_adjustments", {
     p_status: options.status && options.status !== "all" ? options.status : null,
     p_branch_id: options.branchId && options.branchId !== "all" ? options.branchId : null,
+  })
+}
+
+/** Accounts internal review. Never issues a GST credit note. */
+export function reviewCreditAdjustment(options: {
+  adjustmentId: string
+  decision: "approve" | "reject"
+  reason: string
+  expectedVersion: number
+}) {
+  return callRpc<CreditAdjustmentDetail>("review_credit_adjustment", {
+    p_adjustment_id: options.adjustmentId,
+    p_decision: options.decision,
+    p_reason: options.reason,
+    p_expected_version: options.expectedVersion,
+  })
+}
+
+export function getCreditAdjustmentReconciliation(adjustmentId: string) {
+  return callRpc<CreditAdjustmentReconciliation>("get_credit_adjustment_reconciliation", {
+    p_adjustment_id: adjustmentId,
+  })
+}
+
+export function assessCreditNoteIssuanceReadiness(adjustmentId?: string) {
+  return callRpc<CreditNoteIssuanceReadiness>("assess_credit_note_issuance_readiness", {
+    p_adjustment_id: adjustmentId ?? null,
   })
 }

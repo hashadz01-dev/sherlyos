@@ -10,6 +10,37 @@
   SHERLYS_RELEASE_TARGET = "development"
   NODE_VERSION = "22"
 
+# Vite already hashes and minifies. Netlify HTML/JS post-processing can break
+# ES module chunks and show "Failed to fetch dynamically imported module".
+[build.processing]
+  skip_processing = true
+
+# HTML must revalidate so a tab does not keep an index.html that points at
+# deleted hashed files. Hashed /assets/* can stay immutable.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Never rewrite hashed modules onto the SPA shell.
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = false
+
 # Existing static files win. This rewrite is last so React Router can refresh
 # protected URLs without a 404.
 [[redirects]]

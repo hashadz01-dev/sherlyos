@@ -103,14 +103,17 @@ import {
 } from "@/lib/reports/access"
 import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
+import { RouteErrorPage } from "@/pages/errors/RouteErrorPage"
 
 export const appRouteObjects: RouteObject[] = [
   {
     path: "/login",
     element: <LoginPage />,
+    errorElement: <RouteErrorPage />,
   },
   {
     element: <RequireAuth />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         element: <AppShell />,

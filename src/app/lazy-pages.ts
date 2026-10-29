@@ -1,6 +1,27 @@
-import { lazy } from "react"
+import { lazy as reactLazy, type ComponentType } from "react"
+import {
+  isStaleChunkError,
+  reloadOnceForStaleChunk,
+} from "@/lib/routing/stale-chunk"
 
-/** Route-level splits so the login shell does not download every operations module. */
+/**
+ * Route-level splits so the login shell does not download every operations module.
+ * If Netlify still has a previous hashed file cached, reload once instead of
+ * leaving the React Router overlay on a missing chunk.
+ */
+function lazy<T extends ComponentType<unknown>>(
+  factory: () => Promise<{ default: T }>,
+) {
+  return reactLazy(() =>
+    factory().catch((error: unknown) => {
+      if (isStaleChunkError(error) && reloadOnceForStaleChunk()) {
+        return new Promise<{ default: T }>(() => {})
+      }
+      throw error
+    }),
+  )
+}
+
 export const DashboardPage = lazy(() =>
   import("@/pages/dashboard/DashboardPage").then((m) => ({
     default: m.DashboardPage,

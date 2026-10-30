@@ -55,7 +55,7 @@ export function PickingDetailPage() {
     enabled: requestId !== "",
   })
   const request = detail.data
-  useDocumentTitle(request ? request.request_number : "Picking")
+  useDocumentTitle(request ? request.request_number : "Packing")
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: pickingKeys.detail(requestId) })
@@ -64,7 +64,7 @@ export function PickingDetailPage() {
 
   const start = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return startPicking({
         target_request: request.id,
         expected_version: request.version,
@@ -75,7 +75,7 @@ export function PickingDetailPage() {
   })
   const assign = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return assignPickingRequest({
         target_request: request.id,
         assignee,
@@ -87,7 +87,7 @@ export function PickingDetailPage() {
   })
   const complete = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return completePicking({
         target_request: request.id,
         expected_version: request.version,
@@ -98,7 +98,7 @@ export function PickingDetailPage() {
   })
   const handoff = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return confirmPickingHandoff({
         target_request: request.id,
         expected_version: request.version,
@@ -109,7 +109,7 @@ export function PickingDetailPage() {
   })
   const cancel = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return cancelPickingRequest({
         target_request: request.id,
         expected_version: request.version,
@@ -125,7 +125,7 @@ export function PickingDetailPage() {
 
   const createShipment = useMutation({
     mutationFn: () => {
-      if (!request) throw new Error("Picking is not loaded.")
+      if (!request) throw new Error("Packing is not loaded.")
       return createShortShipment({
         target_request: request.id,
         expected_picking_version: request.version,
@@ -155,7 +155,7 @@ export function PickingDetailPage() {
     confirmShipment.error
   const actionMessage =
     actionError && isStalePickingVersion(actionError)
-      ? "This picking task changed. Reload before continuing."
+      ? "This packing task changed. Reload before continuing."
       : actionError?.message
   const fulfilment = request?.fulfilment
   const hasShortage =
@@ -191,15 +191,15 @@ export function PickingDetailPage() {
   return (
     <section className="min-w-0">
       <PageHeader
-        title={request?.request_number ?? "Picking"}
-        description={request ? `Order ${request.order_number}` : "Warehouse picking task"}
+        title={request?.request_number ?? "Packing"}
+        description={request ? `Order ${request.order_number}` : "Warehouse packing task"}
         action={
           <Button asChild variant="outline">
             <Link to="/picking">Back to queue</Link>
           </Button>
         }
       />
-      {detail.isLoading ? <LoadingBlock label="Loading picking task" /> : null}
+      {detail.isLoading ? <LoadingBlock label="Loading packing task" /> : null}
       {detail.error ? (
         <p role="alert" className="text-sm text-destructive">
           {detail.error.message}
@@ -276,12 +276,12 @@ export function PickingDetailPage() {
           <div className="flex flex-wrap gap-2">
             {can("picking.execute") && request.status === "allocated" ? (
               <Button type="button" onClick={() => start.mutate()} disabled={start.isPending}>
-                {start.isPending ? "Starting" : "Start picking"}
+                {start.isPending ? "Starting" : "Start packing"}
               </Button>
             ) : null}
             {can("picking.execute") && request.status === "picking" ? (
               <Button type="button" onClick={() => complete.mutate()} disabled={complete.isPending}>
-                {complete.isPending ? "Completing" : "Complete picking"}
+                {complete.isPending ? "Completing" : "Complete packing"}
               </Button>
             ) : null}
             {canCreateShipment ? (
@@ -327,7 +327,7 @@ export function PickingDetailPage() {
             {can("picking.manage") &&
             ["allocated", "picking", "picked", "blocked"].includes(request.status) ? (
               <Button type="button" variant="outline" onClick={() => setConfirmCancel(true)}>
-                Cancel picking
+                Cancel packing
               </Button>
             ) : null}
           </div>
@@ -340,7 +340,7 @@ export function PickingDetailPage() {
               }}
             >
               <label className="grid gap-1 text-sm font-medium">
-                Assign picker (user id)
+                Assign packer (user id)
                 <input
                   className="h-10 w-80 rounded-lg border border-input px-2.5 text-sm font-normal"
                   value={assignee}
@@ -393,15 +393,15 @@ export function PickingDetailPage() {
       <AppModal
         open={confirmCancel}
         onOpenChange={setConfirmCancel}
-        title="Cancel picking?"
+        title="Cancel packing?"
         description="Active reservations will be released. Picked quantities are not written to the ledger."
         footer={
           <>
             <Button type="button" variant="outline" onClick={() => setConfirmCancel(false)}>
-              Keep picking
+              Keep packing
             </Button>
             <Button type="button" disabled={cancel.isPending || cancelReason.trim() === ""} onClick={() => cancel.mutate()}>
-              {cancel.isPending ? "Cancelling" : "Cancel picking"}
+              {cancel.isPending ? "Cancelling" : "Cancel packing"}
             </Button>
           </>
         }

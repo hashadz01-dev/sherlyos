@@ -140,7 +140,7 @@ export class InsufficientStockError extends Error {
   shortages: AvailabilityLine[]
 
   constructor(shortages: AvailabilityLine[]) {
-    super("Verification cannot be completed because the following products have insufficient picking-eligible stock.")
+    super("Verification cannot be completed because the following products have insufficient packing-eligible stock.")
     this.name = "InsufficientStockError"
     this.shortages = shortages
   }

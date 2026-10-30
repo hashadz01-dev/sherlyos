@@ -34,7 +34,7 @@ const links = [
   },
   {
     to: "/reports/orders-picking",
-    label: "Orders & picking",
+    label: "Orders & packing",
     permissions: orderReportPermissions,
   },
   {

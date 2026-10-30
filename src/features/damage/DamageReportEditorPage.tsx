@@ -57,7 +57,7 @@ function sourceLabelOf(item: DamageSourceItem | null, refs: SourceRefs) {
   if (item?.label) return item.label
   if (refs.receiptId) return `Receipt ${refs.receiptId.slice(0, 8)}`
   if (refs.pickingRequestId)
-    return `Picking ${refs.pickingRequestId.slice(0, 8)}`
+    return `Packing ${refs.pickingRequestId.slice(0, 8)}`
   if (refs.dispatchId) return `Dispatch ${refs.dispatchId.slice(0, 8)}`
   if (refs.shopId) return `Shop ${refs.shopId.slice(0, 8)}`
   return ""

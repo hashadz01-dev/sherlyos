@@ -92,7 +92,7 @@ export function DamageSourcePicker({
       return "Authorized godown crates and products with on-hand carton cases."
     }
     if (scenario === "loading") {
-      return "Eligible picking allocations that have not been consumed."
+      return "Eligible packing allocations that have not been consumed."
     }
     if (scenario === "transit") {
       return "Consumed dispatches you are authorized to report."

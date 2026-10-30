@@ -9,6 +9,7 @@ type Category = { code: string; name: string; description: string }
 type Supplier = {
   ref: string
   name: string
+  formerNames?: string[]
   brands: string
   verification: string
   email: string | null
@@ -43,6 +44,16 @@ describe("M7.7 catalogue", () => {
   it("does not claim unverified invoicing suppliers or store fabricated contacts", () => {
     expect(SUPPLIERS.every((row) => /pending/i.test(row.name))).toBe(true)
     expect(SUPPLIERS.every((row) => row.email == null && row.phone == null)).toBe(true)
+  })
+
+  it("records Nandini as the supplier of GoodLife products", () => {
+    expect(SUPPLIERS.some((row) => row.ref === "GOODLIFE")).toBe(false)
+    const nandini = SUPPLIERS.find((row) => row.ref === "NANDINI")
+    expect(nandini?.name).toBe("Nandini (pending invoicing confirmation)")
+    expect(nandini?.formerNames).toContain("GoodLife (pending invoicing confirmation)")
+    const goodlifeSkus = PRODUCTS.filter((row) => (row.sku ?? "").startsWith("GOODLIFE-"))
+    expect(goodlifeSkus.length).toBeGreaterThan(0)
+    expect(goodlifeSkus.every((row) => row.supplierRef === "NANDINI")).toBe(true)
   })
 
   it("rejects duplicate or oversized SKUs and invented case packs", () => {

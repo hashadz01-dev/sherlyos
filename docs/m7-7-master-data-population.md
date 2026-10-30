@@ -1,6 +1,8 @@
 # M7.7 — Master data population (Sherlys catalogues)
 
-Local-only master-data import of Categories, Suppliers, and Products from Sherlys Distributors / MattaNaad / SUNPURE catalogues. This phase does **not** post opening stock, lots, receipts, dispatches, selling prices, purchase prices, or financial transactions. It does **not** apply to the owner/cloud database. It does **not** flip operational flags.
+Master-data import of Categories, Suppliers, and Products from Sherlys Distributors / MattaNaad / SUNPURE catalogues. This phase does **not** post opening stock, lots, receipts, dispatches, selling prices, purchase prices, or financial transactions. It does **not** flip operational flags.
+
+Local apply ran first on `supabase_db_sherlyos`. Jeffin then authorized the same INSERT rows on the development cloud (`ypkfondrkhkydkgovwup`) so `npm run dev` on port 5173 can show them. Staged rows were not inserted.
 
 Starting HEAD: `d5c56bb16e083c2636326a8b51ceee5302b11e53`  
 `minor correction done`
@@ -91,7 +93,7 @@ Pending suppliers (all inactive, no contacts):
 - Kera (pending invoicing confirmation)
 - MK Agrotech Pvt Ltd (manufacturer; invoicing pending)
 - Parry's (pending invoicing confirmation)
-- GoodLife (pending invoicing confirmation)
+- Nandini (pending invoicing confirmation) — supplier of GoodLife products; the GoodLife brand is not a supplier
 - MattaNaad (pending invoicing confirmation)
 
 TPF Bharat Private Limited is named on MattaNaad material and is **not** stored as the invoicing supplier. MK Agrotech is identified as manufacturer/marketer from the SUNPURE catalogue and is **not** treated as a proven Sherlys invoicing supplier.
@@ -179,34 +181,25 @@ Review flags kept on inserted or staged rows (values not averaged or “correcte
 | Playwright | `npx playwright test tests/e2e/m7-7-master-data.spec.ts` | admin.m1s2qa on `--mode m1s2` port 4173: Categories Tea & Tea Bags; inactive AVT pending supplier; product AVT-PREM-DUST-100G |
 | Typecheck / build | `npm run typecheck` · `npm run build` | passed before this wrap-up |
 
-Playwright uses gitignored `.env.m1s2.local` (`http://127.0.0.1:54321`). `npm run dev` on 5173 remains on the development-cloud `.env` and will **not** show this catalogue.
+Playwright uses gitignored `.env.m1s2.local` (`http://127.0.0.1:54321`). After owner authorization, the same INSERT rows were applied on the development cloud so `npm run dev` on 5173 shows them.
 
 ---
 
-## 8. Owner / cloud execution plan (not run)
+## 8. Development-cloud apply (authorized)
 
-Do **not** run the importer against `ypkfondrkhkydkgovwup` or any owner database until Jeffin authorizes it in a later message.
+Jeffin asked for Products, Categories, and Suppliers to appear on port 5173 (development cloud, previously empty after the dummy-master wipe).
 
-When authorized, the same catalogue file can be applied through the existing RPCs as an admin on the target database, with a dedicated dry-run against that database first. Required before that run:
+Applied through existing RPCs as Jeffin (`cdc087c0-0295-425d-8dbe-9a91030bf012`): `docs/m7-7/development-cloud-apply.sql`.
 
-1. Confirm invoicing supplier legal names, GSTIN (schema has no GSTIN column today), and whether pending placeholders should stay inactive.
-2. Confirm MattaNaad carton quantities (or sack-as-case).
-3. Confirm which SUNPURE manufacturer SKUs Sherlys actually stocks.
-4. Confirm spice pack sizes.
-5. Confirm tea-bag packing model and the ambiguous case-pack rows.
-6. Confirm expiry classification (left unset).
-7. Confirm SKU scheme if owner prefers different codes.
-8. Re-run dry-run on the owner DB; stop on `CONFLICT_REQUIRES_REVIEW`.
-9. Apply only INSERT rows; keep STAGE rows staged.
-10. Re-check flags false and ledger/price/invoice-note counts unchanged.
+Cloud after apply: products **67**, categories **13**, suppliers **6** (all inactive), ledger/balances/lots/prices/invoice notes **0**, flags still false. `supplier_id` null on catalogue products. Staged MattaNaad / SUNPURE extras / spices were not inserted.
 
-The local script must not be pointed at a cloud URL; it refuses non-local APIs by design.
+The local importer still refuses non-local APIs. Staged rows stay staged until the decisions in section 9.
 
 ---
 
 ## 9. Owner decisions still required
 
-- Actual invoicing supplier for AVT, Kera, Parry's, GoodLife, MattaNaad, SUNPURE
+- Actual invoicing supplier / GSTIN for AVT, Kera, Parry's, Nandini (GoodLife brand), MattaNaad, SUNPURE
 - MattaNaad case/sack representation
 - SUNPURE extras: stockist vs manufacturer-only
 - Spice size matrix
@@ -222,11 +215,10 @@ The local script must not be pointed at a cloud URL; it refuses non-local APIs b
 
 ## 10. What this phase did not do
 
-- No owner/cloud writes
 - No git commit, push, or Netlify deploy
 - No flag flips
 - No stock, lot, receipt, dispatch, or invoice-note writes
 - No selling/purchase price rows for catalogue SKUs
 - No fabricated GSTIN, phone, email, or carton quantity of 1
-- No truncation of existing local test masters
+- Staged MattaNaad / SUNPURE extras / spices were not inserted
 - Isolated M8.1C (`56321`) was not used

@@ -44,7 +44,7 @@ export function DispatchPreparePage() {
   const confirm = useMutation({
     mutationFn: async () => {
       if (!data?.picking_request_id || data.picking_version == null) {
-        throw new Error("Picking handoff is missing.")
+        throw new Error("Packing handoff is missing.")
       }
       const prepared = data.dispatch_id
         ? await confirmDispatch({
@@ -108,7 +108,7 @@ export function DispatchPreparePage() {
           ) : null}
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-slate-500">Picking</dt>
+              <dt className="text-slate-500">Packing</dt>
               <dd>{data.picking_request_number ?? "—"}</dd>
             </div>
             <div>
@@ -146,7 +146,7 @@ export function DispatchPreparePage() {
             ) : null}
             {data.picking_request_id ? (
               <Button asChild variant="outline">
-                <Link to={`/picking/${data.picking_request_id}`}>Open picking</Link>
+                <Link to={`/picking/${data.picking_request_id}`}>Open packing</Link>
               </Button>
             ) : null}
           </div>

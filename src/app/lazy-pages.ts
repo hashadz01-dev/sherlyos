@@ -258,6 +258,11 @@ export const HistoryPage = lazy(() =>
     default: m.HistoryPage,
   })),
 )
+export const LotStockPage = lazy(() =>
+  import("@/features/inventory/LotStockPage").then((m) => ({
+    default: m.LotStockPage,
+  })),
+)
 export const MastersPage = lazy(() =>
   import("@/features/masters/MastersPage").then((m) => ({
     default: m.MastersPage,

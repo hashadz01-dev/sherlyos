@@ -1,0 +1,98 @@
+{
+  "version": "m7.8",
+  "mode": "dry-run",
+  "ownerDatabaseModified": false,
+  "before": {
+    "vehicles": 104,
+    "active_vehicles": 100,
+    "dispatch_with_vehicle": 93,
+    "assignments": 214,
+    "ledger": 1054,
+    "balances": 140,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  },
+  "vehicles": [
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "BENZ_B",
+      "displayName": "Benz (B)",
+      "registrationNumber": "KL-43-F-948",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "BENZ_S",
+      "displayName": "Benz (S)",
+      "registrationNumber": "KL-43-K-3458",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "NEW_SML",
+      "displayName": "New SML",
+      "registrationNumber": "KL-43-T-5764",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "MAHINDRA",
+      "displayName": "Mahindra",
+      "registrationNumber": "KL-43-N-3241",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "BADA_DOST",
+      "displayName": "Bada Dost (Malayalam Motors)",
+      "registrationNumber": "KL-43-P-0012",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "TATA",
+      "displayName": "Tata",
+      "registrationNumber": "KL-43-P-7981",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "MAHINDRA_NEW",
+      "displayName": "Mahindra New",
+      "registrationNumber": "KL-43-Q-1561",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "SML",
+      "displayName": "SML",
+      "registrationNumber": "KL-43-R-1543",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "BIG_BENZ",
+      "displayName": "Big Benz",
+      "registrationNumber": "KL-43-R-5470",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "VEERO",
+      "displayName": "Veero",
+      "registrationNumber": "KL-43-S-7528",
+      "reason": "Staged: create_vehicle requires an active godown and a vehicle_type. Capacity, insurance, and ownership were not in the source."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "ref": "BOLERO",
+      "displayName": "Bolero",
+      "registrationNumber": "KL-43-R-6725",
+      "reason": "Source marked optional. Not created as an active operational vehicle. Needs owner confirmation plus godown and type."
+    }
+  ],
+  "insertable": 0,
+  "staged": 11
+}

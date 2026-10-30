@@ -9,7 +9,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title"
 import { listPickingExceptions, pickingKeys } from "@/lib/picking/api"
 
 export function PickingExceptionsPage() {
-  useDocumentTitle("Picking exceptions")
+  useDocumentTitle("Packing exceptions")
   const exceptions = useQuery({
     queryKey: pickingKeys.exceptions,
     queryFn: listPickingExceptions,
@@ -18,7 +18,7 @@ export function PickingExceptionsPage() {
   return (
     <section className="min-w-0">
       <PageHeader
-        title="Picking exceptions"
+        title="Packing exceptions"
         description="Shortages, expired stock, unknown legacy lots, missing receipt chronology, and reservation conflicts."
         action={
           <Button asChild variant="outline">
@@ -35,7 +35,7 @@ export function PickingExceptionsPage() {
       {exceptions.data && exceptions.data.length === 0 ? (
         <EmptyState
           icon={TriangleAlert}
-          title="No picking exceptions"
+          title="No packing exceptions"
           description="Shortage reports and allocation blockers appear here after warehouse work starts."
         />
       ) : null}

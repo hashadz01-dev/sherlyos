@@ -28,7 +28,7 @@ export type PickingExceptionType = (typeof pickingExceptionTypes)[number]
 export const pickingStatusLabel: Record<PickingRequestStatus, string> = {
   pending_allocation: "Pending allocation",
   allocated: "Allocated",
-  picking: "Picking",
+  picking: "Packing",
   picked: "Picked",
   ready_for_dispatch: "Ready for dispatch",
   cancelled: "Cancelled",
@@ -51,11 +51,11 @@ export const pickingStatusTone: Record<
 export const pickingEventLabel: Record<string, string> = {
   allocated: "Reservation confirmed",
   assigned: "Task assigned",
-  picking_started: "Picking started",
+  picking_started: "Packing started",
   quantity_confirmed: "Quantity confirmed",
   exception_recorded: "Exception recorded",
   reservation_released: "Reservation released",
-  picking_completed: "Picking completed",
+  picking_completed: "Packing completed",
   handed_off: "Ready for dispatch",
   cancelled: "Cancelled",
   blocked: "Blocked",
@@ -75,7 +75,7 @@ export function cutoverBlocksPicking(input: {
   aggregate_only_blocked: boolean
 }) {
   if (!input.dual_write_enabled) {
-    return "Lot-aware picking requires dual-write to be enabled. Aggregate-only stock has no valid lot identities."
+    return "Lot-aware packing requires dual-write to be enabled. Aggregate-only stock has no valid lot identities."
   }
   return null
 }
@@ -178,9 +178,9 @@ export function nextOrderPickingAction(input: OrderPickingNextActionInput) {
   if (input.orderStatus === "draft") return "Submit the order."
   if (input.orderStatus === "held") return "Correct the order and resubmit."
   if (input.orderStatus === "submitted") {
-    return "Verify using picking-eligible ATP. Verification does not reserve stock."
+    return "Verify using packing-eligible ATP. Verification does not reserve stock."
   }
-  if (input.orderStatus !== "verified") return "No picking action on this order."
+  if (input.orderStatus !== "verified") return "No packing action on this order."
   if (input.fulfilmentStatus === "partially_fulfilled") {
     return "Original order is partially fulfilled. Outstanding cases are on the linked backorder."
   }
@@ -213,13 +213,13 @@ export function nextOrderPickingAction(input: OrderPickingNextActionInput) {
     return "Godown Manager can mark ready for dispatch after a full pick."
   }
   if (input.pickingStatus === "picking" || input.pickingStatus === "allocated") {
-    return "Continue warehouse picking. Reserved quantity is a hold, not a ledger debit."
+    return "Continue warehouse packing. Reserved quantity is a hold, not a ledger debit."
   }
   if (input.pickingStatus === "blocked") {
-    return "Picking is blocked. Resolve the exception or cancel and reallocate."
+    return "Packing is blocked. Resolve the exception or cancel and reallocate."
   }
   if (input.cutoverBlocked) {
-    return "Lot-aware picking is blocked until dual-write cutover."
+    return "Lot-aware packing is blocked until dual-write cutover."
   }
   if (!input.dnStatus) {
     return "Create and send the delivery note. Godown Manager must acknowledge it before allocation."

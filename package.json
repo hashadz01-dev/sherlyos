@@ -16,6 +16,9 @@
     "test:e2e": "playwright test",
     "m7-7:dry-run": "node scripts/m7-7-import-local.mjs",
     "m7-7:apply": "node scripts/m7-7-import-local.mjs --apply",
+    "m7-8:dry-run": "node scripts/m7-8-import-local.mjs",
+    "m7-8:apply": "node scripts/m7-8-import-local.mjs --apply",
+    "m8-2a:dry-run": "node scripts/m8-2a-import-local.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

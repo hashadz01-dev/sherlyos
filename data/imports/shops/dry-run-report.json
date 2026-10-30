@@ -1,0 +1,27 @@
+{
+  "version": "m8.2a",
+  "mode": "dry-run",
+  "ownerDatabaseModified": false,
+  "sourceEntries": 0,
+  "expectedSourceEntries": 575,
+  "uniqueProposedShops": 0,
+  "proposedNew": 0,
+  "existingMatches": 0,
+  "unresolved": 0,
+  "missingMandatoryFields": [
+    "original_shop_name from screenshots"
+  ],
+  "unresolvedBranchMappings": [
+    "shops have no branch_id; order capture still needs a godown at order time"
+  ],
+  "salespersonAssignments": 0,
+  "before": {
+    "shops": 0,
+    "assignments": 0,
+    "ledger": 1054,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  }
+}

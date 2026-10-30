@@ -31,6 +31,8 @@ export function PricesPage() {
   const [shopFilter, setShopFilter] = useState("all")
   const [includeInactive, setIncludeInactive] = useState(false)
   const [editorOpen, setEditorOpen] = useState(false)
+  // Dialog product is independent of the list filter so a price can be added without filtering first.
+  const [editorProductId, setEditorProductId] = useState("")
   const [unitAmount, setUnitAmount] = useState("")
   const [shopId, setShopId] = useState("")
   const [effectiveFrom, setEffectiveFrom] = useState("")
@@ -53,13 +55,13 @@ export function PricesPage() {
   const save = useMutation({
     mutationFn: () => {
       const amount = Number(unitAmount)
-      if (!productId) throw new Error("Choose a product.")
+      if (!editorProductId) throw new Error("Choose a product.")
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new Error("Enter a positive INR unit amount.")
       }
       if (!effectiveFrom) throw new Error("Enter an effective from date.")
       return upsertProductSellingPrice({
-        productId,
+        productId: editorProductId,
         shopId: shopId || null,
         unitAmount: amount,
         effectiveFrom,
@@ -70,10 +72,17 @@ export function PricesPage() {
       notify.success("Selling price saved")
       setEditorOpen(false)
       setUnitAmount("")
+      // Keep the list on the product that was just priced.
+      setProductId(editorProductId)
       await queryClient.invalidateQueries({ queryKey: ["product-selling-prices"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
+
+  function openEditor() {
+    setEditorProductId(productId)
+    setEditorOpen(true)
+  }
 
   const deactivate = useMutation({
     mutationFn: (priceId: string) => deactivateProductSellingPrice(priceId),
@@ -93,7 +102,7 @@ export function PricesPage() {
         description="INR selling prices. Shop-specific rows override the default. Overlapping active windows are rejected. GST is not stored here."
         action={
           canManage ? (
-            <Button type="button" onClick={() => setEditorOpen(true)} disabled={!productId}>
+            <Button type="button" onClick={openEditor}>
               Add price
             </Button>
           ) : null
@@ -102,7 +111,7 @@ export function PricesPage() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <ProductSearchField
-          label="Product"
+          label="Filter by product"
           value={productId}
           onChange={(nextId) => setProductId(nextId)}
           activeOnly={!can("products.manage")}
@@ -134,7 +143,7 @@ export function PricesPage() {
       {!prices.isLoading && rows.length === 0 ? (
         <EmptyState
           title="No selling prices"
-          description="Choose a product, then add a default INR price. Shop-specific prices are optional overrides."
+          description="Add a selling price and choose the product in the dialog. Shop-specific prices are optional overrides."
         />
       ) : (
         <ul className="divide-y divide-slate-200/80 rounded-2xl bg-white ring-1 ring-slate-200/80">
@@ -176,7 +185,7 @@ export function PricesPage() {
         open={editorOpen}
         onOpenChange={setEditorOpen}
         title="Add selling price"
-        description="Amount is INR per billed unit, not per case. Leave shop blank for the default price."
+        description="Choose the product, then enter INR per billed unit (not per case). Leave shop blank for the default price."
         footer={
           <>
             <Button type="button" variant="outline" onClick={() => setEditorOpen(false)}>
@@ -189,6 +198,13 @@ export function PricesPage() {
         }
       >
         <div className="grid gap-3">
+          <ProductSearchField
+            label="Product"
+            value={editorProductId}
+            required
+            onChange={(nextId) => setEditorProductId(nextId)}
+            activeOnly={!can("products.manage")}
+          />
           <label className="grid gap-1 text-sm font-medium">
             Shop (optional default)
             <select

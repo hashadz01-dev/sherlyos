@@ -21,7 +21,7 @@ import { matchesSearch } from "@/lib/masters/filters"
 const dashboardStatuses = pickingRequestStatuses
 
 export function PickingPage() {
-  useDocumentTitle("Picking")
+  useDocumentTitle("Packing")
   const { can } = useAccess()
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState("pending_allocation")
@@ -37,10 +37,10 @@ export function PickingPage() {
   return (
     <section className="min-w-0">
       <PageHeader
-        title="Picking"
-        description="Allocate verified orders with FEFO or FIFO, then pick reserved carton cases. Stock is not deducted until dispatch."
+        title="Packing"
+        description="Allocate verified orders with FEFO or FIFO, then pack reserved carton cases. Stock is not deducted until dispatch."
       />
-      {queue.isLoading ? <LoadingBlock label="Loading picking queue" /> : null}
+      {queue.isLoading ? <LoadingBlock label="Loading packing queue" /> : null}
       {queue.error ? (
         <p role="alert" className="text-sm text-destructive">
           {queue.error.message}
@@ -49,7 +49,7 @@ export function PickingPage() {
       {queue.data ? (
         <>
           <FilterToolbar>
-            <SearchField label="Search picking" value={search} onChange={setSearch} />
+            <SearchField label="Search packing" value={search} onChange={setSearch} />
             <FilterSelect label="Status" value={status} onChange={setStatus}>
               {dashboardStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -61,14 +61,14 @@ export function PickingPage() {
           {can("picking.manage") ? (
             <p className="mb-4 text-sm">
               <Link className="underline" to="/picking/exceptions">
-                Review picking exceptions
+                Review packing exceptions
               </Link>
             </p>
           ) : null}
           {rows.length === 0 ? (
             <EmptyState
               icon={PackageSearch}
-              title="No picking work in this status"
+              title="No packing work in this status"
               description="Verified orders appear here after the Godown Manager acknowledges the delivery note. Allocation stays disabled until lot-aware dual-write is on."
             />
           ) : (

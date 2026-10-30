@@ -51,7 +51,7 @@ test("admin session reaches masters and opening stock", async ({ page }) => {
 test("godown manager reaches picking and dispatch", async ({ page }) => {
   await signIn(page, emails.godown)
   await page.goto("/picking")
-  await expect(page.getByRole("heading", { name: "Picking", exact: true })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Packing", exact: true })).toBeVisible({
     timeout: 20_000,
   })
   await page.goto("/dispatch")
@@ -64,7 +64,7 @@ test("godown manager reaches picking and dispatch", async ({ page }) => {
 test("store keeper reaches picking execute and is denied dispatch prepare", async ({ page }) => {
   await signIn(page, emails.keeper)
   await page.goto("/picking")
-  await expect(page.getByRole("heading", { name: "Picking", exact: true })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Packing", exact: true })).toBeVisible({
     timeout: 20_000,
   })
   await page.goto("/dispatch")
@@ -106,7 +106,7 @@ test("accounts reaches orders, delivery notes, and non-statutory financial previ
     timeout: 20_000,
   })
   await page.goto("/picking")
-  await expect(page.getByRole("heading", { name: "Picking", exact: true })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: "Packing", exact: true })).toHaveCount(0)
 })
 
 test("admin inventory shows isolated lot stock after HTTP cutover", async ({ page }) => {

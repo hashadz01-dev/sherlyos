@@ -43,7 +43,7 @@ export function InventoryPage() {
     <section>
       <PageHeader
         title="Inventory"
-        description="On-hand carton cases by crate. These balances are not available-to-pick while operational lot cutover is inactive. Lot identities, when they exist, are on the lot stock report. You see godowns you are already allowed to work at."
+        description="On-hand carton cases by crate. These balances are not available-to-pick while operational lot cutover is inactive. Lot identities, when they exist, are on Lot stock. You see godowns you are already allowed to work at."
       />
       <InventoryLinks />
       {balances.isLoading ? <LoadingBlock label="Loading inventory" /> : null}

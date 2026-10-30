@@ -37,6 +37,7 @@ import {
   LocationsPage,
   LotReconciliationDetailPage,
   LotReconciliationPage,
+  LotStockPage,
   LotStockReportPage,
   MastersPage,
   MovementReportPage,
@@ -646,6 +647,14 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequirePermission permission="stock.read">
                 <HistoryPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "inventory/lots",
+            element: (
+              <RequirePermission permission="stock.read">
+                <LotStockPage />
               </RequirePermission>
             ),
           },

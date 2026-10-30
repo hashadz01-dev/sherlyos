@@ -68,8 +68,8 @@ export const crateSchema = z.object({
 /** Vehicle types are informational labels. Capacity is not enforced against a load. */
 export const vehicleTypes = ["truck", "van", "two_wheeler", "other"] as const
 
+/** Shared fleet: godown is chosen on the delivery run, not on this form. */
 export const vehicleSchema = z.object({
-  branchId: z.string().trim().min(1, "Choose a godown."),
   registrationNumber: z
     .string()
     .trim()

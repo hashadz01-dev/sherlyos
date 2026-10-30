@@ -185,9 +185,9 @@ function DashboardBody({
           <MetricCard label="Held" icon={ShoppingCart} hint="Held orders" {...kpiNumber(data.orders.held, true)} />
           <MetricCard label="Verified" icon={ShoppingCart} hint="Verified, not cancelled" {...kpiNumber(data.orders.verified, true)} />
           <MetricCard
-            label="Awaiting picking"
+            label="Awaiting packing"
             icon={ShoppingCart}
-            hint="Verified with no active picking request"
+            hint="Verified with no active packing request"
             {...kpiNumber(data.orders.awaiting_picking, true)}
           />
           <MetricCard label="Cancelled" icon={ShoppingCart} hint="Cancelled orders" {...kpiNumber(data.orders.cancelled, true)} />
@@ -195,9 +195,9 @@ function DashboardBody({
       ) : null}
 
       {data.picking.visible ? (
-        <DashboardGroup title="Picking">
+        <DashboardGroup title="Packing">
           <MetricCard label="Allocated" icon={PackageCheck} hint="Reserved, not started" {...kpiNumber(data.picking.allocated, true)} />
-          <MetricCard label="Picking" icon={PackageCheck} hint="In progress" {...kpiNumber(data.picking.picking, true)} />
+          <MetricCard label="Packing" icon={PackageCheck} hint="In progress" {...kpiNumber(data.picking.picking, true)} />
           <MetricCard label="Picked" icon={PackageCheck} hint="Warehouse picked" {...kpiNumber(data.picking.picked, true)} />
           <MetricCard
             label="Ready for dispatch"
@@ -205,7 +205,7 @@ function DashboardBody({
             hint="Handoff complete. Not a stock deduction."
             {...kpiNumber(data.picking.ready_for_dispatch, true)}
           />
-          <MetricCard label="Blocked" icon={TriangleAlert} hint="Picking blockers" {...kpiNumber(data.picking.blocked, true)} />
+          <MetricCard label="Blocked" icon={TriangleAlert} hint="Packing blockers" {...kpiNumber(data.picking.blocked, true)} />
         </DashboardGroup>
       ) : null}
 
@@ -290,7 +290,7 @@ function DashboardBody({
         ) : null}
         {canAny(access, orderReportPermissions) ? (
           <Link className="mr-4 underline" to="/reports/orders-picking">
-            Orders and picking
+            Orders and packing
           </Link>
         ) : null}
         {canAny(access, dispatchReportPermissions) ? (

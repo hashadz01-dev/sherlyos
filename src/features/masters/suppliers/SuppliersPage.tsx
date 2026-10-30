@@ -13,10 +13,12 @@ import {
   SearchField,
 } from "@/features/masters/MasterControls"
 import { matchesSearch, matchesStatus } from "@/lib/masters/filters"
+import { formatPackAmount } from "@/lib/masters/pack-amount"
 import { RecordCard } from "@/features/masters/products/ProductsPage"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { callRpc, loadRows } from "@/lib/masters/api"
+import { searchProducts } from "@/lib/masters/product-search"
 import { notify } from "@/lib/utilities/notify"
 import {
   emptyToNull,
@@ -142,6 +144,7 @@ export function SuppliersPage() {
           key={editing === "new" ? "new" : editing.id}
           supplier={editing === "new" ? null : editing}
           canSave={can("suppliers.manage")}
+          canReadProducts={can("products.read")}
           pending={save.isPending}
           onClose={() => setEditing(null)}
           onSave={(values) => save.mutate(values)}
@@ -166,12 +169,14 @@ export function SuppliersPage() {
 function SupplierDialog({
   supplier,
   canSave,
+  canReadProducts,
   pending,
   onClose,
   onSave,
 }: {
   supplier: Supplier | null
   canSave: boolean
+  canReadProducts: boolean
   pending: boolean
   onClose: () => void
   onSave: (values: SupplierValues) => void
@@ -183,6 +188,17 @@ function SupplierDialog({
       phone: supplier?.phone ?? "",
       email: supplier?.email ?? "",
     },
+  })
+  const linkedProducts = useQuery({
+    queryKey: ["supplier-products", supplier?.id],
+    enabled: Boolean(supplier?.id) && canReadProducts,
+    queryFn: () =>
+      searchProducts({
+        query: "",
+        supplierId: supplier?.id,
+        activeOnly: false,
+        limit: 200,
+      }),
   })
 
   return (
@@ -208,6 +224,36 @@ function SupplierDialog({
         <TextField label="Phone" {...form.register("phone")} error={form.formState.errors.phone?.message} disabled={!canSave} />
         <TextField label="Email" {...form.register("email")} error={form.formState.errors.email?.message} disabled={!canSave} />
       </form>
+      {supplier && canReadProducts ? (
+        <div className="mt-4 border-t border-slate-200/80 pt-3">
+          <p className="text-sm font-medium">Products</p>
+          {linkedProducts.isLoading ? (
+            <p className="mt-2 text-xs text-muted-foreground">Loading products</p>
+          ) : (linkedProducts.data ?? []).length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              No products are linked to this supplier yet.
+            </p>
+          ) : (
+            <ul className="mt-2 max-h-56 space-y-1 overflow-auto text-sm">
+              {(linkedProducts.data ?? []).map((product) => {
+                const packAmount = formatPackAmount(
+                  product.billed_units_per_case,
+                  product.billing_unit,
+                )
+                return (
+                  <li key={product.id}>
+                    <span className="font-medium">{product.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {product.sku}
+                      {packAmount ? ` · ${packAmount}` : ""}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </AppModal>
   )
 }

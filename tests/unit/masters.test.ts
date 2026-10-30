@@ -87,7 +87,6 @@ describe("master data forms", () => {
 
   it("accepts an informational vehicle without capacity", () => {
     const parsed = vehicleSchema.parse({
-      branchId: "11111111-1111-1111-1111-111111111111",
       registrationNumber: "KL 07 AB 1234",
       vehicleType: "van",
       displayName: "  Van 1  ",

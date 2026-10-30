@@ -5,6 +5,7 @@ import {
   ChartColumn,
   ClipboardCheck,
   History,
+  Layers,
   LayoutDashboard,
   Library,
   MapPinned,
@@ -41,7 +42,7 @@ export const navigationItems: AppNavItem[] = [
     label: "Overview",
     title: "Operations Overview",
     description:
-      "Authoritative operational counts for inventory, orders, picking, dispatch, and exceptions.",
+      "Authoritative operational counts for inventory, orders, packing, dispatch, and exceptions.",
     group: "Operations",
     icon: LayoutDashboard,
     end: true,
@@ -59,10 +60,10 @@ export const navigationItems: AppNavItem[] = [
 
   {
     to: "/picking",
-    label: "Picking",
-    title: "Picking",
+    label: "Packing",
+    title: "Packing",
     description:
-      "Allocate verified orders with FEFO or FIFO, reserve crate and lot stock, and confirm warehouse picks.",
+      "Allocate verified orders with FEFO or FIFO, reserve crate and lot stock, and confirm warehouse packing.",
     group: "Operations",
     icon: PackageCheck,
     anyPermissions: [
@@ -224,6 +225,15 @@ export const navigationItems: AppNavItem[] = [
     icon: Package,
     permission: "stock.read",
     end: true,
+  },
+  {
+    to: "/inventory/lots",
+    label: "Lot stock",
+    title: "Lot stock",
+    description: "Lot-attributed carton cases by crate. This is not the lot stock report.",
+    group: "Stock",
+    icon: Layers,
+    permission: "stock.read",
   },
   {
     to: "/inventory/opening",

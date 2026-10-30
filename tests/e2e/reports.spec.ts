@@ -204,9 +204,9 @@ test("godown manager sees dashboard KPIs and inventory without available-to-pick
   ).toBeVisible()
   await expect(page.getByText("OPENING_STOCK").first()).toBeVisible()
 
-  await reportsNav.getByRole("link", { name: "Orders & picking" }).click()
+  await reportsNav.getByRole("link", { name: "Orders & packing" }).click()
   await expect(
-    page.getByRole("heading", { name: "Orders and picking report" }),
+    page.getByRole("heading", { name: "Orders and packing report" }),
   ).toBeVisible()
   await expect(page.getByText("No orders")).toBeVisible()
 

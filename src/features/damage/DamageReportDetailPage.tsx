@@ -159,7 +159,7 @@ export function DamageReportDetailPage() {
               ) : null}
               {report.picking_request_id ? (
                 <div>
-                  <dt className="text-muted-foreground">Picking request</dt>
+                  <dt className="text-muted-foreground">Packing request</dt>
                   <dd className="font-mono text-xs">
                     {report.picking_request_id}
                   </dd>

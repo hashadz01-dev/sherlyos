@@ -1,0 +1,12 @@
+ref,display_name,registration_number,registration_normalized,optional,branch_id,vehicle_type,capacity_cases,disposition,review_flags,notes
+BENZ_B,Benz (B),KL-43-F-948,kl43f948,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+BENZ_S,Benz (S),KL-43-K-3458,kl43k3458,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+NEW_SML,New SML,KL-43-T-5764,kl43t5764,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+MAHINDRA,Mahindra,KL-43-N-3241,kl43n3241,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+BADA_DOST,Bada Dost (Malayalam Motors),KL-43-P-0012,kl43p0012,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+TATA,Tata,KL-43-P-7981,kl43p7981,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+MAHINDRA_NEW,Mahindra New,KL-43-Q-1561,kl43q1561,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+SML,SML,KL-43-R-1543,kl43r1543,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+BIG_BENZ,Big Benz,KL-43-R-5470,kl43r5470,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+VEERO,Veero,KL-43-S-7528,kl43s7528,no,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE,Shared fleet. Assigned to a godown only when a delivery run starts. Type not in Vehicle.docx; stored as other.
+BOLERO,Bolero,KL-43-R-6725,kl43r6725,yes,,other,,INSERT,UNCLASSIFIED_VEHICLE_TYPE|OPTIONAL_FLEET,Source marked optional. Created inactive so it is in the master but not offered on a delivery run until the owner activates it.

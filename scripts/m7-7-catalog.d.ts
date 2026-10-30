@@ -9,6 +9,7 @@ export type CatalogueCategory = {
 export type CatalogueSupplier = {
   ref: string
   name: string
+  formerNames?: string[]
   brands: string
   verification: string
   email: string | null

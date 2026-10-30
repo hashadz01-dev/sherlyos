@@ -256,7 +256,7 @@ export function DispatchDetailPage() {
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Cancel dispatch"
-        description="Allowed only before stock is consumed. Picking stays ready for a new dispatch."
+        description="Allowed only before stock is consumed. Packing stays ready for a new dispatch."
         footer={
           <>
             <Button type="button" variant="outline" onClick={() => setCancelOpen(false)}>
@@ -494,7 +494,7 @@ function DispatchBody({
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">Picking</dt>
+          <dt className="text-slate-500">Packing</dt>
           <dd>
             <Link className="underline" to={`/picking/${request.picking_request_id}`}>
               {request.picking_request_number}
@@ -639,6 +639,9 @@ function DispatchBody({
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Assign vehicle
+            <span className="text-xs font-normal text-muted-foreground">
+              Shared fleet. Vehicles already on another delivery are marked in use.
+            </span>
             <select
               className="h-10 min-w-64 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
               value={vehicle}

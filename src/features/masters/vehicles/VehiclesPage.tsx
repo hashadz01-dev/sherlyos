@@ -26,11 +26,9 @@ import {
   type VehicleValues,
 } from "@/lib/validations/masters"
 
-type Branch = { id: string; code: string; name: string; is_active: boolean }
-
 type Vehicle = {
   id: string
-  branch_id: string
+  branch_id: string | null
   registration_number: string
   vehicle_type: string
   display_name: string
@@ -43,29 +41,20 @@ export function VehiclesPage() {
   useDocumentTitle("Vehicles")
   const { can } = useAccess()
   const queryClient = useQueryClient()
-  const [branchId, setBranchId] = useState("")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Vehicle | "new" | null>(null)
   const [statusTarget, setStatusTarget] = useState<Vehicle | null>(null)
   const canManage = can("vehicles.manage")
 
-  const branches = useQuery({
-    queryKey: ["branches"],
-    queryFn: () => loadRows<Branch>("branches", "id, code, name, is_active", "name"),
-  })
-  const selectedBranch = branchId || branches.data?.[0]?.id || ""
   const vehicles = useQuery({
-    queryKey: ["vehicles", selectedBranch],
-    enabled: Boolean(selectedBranch),
-    queryFn: async () => {
-      const rows = await loadRows<Vehicle>(
+    queryKey: ["vehicles"],
+    queryFn: () =>
+      loadRows<Vehicle>(
         "vehicles",
         "id, branch_id, registration_number, vehicle_type, display_name, capacity_cases, notes, is_active",
         "display_name",
-      )
-      return rows.filter((row) => row.branch_id === selectedBranch)
-    },
+      ),
   })
 
   const save = useMutation({
@@ -80,8 +69,9 @@ export function VehiclesPage() {
         operational_notes: notes,
       }
       if (editing === "new") {
+        // Shared fleet: godown is chosen later on the delivery run.
         await callRpc("create_vehicle", {
-          target_branch: values.branchId,
+          target_branch: null,
           ...args,
         })
         return
@@ -127,21 +117,14 @@ export function VehiclesPage() {
     <section>
       <PageHeader
         title="Vehicles"
-        description="Maintain delivery vehicles for assignment. Deactivating a vehicle keeps historical deliveries readable and does not restore stock."
+        description="Shared delivery fleet. Assign an available vehicle when a shop delivery starts. Deactivating a vehicle keeps historical deliveries readable and does not restore stock."
         action={
           canManage ? (
             <Button onClick={() => setEditing("new")}>New vehicle</Button>
           ) : null
         }
       />
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <FilterSelect label="Godown" value={selectedBranch} onChange={setBranchId}>
-          {(branches.data ?? []).map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </FilterSelect>
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <SearchField label="Search vehicles" value={search} onChange={setSearch} />
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
           <option value="all">All statuses</option>
@@ -190,8 +173,6 @@ export function VehiclesPage() {
         <VehicleDialog
           key={editing === "new" ? "new" : editing.id}
           vehicle={editing === "new" ? null : editing}
-          branches={branches.data ?? []}
-          defaultBranchId={selectedBranch}
           canSave={canManage}
           pending={save.isPending}
           onClose={() => setEditing(null)}
@@ -216,16 +197,12 @@ export function VehiclesPage() {
 
 function VehicleDialog({
   vehicle,
-  branches,
-  defaultBranchId,
   canSave,
   pending,
   onClose,
   onSave,
 }: {
   vehicle: Vehicle | null
-  branches: Branch[]
-  defaultBranchId: string
   canSave: boolean
   pending: boolean
   onClose: () => void
@@ -234,9 +211,8 @@ function VehicleDialog({
   const form = useForm<VehicleValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
-      branchId: vehicle?.branch_id ?? defaultBranchId,
       registrationNumber: vehicle?.registration_number ?? "",
-      vehicleType: (vehicle?.vehicle_type as VehicleValues["vehicleType"]) ?? "van",
+      vehicleType: (vehicle?.vehicle_type as VehicleValues["vehicleType"]) ?? "other",
       displayName: vehicle?.display_name ?? "",
       capacityCases: vehicle?.capacity_cases ? String(vehicle.capacity_cases) : "",
       notes: vehicle?.notes ?? "",
@@ -268,27 +244,6 @@ function VehicleDialog({
       }
     >
       <form id="vehicle-form" className="grid gap-3" onSubmit={form.handleSubmit(onSave)}>
-        <label className="grid gap-1 text-sm font-medium">
-          Godown
-          <select
-            className="h-10 rounded-lg border border-input bg-transparent px-2.5 text-sm font-normal"
-            disabled={!canSave || Boolean(vehicle)}
-            aria-label="Vehicle godown"
-            {...form.register("branchId")}
-          >
-            <option value="">Select godown</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-          {form.formState.errors.branchId?.message ? (
-            <span className="text-xs text-destructive">
-              {form.formState.errors.branchId.message}
-            </span>
-          ) : null}
-        </label>
         <TextField
           label="Registration number"
           {...form.register("registrationNumber")}

@@ -18,7 +18,7 @@ export const damageScenarioDescriptions: Record<DamageScenario, string> = {
   storage:
     "DMG-03. Damage found in an authorized godown crate. Submission isolates on-hand stock when isolation is ready.",
   loading:
-    "DMG-04. Damage against an eligible picking allocation before dispatch is consumed. Converts the reservation when isolation is ready.",
+    "DMG-04. Damage against an eligible packing allocation before dispatch is consumed. Converts the reservation when isolation is ready.",
   transit:
     "DMG-05. Damage on an assigned consumed dispatch. Delivery Persons may report only their assigned runs.",
   shop_return:
@@ -180,7 +180,7 @@ export function sourceReferenceLabel(summary: {
 }) {
   if (summary.receipt_id) return `Receipt ${summary.receipt_id.slice(0, 8)}`
   if (summary.picking_request_id)
-    return `Picking ${summary.picking_request_id.slice(0, 8)}`
+    return `Packing ${summary.picking_request_id.slice(0, 8)}`
   if (summary.dispatch_id) return `Dispatch ${summary.dispatch_id.slice(0, 8)}`
   if (summary.order_id) return `Order ${summary.order_id.slice(0, 8)}`
   if (summary.shop_id) return `Shop ${summary.shop_id.slice(0, 8)}`

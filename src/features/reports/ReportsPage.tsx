@@ -33,7 +33,7 @@ const cards = [
   },
   {
     to: "/reports/orders-picking",
-    title: "Orders and picking",
+    title: "Orders and packing",
     description: "Order status, ageing, reservations, and consumed dispatch — not ready-for-dispatch as stock left.",
     permissions: orderReportPermissions,
   },

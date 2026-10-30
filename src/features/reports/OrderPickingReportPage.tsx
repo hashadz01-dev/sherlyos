@@ -14,7 +14,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title"
 import { listOrderPickingReport, reportKeys } from "@/lib/reports/api"
 
 export function OrderPickingReportPage() {
-  useDocumentTitle("Orders and picking report")
+  useDocumentTitle("Orders and packing report")
   const { session } = useAuth()
   const { branchId, setBranchId, branches } = useReportBranchFilter()
   const [orderStatus, setOrderStatus] = useState("")
@@ -35,12 +35,12 @@ export function OrderPickingReportPage() {
   return (
     <section>
       <PageHeader
-        title="Orders and picking report"
-        description="Stock dispatched is true only after a consumed DISPATCH transaction. Ready-for-dispatch picking is not a stock movement."
+        title="Orders and packing report"
+        description="Stock dispatched is true only after a consumed DISPATCH transaction. Ready-for-dispatch packing is not a stock movement."
         action={<ExportButton reportKind="orders_picking" filters={{ ...filters, page: undefined, page_size: undefined }} />}
       />
       <ReportLinks />
-      {report.isLoading ? <LoadingBlock label="Loading orders and picking" /> : null}
+      {report.isLoading ? <LoadingBlock label="Loading orders and packing" /> : null}
       {report.error ? (
         <p role="alert" className="text-sm text-destructive">
           {report.error.message}
@@ -71,17 +71,17 @@ export function OrderPickingReportPage() {
           <option value="cancelled">Cancelled</option>
         </ReportSelect>
         <ReportSelect
-          label="Picking status"
+          label="Packing status"
           value={pickingStatus}
           onChange={(value) => {
             setPickingStatus(value)
             setPage(1)
           }}
         >
-          <option value="">All picking statuses</option>
+          <option value="">All packing statuses</option>
           <option value="none">None</option>
           <option value="allocated">Allocated</option>
-          <option value="picking">Picking</option>
+          <option value="picking">Packing</option>
           <option value="picked">Picked</option>
           <option value="ready_for_dispatch">Ready for dispatch</option>
           <option value="blocked">Blocked</option>
@@ -98,7 +98,7 @@ export function OrderPickingReportPage() {
             "Status",
             "Shop",
             "Age (days)",
-            "Picking",
+            "Packing",
             "Reserved",
             "Stock dispatched",
           ]}

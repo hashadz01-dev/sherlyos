@@ -41,7 +41,7 @@ export const SUPPLIERS = [
   },
   {
     ref: "MK_AGROTECH",
-    name: "MK Agrotech Pvt Ltd (manufacturer; invoicing pending)",
+    name: "Sunpure (MK Agrotech; invoicing pending)",
     brands: "SUNPURE, Ricebran Health, Palmpure",
     verification:
       "Manufacturer/marketer identified from SUNPURE catalogue. Not proven as Sherlys invoicing supplier. Address and manufacturer email are not stored: schema has no address column and email would imply a verified contact.",
@@ -57,10 +57,12 @@ export const SUPPLIERS = [
     phone: null,
   },
   {
-    ref: "GOODLIFE",
-    name: "GoodLife (pending invoicing confirmation)",
+    ref: "NANDINI",
+    name: "Nandini (pending invoicing confirmation)",
+    formerNames: ["GoodLife (pending invoicing confirmation)"],
     brands: "GoodLife milk, Slim, Gold, Fresh Cream",
-    verification: "Actual invoicing supplier pending",
+    verification:
+      "Owner confirmed Nandini is the supplier of GoodLife products. GSTIN, phone, and invoicing entity are still not stored.",
     email: null,
     phone: null,
   },
@@ -177,14 +179,14 @@ export const PRODUCTS = [
   p({ sku: "PARRY-AMRIT-750G-JR", name: "Parry's Amrit Sugar 750g Jar", categoryCode: "SUGAR", supplierRef: "PARRYS", brand: "Parry's Amrit", packSize: "750g", packagingType: "jar", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
   p({ sku: "PARRY-JAG-500G", name: "Parry's Amrit Jaggery 500g", categoryCode: "JAGGERY", supplierRef: "PARRYS", brand: "Parry's Amrit", packSize: "500g", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
   // GoodLife
-  p({ sku: "GOODLIFE-MILK-180ML", name: "GoodLife Milk 180ml", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife", packSize: "180ml", packagingType: "pack", unitsPerCase: 36, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-MILK-500ML", name: "GoodLife Milk 500ml", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-MILK-1L", name: "GoodLife Milk 1L", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-SLIM-500ML", name: "GoodLife Slim Milk 500ml", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife Slim", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-SLIM-1L", name: "GoodLife Slim Milk 1L", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife Slim", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-GOLD-1L", name: "GoodLife Gold Milk 1L", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife Gold", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-CREAM-500ML", name: "GoodLife Fresh Cream 500ml", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
-  p({ sku: "GOODLIFE-CREAM-1L", name: "GoodLife Fresh Cream 1L", categoryCode: "DAIRY", supplierRef: "GOODLIFE", brand: "GoodLife", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-MILK-180ML", name: "GoodLife Milk 180ml", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife", packSize: "180ml", packagingType: "pack", unitsPerCase: 36, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-MILK-500ML", name: "GoodLife Milk 500ml", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-MILK-1L", name: "GoodLife Milk 1L", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-SLIM-500ML", name: "GoodLife Slim Milk 500ml", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife Slim", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-SLIM-1L", name: "GoodLife Slim Milk 1L", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife Slim", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-GOLD-1L", name: "GoodLife Gold Milk 1L", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife Gold", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-CREAM-500ML", name: "GoodLife Fresh Cream 500ml", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife", packSize: "500ml", packagingType: "pack", unitsPerCase: 24, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
+  p({ sku: "GOODLIFE-CREAM-1L", name: "GoodLife Fresh Cream 1L", categoryCode: "DAIRY", supplierRef: "NANDINI", brand: "GoodLife", packSize: "1L", packagingType: "pack", unitsPerCase: 12, sourceClass: "CONFIRMED_DISTRIBUTION", disposition: "INSERT" }),
   // MattaNaad — confirmed product, unknown case pack. Not inserted.
   p({ sku: "MATTA-VADI-1KG", name: "MattaNaad Matta Vadi Rice 1kg", categoryCode: "RICE", supplierRef: "MATTANAAD", brand: "MattaNaad", packSize: "1kg", packagingType: "pack", unitsPerCase: null, sourceClass: "CONFIRMED_PRODUCT", disposition: "STAGE", notes: "Carton quantity unknown. Sack-as-case representation needs owner approval. 2kg is not listed." }),
   p({ sku: "MATTA-VADI-5KG", name: "MattaNaad Matta Vadi Rice 5kg", categoryCode: "RICE", supplierRef: "MATTANAAD", brand: "MattaNaad", packSize: "5kg", packagingType: "pack", unitsPerCase: null, sourceClass: "CONFIRMED_PRODUCT", disposition: "STAGE", notes: "Packaging images confirm 5kg. Carton quantity unknown." }),

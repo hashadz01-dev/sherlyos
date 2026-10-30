@@ -27,6 +27,7 @@ import {
   SearchField,
 } from "@/features/masters/MasterControls"
 import { matchesStatus } from "@/lib/masters/filters"
+import { formatPackAmount } from "@/lib/masters/pack-amount"
 
 type Product = {
   id: string
@@ -81,7 +82,8 @@ export function ProductsPage() {
       searchProducts({
         query: debouncedSearch,
         activeOnly: statusFilter === "active",
-        limit: 50,
+        // RPC caps at 200 so the full development catalogue still browses.
+        limit: 200,
       }),
   })
   const categories = useQuery({
@@ -224,7 +226,12 @@ export function ProductsPage() {
         emptyDescription="No products match this search. Type a SKU or name to search the full catalog."
       >
         <ul className="divide-y divide-slate-200/80">
-          {visible.map((product) => (
+          {visible.map((product) => {
+            const packAmount = formatPackAmount(
+              product.billed_units_per_case,
+              product.billing_unit,
+            )
+            return (
             <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
@@ -236,6 +243,7 @@ export function ProductsPage() {
                   {product.sku}
                   {product.category_id ? ` · ${categoryName.get(product.category_id) ?? "Category"}` : ""}
                   {product.supplier_id ? ` · ${supplierName.get(product.supplier_id) ?? "Supplier"}` : ""}
+                  {packAmount ? ` · ${packAmount}` : ""}
                   {` · ${product.expiry_policy ?? "unclassified"}`}
                 </span>
               </button>
@@ -276,7 +284,8 @@ export function ProductsPage() {
                 ) : null}
               </span>
             </li>
-          ))}
+            )
+          })}
         </ul>
       </RecordCard>
       {editing ? (

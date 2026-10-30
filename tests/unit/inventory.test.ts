@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { findNavigationItem, navigationItems } from "@/app/navigation"
+import { inventoryWorkspaceLinks } from "@/features/inventory/InventoryLinks"
 import { stockTransactionLabel } from "@/lib/inventory/labels"
 import { openingStockSchema, transferStockSchema } from "@/lib/validations/inventory"
 
@@ -25,7 +26,17 @@ describe("inventory navigation", () => {
       navigationItems.find((item) => item.to === "/inventory/history")?.permission,
     ).toBe("stock.read")
     expect(findNavigationItem("/inventory/history")?.title).toBe("Stock history")
+    expect(navigationItems.find((item) => item.to === "/inventory/lots")?.permission).toBe(
+      "stock.read",
+    )
+    expect(findNavigationItem("/inventory/lots")?.title).toBe("Lot stock")
     expect(navigationItems.at(-1)?.to).toBe("/users-roles")
+  })
+
+  it("keeps the lot stock tab inside the inventory workspace", () => {
+    const lotStock = inventoryWorkspaceLinks.find((link) => link.label === "Lot stock")
+    expect(lotStock?.to).toBe("/inventory/lots")
+    expect(inventoryWorkspaceLinks.some((link) => link.to === "/reports/lots")).toBe(false)
   })
 })
 

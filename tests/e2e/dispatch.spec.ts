@@ -419,10 +419,7 @@ test("godown manager can open the vehicle master", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Vehicles", exact: true })).toBeVisible({
     timeout: 20_000,
   })
-  await expect(page.getByLabel("Godown").locator("option", { hasText: `M3E2E ${RUN}` })).toBeAttached({
-    timeout: 20_000,
-  })
-  await page.getByLabel("Godown").selectOption({ label: `M3E2E ${RUN}` })
+  await page.getByLabel("Search vehicles").fill("E2E van")
   await expect(page.getByText("E2E van")).toBeVisible({ timeout: 20_000 })
   await signOut(page)
 })

@@ -276,16 +276,29 @@ function classifyCategory(existingNameMap, category) {
 
 function classifySupplier(existingNameMap, supplier) {
   const hit = existingNameMap.get(supplier.name.toLowerCase())
-  if (!hit) return { outcome: "CREATED", name: supplier.name }
-  if (hit.is_active) {
-    return {
-      outcome: "CONFLICT_REQUIRES_REVIEW",
-      name: supplier.name,
-      id: hit.id,
-      reason: "Pending invoicing supplier already exists and is active.",
+  if (hit) {
+    if (hit.is_active) {
+      return {
+        outcome: "CONFLICT_REQUIRES_REVIEW",
+        name: supplier.name,
+        id: hit.id,
+        reason: "Pending invoicing supplier already exists and is active.",
+      }
+    }
+    return { outcome: "ALREADY_EXISTS", name: supplier.name, id: hit.id }
+  }
+  for (const former of supplier.formerNames ?? []) {
+    const previous = existingNameMap.get(former.toLowerCase())
+    if (previous) {
+      return {
+        outcome: "RENAMED",
+        name: supplier.name,
+        previousName: former,
+        id: previous.id,
+      }
     }
   }
-  return { outcome: "ALREADY_EXISTS", name: supplier.name, id: hit.id }
+  return { outcome: "CREATED", name: supplier.name }
 }
 
 function classifyProduct(existingSkuMap, product, categoryId) {
@@ -425,6 +438,22 @@ async function main() {
   for (const supplier of SUPPLIERS) {
     const planned = classifySupplier(supplierByName, supplier)
     if (planned.outcome === "ALREADY_EXISTS" || planned.outcome === "CONFLICT_REQUIRES_REVIEW") {
+      supplierResults.push(planned)
+      continue
+    }
+    if (planned.outcome === "RENAMED") {
+      await rpc(client, "update_supplier", {
+        target_supplier: planned.id,
+        supplier_name: supplier.name,
+        supplier_phone: supplier.phone,
+        supplier_email: supplier.email,
+      })
+      supplierByName.delete(planned.previousName.toLowerCase())
+      supplierByName.set(supplier.name.toLowerCase(), {
+        id: planned.id,
+        name: supplier.name,
+        is_active: false,
+      })
       supplierResults.push(planned)
       continue
     }

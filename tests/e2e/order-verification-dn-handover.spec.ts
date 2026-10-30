@@ -253,12 +253,12 @@ test("accounts verification stays fail-closed before cutover", async ({ page }) 
   await login(page, "accounts.m72e2e@example.com")
   if (!fixture.submittedUrl) throw new Error("salesperson capture did not record an order URL")
   await page.goto(fixture.submittedUrl)
-  await expect(page.getByRole("heading", { name: "Picking-eligible availability" })).toBeVisible({
+  await expect(page.getByRole("heading", { name: "Packing-eligible availability" })).toBeVisible({
     timeout: 20_000,
   })
-  await expect(page.getByText(/Lot-aware picking is not operational/i)).toBeVisible()
+  await expect(page.getByText(/Lot-aware packing is not operational/i)).toBeVisible()
   await page.getByRole("button", { name: "Verify order" }).click()
-  await expect(page.getByRole("alert")).toContainText(/insufficient picking-eligible stock/i)
+  await expect(page.getByRole("alert")).toContainText(/insufficient packing-eligible stock/i)
   await expect(page.getByText("submitted", { exact: true }).first()).toBeVisible()
   await logout(page)
 })

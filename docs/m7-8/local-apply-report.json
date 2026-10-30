@@ -1,0 +1,153 @@
+{
+  "version": "m7.8",
+  "mode": "apply",
+  "ownerDatabaseModified": false,
+  "localContainer": "supabase_db_sherlyos",
+  "before": {
+    "vehicles": 106,
+    "active_vehicles": 101,
+    "dispatch_with_vehicle": 93,
+    "assignments": 214,
+    "ledger": 1054,
+    "balances": 140,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  },
+  "after": {
+    "vehicles": 117,
+    "active_vehicles": 111,
+    "dispatch_with_vehicle": 93,
+    "assignments": 214,
+    "ledger": 1054,
+    "balances": 140,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  },
+  "vehicles": [
+    {
+      "outcome": "CREATED",
+      "ref": "BENZ_B",
+      "displayName": "Benz (B)",
+      "registrationNumber": "KL-43-F-948",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "10a8c181-9247-4e41-ab0d-faccb45c154f",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "BENZ_S",
+      "displayName": "Benz (S)",
+      "registrationNumber": "KL-43-K-3458",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "b9d49973-0b1a-4d7a-a593-839aed5d5390",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "NEW_SML",
+      "displayName": "New SML",
+      "registrationNumber": "KL-43-T-5764",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "dae5a450-23db-454a-9ef9-e7cc9ce4964e",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "MAHINDRA",
+      "displayName": "Mahindra",
+      "registrationNumber": "KL-43-N-3241",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "9d433e7a-37de-48b5-ac7e-5bca45b4d22e",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "BADA_DOST",
+      "displayName": "Bada Dost (Malayalam Motors)",
+      "registrationNumber": "KL-43-P-0012",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "caa148a8-d7f5-45a8-af30-d717f8afdb37",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "TATA",
+      "displayName": "Tata",
+      "registrationNumber": "KL-43-P-7981",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "b258d6c7-a901-4048-9449-694d4888b389",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "MAHINDRA_NEW",
+      "displayName": "Mahindra New",
+      "registrationNumber": "KL-43-Q-1561",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "c07a69dd-e9c4-4be6-ac47-364ef9ebb37c",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "SML",
+      "displayName": "SML",
+      "registrationNumber": "KL-43-R-1543",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "3df9be53-278b-4944-b723-4ba1aea86621",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "BIG_BENZ",
+      "displayName": "Big Benz",
+      "registrationNumber": "KL-43-R-5470",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "67dbbd41-e2f2-4036-874a-dac622e30e4d",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "VEERO",
+      "displayName": "Veero",
+      "registrationNumber": "KL-43-S-7528",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": false,
+      "id": "12aa4292-a5ed-4fcb-b82a-7293b459a105",
+      "inactive": false
+    },
+    {
+      "outcome": "CREATED",
+      "ref": "BOLERO",
+      "displayName": "Bolero",
+      "registrationNumber": "KL-43-R-6725",
+      "branchId": null,
+      "vehicleType": "other",
+      "deactivateAfterCreate": true,
+      "id": "8ee1367c-0175-4ec8-8fbc-2d9ee72dd111",
+      "inactive": true
+    }
+  ]
+}

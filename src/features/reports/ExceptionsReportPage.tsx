@@ -14,7 +14,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title"
 import { listOperationsExceptions, reportKeys } from "@/lib/reports/api"
 
 const kindLabel: Record<string, string> = {
-  picking_blocked: "Picking blocked",
+  picking_blocked: "Packing blocked",
   delivery_exception: "Delivery exception",
   pending_physical_return: "Pending physical return",
   unclassified_product: "Unclassified product",
@@ -66,7 +66,7 @@ export function ExceptionsReportPage() {
         <ReportTable
           columns={["Kind", "Item", "Detail", "Opened"]}
           emptyTitle="No open exceptions"
-          emptyDescription="Picking blockers, failed deliveries, unclassified products, and open adjustments appear here when they exist."
+          emptyDescription="Packing blockers, failed deliveries, unclassified products, and open adjustments appear here when they exist."
           page={report.data.page}
           pageSize={report.data.page_size}
           total={report.data.total_count}

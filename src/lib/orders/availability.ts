@@ -102,7 +102,7 @@ export function deliveryNoteHandoverLabel(status: string | null | undefined) {
     case "sent":
       return "Sent — waiting for Godown Manager acknowledgement"
     case "acknowledged":
-      return "Acknowledged — picking may start when other gates pass"
+      return "Acknowledged — packing may start when other gates pass"
     case "voided":
       return "Voided"
     default:

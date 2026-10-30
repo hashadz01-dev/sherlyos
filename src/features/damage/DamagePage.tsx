@@ -74,6 +74,15 @@ export function DamagePage() {
         </div>
       ) : null}
 
+      {dashboard.error ? (
+        <p
+          role="alert"
+          className="mb-4 max-w-3xl rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-950 ring-1 ring-rose-200"
+        >
+          {dashboard.error.message}
+        </p>
+      ) : null}
+
       <div className="mb-4">
         <label className="grid max-w-sm gap-2 text-sm font-medium">
           Godown filter
@@ -95,11 +104,6 @@ export function DamagePage() {
 
       {dashboard.isLoading ? (
         <LoadingBlock label="Loading damage dashboard" />
-      ) : null}
-      {dashboard.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {dashboard.error.message}
-        </p>
       ) : null}
 
       {totals ? (

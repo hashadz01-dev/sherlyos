@@ -32,10 +32,9 @@ export function toUserRpcMessage(error: RpcFailure | string) {
     return "This record changed. Refresh and try again."
   }
 
-  // PostgREST PGRST202 means the connected API never loaded this RPC.
-  // Local owner/isolated stacks have the functions; the development cloud does not.
+  // PostgREST PGRST202: the API schema cache has no matching RPC signature.
   if (code === "PGRST202" || /schema cache/i.test(raw)) {
-    return "This screen is not available on the connected database. Restart with npm run dev to use local Supabase."
+    return "This module is not available on the connected database yet."
   }
 
   if (!raw) {

@@ -19,7 +19,7 @@ describe("toUserRpcMessage", () => {
           "Could not find the function public.list_invoice_notes(p_branch_id, p_shop_id, p_status) in the schema cache",
       }),
     ).toBe(
-      "This screen is not available on the connected database. Restart with npm run dev to use local Supabase.",
+      "This module is not available on the connected database yet.",
     )
   })
 

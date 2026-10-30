@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { AuthContext, type SignInResult } from "@/lib/auth/auth-context"
+import { mapSignInError } from "@/lib/auth/map-sign-in-error"
 import { setQueryScopeUserId } from "@/lib/query/session-scope"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { readSupabasePublicEnv } from "@/lib/supabase/env"
 
 const unconfiguredMessage =
   "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart the dev server."
@@ -52,17 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: unconfiguredMessage }
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      return { error: error.message }
+      if (error) {
+        return {
+          error: mapSignInError(error.message, readSupabasePublicEnv()?.url),
+        }
+      }
+
+      setSession(data.session)
+      return { error: null }
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Failed to fetch"
+      return {
+        error: mapSignInError(message, readSupabasePublicEnv()?.url),
+      }
     }
-
-    setSession(data.session)
-    return { error: null }
   }
 
   async function signOut() {

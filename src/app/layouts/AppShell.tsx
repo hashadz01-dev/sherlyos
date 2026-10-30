@@ -10,18 +10,22 @@ export function AppShell() {
   const { pathname } = useLocation()
 
   return (
-    <div className="flex min-h-svh bg-background text-foreground">
-      <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col bg-navy text-white print:hidden md:flex">
+    <div className="flex h-svh overflow-hidden bg-background text-foreground print:h-auto print:overflow-visible">
+      <aside className="hidden h-svh w-64 shrink-0 flex-col bg-navy text-white print:hidden md:flex">
         <div className="px-5 pt-6 pb-5">
           <BrandMark />
         </div>
         <SidebarNav />
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="print:hidden">
+      {/*
+        Pin the account bar. Sticky on TopBar cannot work while the document
+        itself scrolls, because the header's parent is only as tall as the bar.
+      */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="shrink-0 print:hidden">
           <TopBar pathname={pathname} />
         </div>
-        <main className="flex-1 px-4 pt-6 pb-24 md:px-8 md:pb-10 print:px-0 print:pt-0 print:pb-0">
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-24 md:px-8 md:pb-10 print:overflow-visible print:px-0 print:pt-0 print:pb-0">
           <Suspense fallback={<LoadingBlock label="Loading page" />}>
             <Outlet />
           </Suspense>

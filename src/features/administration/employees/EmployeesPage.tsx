@@ -171,13 +171,13 @@ export function EmployeesPage() {
     <section>
       <PageHeader
         title="Employees"
-        description="Sign-in accounts are added from Users & role. This screen assigns roles and operating sites."
+        description="Sign-in accounts are added from Users & role. This screen assigns roles and godowns."
       />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search name, code, role, or site"
+          placeholder="Search name, code, role, or godown"
           aria-label="Search employees"
         />
         <select
@@ -248,7 +248,7 @@ export function EmployeesPage() {
           if (!open) setSelectedId(null)
         }}
         title={selected?.full_name || "Employee"}
-        description="Role and site changes go through the database functions from Phase 2A."
+        description="Role and godown changes go through the database functions from Phase 2A."
         footer={
           selected && access.can("employees.manage") ? (
             <Button
@@ -266,7 +266,7 @@ export function EmployeesPage() {
         {selected ? (
           <div className="flex flex-col gap-4 text-sm">
             <p>
-              Status: {selected.is_active ? "Active" : "Inactive"}. Sites:{" "}
+              Status: {selected.is_active ? "Active" : "Inactive"}. Godowns:{" "}
               {selected.branches.map((branch) => branch.name).join(", ") ||
                 "None"}
               .
@@ -323,9 +323,9 @@ export function EmployeesPage() {
               : null}
             {access.can("assignments.manage") ? (
               <label className="flex flex-col gap-1">
-                Assign operating site
+                Assign godown
                 <select
-                  aria-label="Assign operating site"
+                  aria-label="Assign godown"
                   className="h-8 rounded-lg border border-input px-2"
                   defaultValue=""
                   onChange={(event) => {
@@ -342,7 +342,7 @@ export function EmployeesPage() {
                     })
                   }}
                 >
-                  <option value="">Choose a site</option>
+                  <option value="">Choose a godown</option>
                   {(directory.data?.branches ?? []).map((branch) => (
                     <option key={branch.id} value={branch.id}>
                       {branch.name}

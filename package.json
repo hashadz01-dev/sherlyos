@@ -14,6 +14,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "m7-7:dry-run": "node scripts/m7-7-import-local.mjs",
+    "m7-7:apply": "node scripts/m7-7-import-local.mjs --apply",
     "preview": "vite preview"
   },
   "dependencies": {

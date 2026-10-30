@@ -188,7 +188,7 @@ export function LocationsPage() {
     <section>
       <PageHeader
         title="Godown locations"
-        description="A godown is an operating site. Zones belong to that godown, and crates belong to a zone. This screen does not show stock. Godowns themselves are maintained under Operating sites."
+        description="Zones belong to a godown, and crates belong to a zone. This screen does not show stock. Godowns themselves are maintained under Godowns."
       />
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <FilterSelect

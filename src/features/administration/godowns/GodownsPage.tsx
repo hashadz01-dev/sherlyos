@@ -13,20 +13,24 @@ import { toUserRpcMessage } from "@/lib/rpc/user-error"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { notify } from "@/lib/utilities/notify"
 
-type Branch = {
+/**
+ * Physical godown records. Persistence still uses public.branches and the
+ * create_branch / set_branch_active RPCs so existing RLS and assignments stay valid.
+ */
+type Godown = {
   id: string
   code: string
   name: string
   is_active: boolean
 }
 
-export function BranchesPage() {
-  useDocumentTitle("Operating sites")
+export function GodownsPage() {
+  useDocumentTitle("Godowns")
   const { can } = useAccess()
   const queryClient = useQueryClient()
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
-  const branches = useQuery({
+  const godowns = useQuery({
     queryKey: ["branches"],
     queryFn: async () => {
       const supabase = getSupabaseBrowserClient()
@@ -35,7 +39,7 @@ export function BranchesPage() {
         .select("id, code, name, is_active")
         .order("name")
       if (result?.error) throw new Error(toUserRpcMessage(result.error))
-      return (result?.data ?? []) as Branch[]
+      return (result?.data ?? []) as Godown[]
     },
   })
 
@@ -51,23 +55,23 @@ export function BranchesPage() {
     onSuccess: async () => {
       setCode("")
       setName("")
-      notify.success("Operating site created")
+      notify.success("Godown created")
       await queryClient.invalidateQueries({ queryKey: ["branches"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
 
   const toggle = useMutation({
-    mutationFn: async (branch: Branch) => {
+    mutationFn: async (godown: Godown) => {
       const supabase = getSupabaseBrowserClient()
       const result = await supabase?.rpc("set_branch_active", {
-        target_branch: branch.id,
-        active: !branch.is_active,
+        target_branch: godown.id,
+        active: !godown.is_active,
       })
       if (result?.error) throw new Error(toUserRpcMessage(result.error))
     },
     onSuccess: async () => {
-      notify.success("Site status updated")
+      notify.success("Godown status updated")
       await queryClient.invalidateQueries({ queryKey: ["branches"] })
     },
     onError: (error: Error) => notify.error(error.message),
@@ -76,8 +80,8 @@ export function BranchesPage() {
   return (
     <section>
       <PageHeader
-        title="Operating sites"
-        description="These are physical sites such as a godown. The five numbered branches in the business-process PDF are workflows and are not created here. Renaming a site is not available yet; only create and active status are supported."
+        title="Godowns"
+        description="Physical warehouses. The five numbered branches in the business-process PDF are workflows and are not created here. Renaming a godown is not available yet; only create and active status are supported."
       />
       {can("branches.manage") ? (
         <form
@@ -88,69 +92,69 @@ export function BranchesPage() {
           }}
         >
           <Input
-            aria-label="Site code"
-            placeholder="Site code"
+            aria-label="Godown code"
+            placeholder="Godown code"
             value={code}
             onChange={(event) => setCode(event.target.value)}
             required
           />
           <Input
-            aria-label="Site name"
-            placeholder="Site name"
+            aria-label="Godown name"
+            placeholder="Godown name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
           />
           <Button type="submit" disabled={save.isPending}>
-            Create site
+            Create godown
           </Button>
         </form>
       ) : null}
       <div className="rounded-2xl bg-white ring-1 ring-slate-200/80">
-        {branches.isLoading ? (
-          <LoadingBlock label="Loading sites" />
-        ) : branches.isError ? (
+        {godowns.isLoading ? (
+          <LoadingBlock label="Loading godowns" />
+        ) : godowns.isError ? (
           <EmptyState
             icon={Building2}
-            title="Sites could not be loaded"
+            title="Godowns could not be loaded"
             description={
-              branches.error instanceof Error
-                ? branches.error.message
+              godowns.error instanceof Error
+                ? godowns.error.message
                 : "Try again."
             }
           />
-        ) : (branches.data ?? []).length === 0 ? (
+        ) : (godowns.data ?? []).length === 0 ? (
           <EmptyState
             icon={Building2}
-            title="No operating sites"
-            description="No sites are seeded. Create one when you know the real godown name."
+            title="No godowns"
+            description="Create a godown when you know the real warehouse name."
           />
         ) : (
           <ul className="divide-y divide-slate-200/80">
-            {(branches.data ?? []).map((branch) => (
+            {(godowns.data ?? []).map((godown) => (
               <li
-                key={branch.id}
+                key={godown.id}
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
                 <span>
                   <span className="block text-sm font-medium">
-                    {branch.name}
+                    {godown.name}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {branch.code}
+                    {godown.code}
                   </span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <StatusBadge tone={branch.is_active ? "success" : "neutral"}>
-                    {branch.is_active ? "Active" : "Inactive"}
+                  <StatusBadge tone={godown.is_active ? "success" : "neutral"}>
+                    {godown.is_active ? "Active" : "Inactive"}
                   </StatusBadge>
                   {can("branches.manage") ? (
                     <Button
                       variant="outline"
-                      onClick={() => toggle.mutate(branch)}
+                      onClick={() => toggle.mutate(godown)}
                       disabled={toggle.isPending}
                     >
-                      {branch.is_active ? "Deactivate" : "Activate"}
+                      {godown.is_active ? "Deactivate" : "Activate"}
                     </Button>
                   ) : null}
                 </span>

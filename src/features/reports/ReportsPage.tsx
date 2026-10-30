@@ -66,7 +66,7 @@ export function ReportsPage() {
     <section>
       <PageHeader
         title="Reports"
-        description="Read-only operational intelligence. Exports use the same permission and branch scope as the on-screen report."
+        description="Read-only operational intelligence. Exports use the same permission and godown scope as the on-screen report."
       />
       <ReportLinks />
       <div className="grid gap-4 md:grid-cols-2">

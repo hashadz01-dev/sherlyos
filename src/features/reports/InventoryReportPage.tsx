@@ -73,7 +73,7 @@ export function InventoryReportPage() {
         <ReportTable
           columns={["Godown", "Zone", "Crate", "Product", "Cartons"]}
           emptyTitle="No inventory rows"
-          emptyDescription="Aggregate balances for branches you can work at will appear here."
+          emptyDescription="Aggregate balances for godowns you can work at will appear here."
           page={report.data.page}
           pageSize={report.data.page_size}
           total={report.data.total_count}

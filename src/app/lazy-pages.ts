@@ -373,9 +373,9 @@ export const EmployeesPage = lazy(() =>
     default: m.EmployeesPage,
   })),
 )
-export const BranchesPage = lazy(() =>
-  import("@/features/administration/branches/BranchesPage").then((m) => ({
-    default: m.BranchesPage,
+export const GodownsPage = lazy(() =>
+  import("@/features/administration/godowns/GodownsPage").then((m) => ({
+    default: m.GodownsPage,
   })),
 )
 export const UsersRolesPage = lazy(() =>

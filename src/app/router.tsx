@@ -1,10 +1,10 @@
-import { createBrowserRouter, type RouteObject } from "react-router"
+import { createBrowserRouter, Navigate, type RouteObject } from "react-router"
 import { AppShell } from "@/app/layouts/AppShell"
 import {
   AdjustmentDetailPage,
   AdjustmentsPage,
   AuditPage,
-  BranchesPage,
+  GodownsPage,
   CategoriesPage,
   DamagePage,
   DamageQuarantinePage,
@@ -806,12 +806,16 @@ export const appRouteObjects: RouteObject[] = [
             ),
           },
           {
-            path: "branches",
+            path: "godowns",
             element: (
               <RequirePermission permission="employees.read">
-                <BranchesPage />
+                <GodownsPage />
               </RequirePermission>
             ),
+          },
+          {
+            path: "branches",
+            element: <Navigate to="/godowns" replace />,
           },
           {
             path: "users-roles",

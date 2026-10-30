@@ -8,7 +8,7 @@ import {
 export function BranchFilterNote() {
   return (
     <p className="text-sm text-muted-foreground">
-      Authorized totals for “All authorized branches” include inactive godown stock.
+      Authorized totals for “All authorized godowns” include inactive godown stock.
       Use Inactive / Historical to name those sites. Inactive godowns cannot be
       selected for new operational transactions and are not reactivated here.
     </p>
@@ -26,9 +26,9 @@ export function ReportBranchSelect({
 }) {
   const { active, inactive } = partitionReportBranches(branches)
   return (
-    <ReportSelect label="Branch" value={value} onChange={onChange}>
-      <option value="">All authorized branches</option>
-      <optgroup label="Active operational branches">
+    <ReportSelect label="Godown" value={value} onChange={onChange}>
+      <option value="">All authorized godowns</option>
+      <optgroup label="Active operational godowns">
         {active.map((branch) => (
           <option key={branch.id} value={branch.id}>
             {branch.code ? `${branch.name} (${branch.code})` : branch.name}

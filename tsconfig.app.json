@@ -26,6 +26,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "scripts/m7-7-catalog.d.ts"],
   "exclude": ["tests/e2e"]
 }

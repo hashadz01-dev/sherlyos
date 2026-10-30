@@ -1,0 +1,879 @@
+{
+  "version": "m7.7",
+  "mode": "apply",
+  "ownerDatabaseModified": false,
+  "localContainer": "supabase_db_sherlyos",
+  "before": {
+    "products": 1703,
+    "categories": 13,
+    "suppliers": 319,
+    "ledger": 1054,
+    "balances": 140,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  },
+  "after": {
+    "products": 1703,
+    "categories": 13,
+    "suppliers": 319,
+    "ledger": 1054,
+    "balances": 140,
+    "lots": 141,
+    "prices": 140,
+    "invoice_notes": 80,
+    "true_flags": 0
+  },
+  "categories": [
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Tea & Tea Bags",
+      "id": "e3eb4957-a7b6-4efb-9015-b33fabace25c"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Coffee",
+      "id": "3c31d008-f1e6-42ee-9d03-0f13d10e0b3a"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Edible Oils",
+      "id": "8233f83d-2398-44ed-ad18-fb8812ed78f1"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Rice & Grains",
+      "id": "1cf9e008-bef4-46e0-bdda-e8ca717438fd"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Sugar & Sweeteners",
+      "id": "63f77a3c-b4a5-41da-be79-aab206fe69e6"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Jaggery",
+      "id": "abcb8109-9b3d-4d5c-80e1-6a6a4cf75d56"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Dairy & Milk Products",
+      "id": "2490e576-f0a4-4ac0-87b4-daa8b9814022"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Ghee",
+      "id": "8bc3c724-b99a-41e8-aa23-d865de6fcff5"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Dairy Whitener",
+      "id": "f4d9724a-8372-49e9-8782-93cb1804d9dd"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Coconut Products",
+      "id": "12bf7f1f-c491-49d7-baaf-bbdf223721b0"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Spices & Masalas",
+      "id": "6084ef7e-d955-41ff-8254-c428832b9016"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Wheat Flour & Atta",
+      "id": "d30f6a0e-6d03-49b3-a508-89f9cf82f142"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Desserts & Mixes",
+      "id": "ea97c345-173a-411f-9056-d31d614e64b9"
+    }
+  ],
+  "suppliers": [
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "AVT (pending invoicing confirmation)",
+      "id": "625c1fbd-ea1f-4903-b5de-16fdde14ae17"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Kera (pending invoicing confirmation)",
+      "id": "94b4c565-f679-4e0e-9003-f532eb5b61ff"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "MK Agrotech Pvt Ltd (manufacturer; invoicing pending)",
+      "id": "3e3f882a-a536-4420-a29a-3ae74bb298cd"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "Parry's (pending invoicing confirmation)",
+      "id": "74a50a99-54cf-4826-8768-b825d48296fb"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "GoodLife (pending invoicing confirmation)",
+      "id": "1c859a73-35dc-45d0-96d8-24ac13fb5aa0"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "name": "MattaNaad (pending invoicing confirmation)",
+      "id": "7f06a280-b10c-4fdb-a20c-b10e8716e1b9"
+    }
+  ],
+  "products": [
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-DUST-100G",
+      "id": "ca0183ee-b640-48c8-bd2f-cc75204dbb33",
+      "name": "AVT Premium Tea Dust 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-DUST-250G",
+      "id": "d0b27000-5e2c-4b76-9b63-111ce68b5a61",
+      "name": "AVT Premium Tea Dust 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-DUST-500G",
+      "id": "76a7aace-e887-49d9-917f-933e56079250",
+      "name": "AVT Premium Tea Dust 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-DUST-1KG",
+      "id": "83a0579b-d89e-4db5-b630-d633155b7716",
+      "name": "AVT Premium Tea Dust 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-JAR-100G",
+      "id": "3da564e4-2e75-4a3b-ba54-53dd68a8c913",
+      "name": "AVT Premium Tea Jar 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-JAR-250G",
+      "id": "30a327b6-f3dc-4e4f-ae97-ceaa2d02445f",
+      "name": "AVT Premium Tea Jar 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-JAR-500G",
+      "id": "01910403-101c-455d-852d-96ce63d1513d",
+      "name": "AVT Premium Tea Jar 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-CATER-BLEND-1KG",
+      "id": "51243b28-cd4b-4295-ab81-1067b2d444e6",
+      "name": "AVT Catering Blend 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-LEAF-100G",
+      "id": "5f863d84-65f4-4fed-b6da-bb47d9a7a164",
+      "name": "AVT Premium Leaf 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-LEAF-250G",
+      "id": "fb3b78ca-ea15-4e2e-9638-b2a502e9f46a",
+      "name": "AVT Premium Leaf 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-SEL-100G",
+      "id": "349e865a-3599-4d8b-8a29-0229f0cff1b7",
+      "name": "AVT Premium Select 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-PREM-SEL-250G",
+      "id": "a6c116c2-b7b5-48ab-8eae-4306ca09963f",
+      "name": "AVT Premium Select 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-RAJA-DUST-250G",
+      "id": "03fc769f-4e37-43ba-ba73-6668cdcd79d7",
+      "name": "AVT Raja Tea Dust 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-RAJA-DUST-1KG",
+      "id": "73b5c8a1-3354-4221-8795-c112a6e5876a",
+      "name": "AVT Raja Tea Dust 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-SUPR-DUST-100G",
+      "id": "dbdeeab1-ac32-4f03-81a5-807cf3ecde08",
+      "name": "AVT Supreme Tea Dust 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-SUPR-DUST-250G",
+      "id": "92360dfd-2cff-404d-b662-b04141c2d111",
+      "name": "AVT Supreme Tea Dust 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-SUPR-DUST-500G",
+      "id": "6ec147bf-7039-4933-8648-49ad665e2ff2",
+      "name": "AVT Supreme Tea Dust 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-SUPR-DUST-1KG",
+      "id": "94206445-e011-4436-b87b-df2ed85a929c",
+      "name": "AVT Supreme Tea Dust 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-COFFEE-50G",
+      "id": "fd044100-4a9b-4aa2-b3d8-466091421586",
+      "name": "AVT Coffee Powder 50g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-COFFEE-100G",
+      "id": "8412c995-9bd0-4048-ae7c-882a91c25e54",
+      "name": "AVT Coffee Powder 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-COFFEE-200G",
+      "id": "13f48e9b-0f4b-47bd-830e-6cb6a73a82e2",
+      "name": "AVT Coffee Powder 200g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-COFFEE-500G",
+      "id": "0ee9cc0d-6395-446c-9234-de610042a373",
+      "name": "AVT Coffee Powder 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-TEABAG-25",
+      "id": "5ba9e730-7b6b-454d-9cff-1e1e20816bec",
+      "name": "AVT Tea Bags 25"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-TEABAG-100",
+      "id": "30ce70bf-cfc5-4c0b-a654-53719857559b",
+      "name": "AVT Tea Bags 100"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GOLD-100G",
+      "id": "512c37e9-aec9-4022-b136-df1f0fa5c2bf",
+      "name": "AVT Gold Cup 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GOLD-250G",
+      "id": "ab2db68c-2192-413e-9b4d-dd06301111cc",
+      "name": "AVT Gold Cup 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GOLD-500G",
+      "id": "5d7eeaef-1391-435c-bea4-a958d554d921",
+      "name": "AVT Gold Cup 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GTEA-LEAF-100G",
+      "id": "137f012e-b3e2-415e-b106-81a1b7de7aaf",
+      "name": "AVT Green Tea Leaf 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GTEA-LEAF-250G",
+      "id": "fea568de-2c3c-4b9f-98f4-cfc108f60ed1",
+      "name": "AVT Green Tea Leaf 250g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GTEA-BAG-10",
+      "id": "ac34e620-d405-4959-bb21-3f87bba8be33",
+      "name": "AVT Green Tea Bags 10"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GTEA-BAG-30",
+      "id": "08e82701-8322-45d5-bf50-6d6ee30358bf",
+      "name": "AVT Green Tea Bags 30"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GTEA-BAG-100",
+      "id": "c895cd8b-daaa-4374-8a8b-de0a032ee113",
+      "name": "AVT Green Tea Bags 100"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GHEE-50ML",
+      "id": "1e95e9c6-4304-495a-b77f-745d0cdb3c94",
+      "name": "AVT Ghee 50ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GHEE-100ML",
+      "id": "aba7d7d2-5056-4e2c-b62c-37858850bbcd",
+      "name": "AVT Ghee 100ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GHEE-200ML",
+      "id": "e9017e89-dbac-4a48-96d4-b3b5fbf65387",
+      "name": "AVT Ghee 200ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-GHEE-500ML",
+      "id": "bfc8de40-2c2a-48a2-bab4-1dd305fcb2d1",
+      "name": "AVT Ghee 500ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-WHITENER-10G",
+      "id": "26a8445c-a8a3-476d-8ae9-5b18a00bf942",
+      "name": "AVT Dairy Whitener 10g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-WHITENER-200G",
+      "id": "9dc64df6-4670-476a-86c1-158a2a8f7f16",
+      "name": "AVT Dairy Whitener 200g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "AVT-WHITENER-400G",
+      "id": "e755fe9c-faf0-458f-8466-16a6c585a58f",
+      "name": "AVT Dairy Whitener 400g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "DSURE-MS-STRW-200ML",
+      "id": "0005ba70-5a34-4784-bdec-7d018ad31828",
+      "name": "Dairy Sure Milkshake Strawberry 200ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "DSURE-MS-VAN-200ML",
+      "id": "094db8a6-dc36-45d8-872e-6b42782e953e",
+      "name": "Dairy Sure Milkshake Vanilla 200ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "DSURE-MS-CHOC-200ML",
+      "id": "f7214eac-0bd6-4333-bb34-e9daf66a99da",
+      "name": "Dairy Sure Milkshake Chocolate 200ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "DSURE-MS-BTRSC-200ML",
+      "id": "77c71cd3-3181-4be8-aa9d-3b206e4fe9cb",
+      "name": "Dairy Sure Milkshake Butterscotch 200ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "KERA-COIL-500ML-PCH",
+      "id": "35ce8a9e-8ff0-4976-80d4-db81f3a1136f",
+      "name": "Kera Coconut Oil 500ml Pouch"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "KERA-COIL-1L-PCH",
+      "id": "52ddd8dd-c8ed-42ef-8e7b-7bf7b50dd1cd",
+      "name": "Kera Coconut Oil 1L Pouch"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "KERA-DESS-100G",
+      "id": "db218db7-20bc-478e-8dfc-4df2a9c21a25",
+      "name": "Kera Desiccated Coconut Powder 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "KERA-CMPOW-100G",
+      "id": "199bc879-d4cf-4e93-a3ee-fb266e62a2f3",
+      "name": "Kera Coconut Milk Powder 100g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-WHITE-500G",
+      "id": "ea4a2b84-6280-4df2-9176-d5d29e42465e",
+      "name": "Parry's White Label Sugar 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-WHITE-1KG",
+      "id": "ee0249c0-994f-4f0c-bac1-e769071c4b96",
+      "name": "Parry's White Label Sugar 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-WHITE-5KG",
+      "id": "b3e0082c-97dd-4640-8b4e-4d465fc4eb0d",
+      "name": "Parry's White Label Sugar 5kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-REF-1KG",
+      "id": "22bd2aa3-9fbf-4a27-8b78-18fe441d063b",
+      "name": "Parry's Pure Refined Sugar 1kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-REF-1KG-JAR",
+      "id": "abe27473-b56b-4d3b-b588-152b2ab12deb",
+      "name": "Parry's Pure Refined Sugar 1kg Jar"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-REF-5KG",
+      "id": "e4468c1b-62ea-41c4-851d-19831a5480af",
+      "name": "Parry's Pure Refined Sugar 5kg"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-CUBE-500G",
+      "id": "aad94ad2-7390-44bb-b203-387ef772624e",
+      "name": "Parry's Pure Refined Sugar Cubes 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-AMRIT-500G",
+      "id": "981c5073-d420-48d6-8850-4b84ce6e0473",
+      "name": "Parry's Amrit Sugar 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-AMRIT-750G-JR",
+      "id": "2693d28c-aa7c-4666-8abd-248d66765dbd",
+      "name": "Parry's Amrit Sugar 750g Jar"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "PARRY-JAG-500G",
+      "id": "260626f4-5b6f-4956-ac13-838019e931c3",
+      "name": "Parry's Amrit Jaggery 500g"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-MILK-180ML",
+      "id": "65b6c7b1-518d-4b26-814c-00697985c148",
+      "name": "GoodLife Milk 180ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-MILK-500ML",
+      "id": "3f5e9738-dcda-4c43-a18d-9fb7cade88b5",
+      "name": "GoodLife Milk 500ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-MILK-1L",
+      "id": "8687fad1-ab10-4caf-a905-b37225f70275",
+      "name": "GoodLife Milk 1L"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-SLIM-500ML",
+      "id": "b4bfaf73-c368-4fd9-9a75-82e62f03abb4",
+      "name": "GoodLife Slim Milk 500ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-SLIM-1L",
+      "id": "a193f7ea-e566-4ad9-b35d-a2aa3d2808fe",
+      "name": "GoodLife Slim Milk 1L"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-GOLD-1L",
+      "id": "2271fb89-1df4-4f50-9d87-6b5d7a79b222",
+      "name": "GoodLife Gold Milk 1L"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-CREAM-500ML",
+      "id": "6bfe4d5a-cd3c-4bfe-8832-d0a66a5b5470",
+      "name": "GoodLife Fresh Cream 500ml"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "GOODLIFE-CREAM-1L",
+      "id": "520763a0-507a-4383-bfbb-31c7ef3d9492",
+      "name": "GoodLife Fresh Cream 1L"
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "MATTA-VADI-1KG",
+      "name": "MattaNaad Matta Vadi Rice 1kg",
+      "reason": "Carton quantity unknown. Sack-as-case representation needs owner approval. 2kg is not listed."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "MATTA-VADI-5KG",
+      "name": "MattaNaad Matta Vadi Rice 5kg",
+      "reason": "Packaging images confirm 5kg. Carton quantity unknown."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "MATTA-VADI-10KG",
+      "name": "MattaNaad Matta Vadi Rice 10kg",
+      "reason": "Packaging images confirm 10kg. Carton quantity unknown."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "MATTA-VADI-30KG",
+      "name": "MattaNaad Matta Vadi Rice 30kg",
+      "reason": "Carton quantity unknown."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "MATTA-VADI-50KG",
+      "name": "MattaNaad Matta Vadi Rice 50kg",
+      "reason": "Carton quantity unknown."
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "SUN-SFO-500ML-PCH",
+      "id": "377b1677-c53c-442f-8777-425f144cc051",
+      "name": "Sunpure Sunflower Oil 500ml Pouch"
+    },
+    {
+      "outcome": "ALREADY_EXISTS",
+      "sku": "SUN-SFO-1L-PCH",
+      "id": "e80036f3-ea6a-44c7-bd91-d93e40eebe36",
+      "name": "Sunpure Sunflower Oil 1L Pouch"
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Sunflower Oil ₹10 pouch",
+      "reason": "Volume unspecified. No SKU assigned."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-100ML-PCH",
+      "name": "Sunpure Sunflower Oil 100ml Pouch",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-200ML-PCH",
+      "name": "Sunpure Sunflower Oil 200ml Pouch",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-1L-PET",
+      "name": "Sunpure Sunflower Oil 1L PET Jar",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-2L-PET",
+      "name": "Sunpure Sunflower Oil 2L PET Jar",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-5L",
+      "name": "Sunpure Sunflower Oil 5L PET/HDPE",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-10L-BKT",
+      "name": "Sunpure Sunflower Oil 10L Bucket",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-15L-TIN",
+      "name": "Sunpure Sunflower Oil 15L/15kg Tin",
+      "reason": "Catalogue lists 15L / 15kg tin together."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SFO-15L-TAP",
+      "name": "Sunpure Sunflower Oil 15L Tap Jar",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GNO-500ML",
+      "name": "Sunpure Filtered Groundnut Oil 500ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GNO-1L",
+      "name": "Sunpure Filtered Groundnut Oil 1L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GNO-5L",
+      "name": "Sunpure Filtered Groundnut Oil 5L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GNO-15",
+      "name": "Sunpure Filtered Groundnut Oil 15kg/15L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-RBH-500ML",
+      "name": "Sunpure Ricebran Health Oil 500ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-RBH-1L",
+      "name": "Sunpure Ricebran Health Oil 1L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-RBH-5L",
+      "name": "Sunpure Ricebran Health Oil 5L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-RBH-15",
+      "name": "Sunpure Ricebran Health Oil 15kg/15L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-MST-200ML-PET",
+      "name": "Sunpure Kachi Ghani Mustard Oil 200ml PET",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-MST-500ML-PET",
+      "name": "Sunpure Kachi Ghani Mustard Oil 500ml PET",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-MST-1L-PET",
+      "name": "Sunpure Kachi Ghani Mustard Oil 1L PET",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-MST-500ML-PCH",
+      "name": "Sunpure Kachi Ghani Mustard Oil 500ml Pouch",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-MST-1L-PCH",
+      "name": "Sunpure Kachi Ghani Mustard Oil 1L Pouch",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-50ML",
+      "name": "Sunpure Vanaspati 50ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-100ML",
+      "name": "Sunpure Vanaspati 100ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-200ML",
+      "name": "Sunpure Vanaspati 200ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-500ML",
+      "name": "Sunpure Vanaspati 500ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-1L-PCH",
+      "name": "Sunpure Vanaspati 1L Pouch",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-VAN-15KG",
+      "name": "Sunpure Vanaspati 15kg Tin",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "PALM-500ML",
+      "name": "Palmpure Refined Palmolein Oil 500ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "PALM-1L",
+      "name": "Palmpure Refined Palmolein Oil 1L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "PALM-15L-TIN",
+      "name": "Palmpure Refined Palmolein Oil 15L Tin",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "PALM-15KG-TIN",
+      "name": "Palmpure Refined Palmolein Oil 15kg Tin",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "RBH-SOYA-500ML",
+      "name": "Ricebran Health Soya Bean Oil 500ml",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "RBH-SOYA-1L",
+      "name": "Ricebran Health Soya Bean Oil 1L",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "RBH-SOYA-15",
+      "name": "Ricebran Health Soya Bean Oil 15kg/15L Tin",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-ATTA-1KG",
+      "name": "Sunpure Swaad Chakki Atta 1kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-ATTA-5KG",
+      "name": "Sunpure Swaad Chakki Atta 5kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-ATTA-10KG",
+      "name": "Sunpure Swaad Chakki Atta 10kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SUGAR-250G",
+      "name": "Sunpure Premium Sugar 250g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SUGAR-500G",
+      "name": "Sunpure Premium Sugar 500g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SUGAR-1KG",
+      "name": "Sunpure Premium Sugar 1kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-SUGAR-5KG",
+      "name": "Sunpure Premium Sugar 5kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-KHAND-500G",
+      "name": "Sunpure Khandsari Sugar 500g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-KHAND-1KG",
+      "name": "Sunpure Khandsari Sugar 1kg",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-JAGPOW-500G",
+      "name": "Sunpure Jaggery Powder 500g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GULAB-90G",
+      "name": "Sunpure Gulab Jamun Mix Kesar Badam 90g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": "SUN-GULAB-120G",
+      "name": "Sunpure Gulab Jamun Mix Kesar Badam 120g",
+      "reason": "Staged; missing case pack, stockist confirmation, or supplier confirmation."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Coriander Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Chilli Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Turmeric Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Sambar Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Rasam Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    },
+    {
+      "outcome": "SKIPPED_PENDING_VERIFICATION",
+      "sku": null,
+      "name": "Sunpure Puliyogare Powder",
+      "reason": "Pouch sizes exist on the spice range but are not assigned per SKU."
+    }
+  ]
+}

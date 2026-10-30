@@ -86,7 +86,7 @@ export function DispatchReportPage() {
             "Created UTC",
           ]}
           emptyTitle="No dispatch rows"
-          emptyDescription="Dispatch documents in your authorized branches will appear here."
+          emptyDescription="Dispatch documents in your authorized godowns will appear here."
           page={report.data.page}
           pageSize={report.data.page_size}
           total={report.data.total_count}

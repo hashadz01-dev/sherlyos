@@ -1,0 +1,7 @@
+ref,name,brands,verification,phone,email,intended_status
+AVT,AVT (pending invoicing confirmation),"AVT Premium, Supreme, Raja, Gold Cup, Dairy Sure",Actual invoicing supplier pending,,,inactive
+KERA,Kera (pending invoicing confirmation),Kera coconut products,Actual invoicing supplier pending,,,inactive
+MK_AGROTECH,MK Agrotech Pvt Ltd (manufacturer; invoicing pending),"SUNPURE, Ricebran Health, Palmpure",Manufacturer/marketer identified from SUNPURE catalogue. Not proven as Sherlys invoicing supplier. Address and manufacturer email are not stored: schema has no address column and email would imply a verified contact.,,,inactive
+PARRYS,Parry's (pending invoicing confirmation),Parry's sugar and jaggery,Actual invoicing supplier pending,,,inactive
+GOODLIFE,GoodLife (pending invoicing confirmation),"GoodLife milk, Slim, Gold, Fresh Cream",Actual invoicing supplier pending,,,inactive
+MATTANAAD,MattaNaad (pending invoicing confirmation),MattaNaad Matta Vadi rice,TPF Bharat Private Limited is named on MattaNaad material and is not stored as the invoicing supplier.,,,inactive

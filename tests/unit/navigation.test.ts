@@ -32,6 +32,9 @@ describe("navigation", () => {
       navigationItems.find((item) => item.to === "/employees")?.permission,
     ).toBe("employees.read")
     expect(
+      navigationItems.find((item) => item.to === "/godowns")?.label,
+    ).toBe("Godowns")
+    expect(
       navigationItems.find((item) => item.to === "/audit")?.permission,
     ).toBe("audit.read")
     expect(navigationItems.at(-1)?.to).toBe("/users-roles")

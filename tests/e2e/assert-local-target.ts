@@ -64,4 +64,7 @@ export function assertLocalPlaywrightTarget(root = process.cwd()) {
   if (process.env.SHERLYOS_ISOLATED === "1" && port === "54321") {
     throw new Error("isolated Playwright refused the owner API port 54321")
   }
+  if (process.env.SHERLYOS_M82C === "1" && port === "56321") {
+    throw new Error("M8.2C Playwright refused the m81c cutover API port 56321")
+  }
 }

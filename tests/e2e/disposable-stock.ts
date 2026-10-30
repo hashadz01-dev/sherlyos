@@ -53,6 +53,8 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "p33-race%",
   // M8.1C isolated full-stack fixtures.
   "m81c%",
+  // M8.2C isolated Branch-1 UAT fixtures. Never matches operational SKUs.
+  "m82c%",
 ] as const
 
 const OWNER_PSQL_CONTAINER = "supabase_db_sherlyos"

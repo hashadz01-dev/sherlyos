@@ -51,6 +51,7 @@ export const shopSchema = z.object({
   name: requiredName,
   phone: supplierSchema.shape.phone,
   address: optionalText(400, "Address is too long."),
+  routeId: z.string().trim().optional(),
 })
 
 export const zoneSchema = z.object({

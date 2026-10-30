@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getProduct,
@@ -31,6 +31,7 @@ export function ProductSearchField({
   error?: string
 }) {
   const listId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
   const [typed, setTyped] = useState("")
   const [debounced, setDebounced] = useState("")
   const [open, setOpen] = useState(false)
@@ -39,6 +40,18 @@ export function ProductSearchField({
     const handle = window.setTimeout(() => setDebounced(typed.trim()), 200)
     return () => window.clearTimeout(handle)
   }, [typed])
+
+  // Close only on a real outside click. Scrollbar / option mousedown would
+  // otherwise blur the input and collapse the list back to the empty label.
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return
+      setOpen(false)
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [open])
 
   const selected = useQuery({
     queryKey: ["product-by-id", value],
@@ -62,7 +75,7 @@ export function ProductSearchField({
   const rows = matches.data ?? []
 
   return (
-    <div className="grid gap-1">
+    <div ref={rootRef} className="grid gap-1">
       <label className="grid gap-1 text-sm">
         {label}
         <input
@@ -78,16 +91,13 @@ export function ProductSearchField({
           value={display}
           placeholder="Type a SKU or name"
           onFocus={() => {
-            setTyped(selectedLabel)
+            setTyped((current) => (open ? current : selectedLabel))
             setOpen(true)
           }}
           onChange={(event) => {
             setTyped(event.target.value)
             setOpen(true)
             if (value) onChange("", null)
-          }}
-          onBlur={() => {
-            window.setTimeout(() => setOpen(false), 150)
           }}
         />
       </label>
@@ -96,6 +106,8 @@ export function ProductSearchField({
           id={listId}
           role="listbox"
           className="max-h-48 overflow-auto rounded-lg border border-input bg-card text-sm shadow-sm"
+          onMouseDown={(event) => event.preventDefault()}
+          onWheel={(event) => event.stopPropagation()}
         >
           {matches.isLoading ? (
             <li className="px-2.5 py-2 text-muted-foreground">Searching catalog…</li>

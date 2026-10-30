@@ -66,6 +66,7 @@ import {
   RefillReportPage,
   ReportsPage,
   SettingsPage,
+  ShopDetailPage,
   ShopsPage,
   StatutoryConfigPage,
   StartVerificationPage,
@@ -704,6 +705,14 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequirePermission permission="shops.read">
                 <ShopsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "masters/shops/:shopId",
+            element: (
+              <RequirePermission permission="shops.read">
+                <ShopDetailPage />
               </RequirePermission>
             ),
           },

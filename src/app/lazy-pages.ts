@@ -288,6 +288,11 @@ export const ShopsPage = lazy(() =>
     default: m.ShopsPage,
   })),
 )
+export const ShopDetailPage = lazy(() =>
+  import("@/features/masters/shops/ShopDetailPage").then((m) => ({
+    default: m.ShopDetailPage,
+  })),
+)
 export const LocationsPage = lazy(() =>
   import("@/features/masters/locations/LocationsPage").then((m) => ({
     default: m.LocationsPage,

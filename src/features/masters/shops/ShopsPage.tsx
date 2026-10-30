@@ -1,43 +1,38 @@
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useMemo, useState } from "react"
+import { Link } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
-import { AppModal } from "@/components/shared/AppModal"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
-import { TextField } from "@/components/forms/TextField"
 import { Button } from "@/components/ui/button"
 import {
   ConfirmStatusDialog,
   FilterSelect,
+  FilterToolbar,
   SearchField,
 } from "@/features/masters/MasterControls"
-import { matchesSearch, matchesStatus } from "@/lib/masters/filters"
 import { RecordCard } from "@/features/masters/products/ProductsPage"
+import {
+  AssignForm,
+  ShopDialog,
+  loadSalespeople,
+  type ShopAssignment,
+} from "@/features/masters/shops/shop-form"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAuth } from "@/hooks/use-auth"
 import { useAccess } from "@/lib/access/use-access"
-import { callRpc, loadRows } from "@/lib/masters/api"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { callRpc, loadRows, loadRowsIfPresent } from "@/lib/masters/api"
+import {
+  WEEKDAYS,
+  catalogRoutesAsRows,
+  groupShopsByRoute,
+  nextVisitSequence,
+  weekdayLabel,
+  type SalesRouteRow,
+  type ShopListRow,
+  type ShopRouteMembership,
+} from "@/lib/masters/shop-routes"
 import { notify } from "@/lib/utilities/notify"
-import { emptyToNull, shopSchema, type ShopValues } from "@/lib/validations/masters"
-
-type Shop = {
-  id: string
-  name: string
-  phone: string | null
-  address: string | null
-  is_active: boolean
-}
-
-type Assignment = {
-  id: string
-  shop_id: string
-  salesperson_id: string
-  is_active: boolean
-}
-
-type SalespersonOption = { id: string; name: string }
+import { emptyToNull, type ShopValues } from "@/lib/validations/masters"
 
 export function ShopsPage() {
   useDocumentTitle("Shops")
@@ -47,22 +42,42 @@ export function ShopsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [editing, setEditing] = useState<Shop | "new" | null>(null)
-  const [statusTarget, setStatusTarget] = useState<Shop | null>(null)
+  const [routeFilter, setRouteFilter] = useState("all")
+  const [weekdayFilter, setWeekdayFilter] = useState("all")
+  const [editing, setEditing] = useState<ShopListRow | "new" | null>(null)
+  const [statusTarget, setStatusTarget] = useState<ShopListRow | null>(null)
   const canAssign = can("shops.assign")
 
   const shops = useQuery({
     queryKey: ["shops"],
     queryFn: () =>
-      loadRows<Shop>("shops", "id, name, phone, address, is_active", "name"),
+      loadRows<ShopListRow>("shops", "id, name, phone, address, is_active", "name"),
   })
   const assignments = useQuery({
     queryKey: ["shop-assignments"],
     queryFn: () =>
-      loadRows<Assignment>(
+      loadRows<ShopAssignment>(
         "shop_salesperson_assignments",
         "id, shop_id, salesperson_id, is_active",
         "assigned_at",
+      ),
+  })
+  const persistedRoutes = useQuery({
+    queryKey: ["sales-routes"],
+    queryFn: () =>
+      loadRowsIfPresent<SalesRouteRow>(
+        "sales_routes",
+        "id, code, name, weekday, sort_order, is_active",
+        "sort_order",
+      ),
+  })
+  const memberships = useQuery({
+    queryKey: ["shop-route-memberships"],
+    queryFn: () =>
+      loadRowsIfPresent<ShopRouteMembership>(
+        "shop_sales_route_memberships",
+        "shop_id, route_id, visit_sequence",
+        "visit_sequence",
       ),
   })
   const salespeople = useQuery({
@@ -71,6 +86,13 @@ export function ShopsPage() {
     queryFn: loadSalespeople,
   })
 
+  const persisted = persistedRoutes.data
+  const routes = useMemo(
+    () => (persisted && persisted.length > 0 ? persisted : catalogRoutesAsRows()),
+    [persisted],
+  )
+  const canPersistRoute = Boolean(canAssign && persisted && persisted.length > 0)
+
   const save = useMutation({
     mutationFn: async (values: ShopValues) => {
       const args = {
@@ -78,23 +100,36 @@ export function ShopsPage() {
         shop_phone: emptyToNull(values.phone),
         shop_address: emptyToNull(values.address),
       }
+      let shopId = editing === "new" || !editing ? "" : editing.id
       if (editing === "new") {
-        await callRpc("create_shop", args)
-        return
+        shopId = await callRpc<string>("create_shop", args)
+      } else if (editing) {
+        await callRpc("update_shop", { target_shop: editing.id, ...args })
       }
-      if (!editing) return
-      await callRpc("update_shop", { target_shop: editing.id, ...args })
+      if (canPersistRoute && values.routeId) {
+        const existing = (memberships.data ?? []).find(
+          (row) => row.shop_id === shopId && row.route_id === values.routeId,
+        )
+        await callRpc("set_shop_sales_route", {
+          target_shop: shopId,
+          target_route: values.routeId,
+          visit_sequence:
+            existing?.visit_sequence ??
+            nextVisitSequence(memberships.data ?? [], values.routeId),
+        })
+      }
     },
     onSuccess: async () => {
       setEditing(null)
       notify.success("Shop saved")
       await queryClient.invalidateQueries({ queryKey: ["shops"] })
+      await queryClient.invalidateQueries({ queryKey: ["shop-route-memberships"] })
     },
     onError: (error: Error) => notify.error(error.message),
   })
 
   const toggle = useMutation({
-    mutationFn: (shop: Shop) =>
+    mutationFn: (shop: ShopListRow) =>
       callRpc("set_shop_active", { target_shop: shop.id, active: !shop.is_active }),
     onSuccess: async () => {
       setStatusTarget(null)
@@ -134,11 +169,20 @@ export function ShopsPage() {
   })
 
   const names = new Map((salespeople.data ?? []).map((person) => [person.id, person.name]))
-  const visible = (shops.data ?? []).filter(
-    (shop) =>
-      matchesSearch(search, [shop.name, shop.phone, shop.address]) &&
-      matchesStatus(statusFilter, shop.is_active),
+  const groups = useMemo(
+    () =>
+      groupShopsByRoute({
+        shops: shops.data ?? [],
+        routes,
+        memberships: memberships.data ?? [],
+        search,
+        status: statusFilter,
+        routeId: routeFilter,
+        weekday: weekdayFilter,
+      }),
+    [shops.data, routes, memberships.data, search, statusFilter, routeFilter, weekdayFilter],
   )
+  const visibleCount = groups.reduce((sum, group) => sum + group.shopCount, 0)
 
   function canEdit(shopId: string) {
     if (canAssign) return true
@@ -151,100 +195,147 @@ export function ShopsPage() {
     <section>
       <PageHeader
         title="Shops"
-        description="You see shops you are allowed to open. Creating a shop, and assigning another salesperson, stay with an administrator until shop ownership is approved."
+        description="Central shop master grouped by geographic sales route. Creating a shop, assigning a route, and assigning another salesperson stay with an administrator."
         action={
           canAssign ? <Button onClick={() => setEditing("new")}>New shop</Button> : null
         }
       />
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+      <FilterToolbar>
         <SearchField label="Search shops" value={search} onChange={setSearch} />
+        <FilterSelect label="Route" value={routeFilter} onChange={setRouteFilter}>
+          <option value="all">All shops</option>
+          {routes.map((route) => (
+            <option key={route.id} value={route.id}>
+              {route.name}
+            </option>
+          ))}
+          <option value="unassigned">Unassigned route</option>
+        </FilterSelect>
+        <FilterSelect label="Weekday" value={weekdayFilter} onChange={setWeekdayFilter}>
+          <option value="all">All weekdays</option>
+          {WEEKDAYS.map((day) => (
+            <option key={day} value={day}>
+              {weekdayLabel(day)}
+            </option>
+          ))}
+          <option value="unassigned">Unconfirmed</option>
+        </FilterSelect>
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter}>
           <option value="all">All statuses</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </FilterSelect>
-      </div>
+      </FilterToolbar>
       <RecordCard
         loading={shops.isLoading || assignments.isLoading}
-        error={shops.error ?? assignments.error}
-        empty={visible.length === 0}
+        error={shops.error ?? assignments.error ?? persistedRoutes.error ?? memberships.error}
+        empty={visibleCount === 0}
         emptyTitle="No shops"
-        emptyDescription="No shops are in your scope."
+        emptyDescription="No shops match these filters in your scope."
       >
-        <ul className="divide-y divide-slate-200/80">
-          {visible.map((shop) => {
-            const shopAssignments = (assignments.data ?? []).filter(
-              (row) => row.shop_id === shop.id,
-            )
-            return (
-              <li key={shop.id} className="grid gap-3 px-4 py-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button type="button" className="text-left" onClick={() => setEditing(shop)}>
-                    <span className="block text-sm font-medium">{shop.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {[shop.phone, shop.address].filter(Boolean).join(" · ") || "No contact details"}
-                    </span>
-                  </button>
-                  <span className="flex items-center gap-2">
-                    <StatusBadge tone={shop.is_active ? "success" : "neutral"}>
-                      {shop.is_active ? "Active" : "Inactive"}
-                    </StatusBadge>
-                    {canEdit(shop.id) ? (
-                      <Button variant="outline" onClick={() => setStatusTarget(shop)}>
-                        {shop.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                    ) : null}
+        <div className="divide-y divide-slate-200/80">
+          {groups.map((group) => (
+            <section key={group.routeId} className="px-4 py-3">
+              <header className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-sm font-semibold">
+                  {group.routeName}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {group.weekdayLabel}
                   </span>
-                </div>
-                <div className="grid gap-2">
-                  <p className="text-xs font-medium text-muted-foreground">Salesperson assignments</p>
-                  {shopAssignments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No assignments in your view.</p>
-                  ) : (
-                    <ul className="grid gap-1">
-                      {shopAssignments.map((row) => (
-                        <li key={row.id} className="flex items-center justify-between gap-2 text-sm">
-                          <span>
-                            {names.get(row.salesperson_id) ?? (row.salesperson_id === userId ? "You" : "Salesperson")}
-                            {row.is_active ? "" : " · revoked"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {group.shopCount} {group.shopCount === 1 ? "shop" : "shops"}
+                </p>
+              </header>
+              <ul className="divide-y divide-slate-100">
+                {group.shops.map((shop) => {
+                  const shopAssignments = (assignments.data ?? []).filter(
+                    (row) => row.shop_id === shop.id,
+                  )
+                  return (
+                    <li key={`${group.routeId}-${shop.id}`} className="grid gap-3 py-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <Link to={`/masters/shops/${shop.id}`} className="text-left">
+                          <span className="block text-sm font-medium">
+                            {shop.visitSequence != null ? `${shop.visitSequence}. ` : ""}
+                            {shop.name}
                           </span>
-                          {canAssign && row.is_active ? (
-                            <Button
-                              variant="outline"
-                              onClick={() =>
-                                revoke.mutate({
-                                  shopId: shop.id,
-                                  salespersonId: row.salesperson_id,
-                                })
-                              }
-                            >
-                              Revoke
+                          <span className="text-xs text-muted-foreground">
+                            {[shop.phone, shop.address].filter(Boolean).join(" · ") ||
+                              "No contact details"}
+                          </span>
+                        </Link>
+                        <span className="flex items-center gap-2">
+                          <StatusBadge tone={shop.is_active ? "success" : "neutral"}>
+                            {shop.is_active ? "Active" : "Inactive"}
+                          </StatusBadge>
+                          {canEdit(shop.id) ? (
+                            <Button variant="outline" onClick={() => setStatusTarget(shop)}>
+                              {shop.is_active ? "Deactivate" : "Activate"}
                             </Button>
                           ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {canAssign && shop.is_active ? (
-                    <AssignForm
-                      people={salespeople.data ?? []}
-                      pending={assign.isPending}
-                      onAssign={(salespersonId) =>
-                        assign.mutate({ shopId: shop.id, salespersonId })
-                      }
-                    />
-                  ) : null}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                        </span>
+                      </div>
+                      <div className="grid gap-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Salesperson assignments
+                        </p>
+                        {shopAssignments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No assignments in your view.</p>
+                        ) : (
+                          <ul className="grid gap-1">
+                            {shopAssignments.map((row) => (
+                              <li key={row.id} className="flex items-center justify-between gap-2 text-sm">
+                                <span>
+                                  {names.get(row.salesperson_id) ??
+                                    (row.salesperson_id === userId ? "You" : "Salesperson")}
+                                  {row.is_active ? "" : " · revoked"}
+                                </span>
+                                {canAssign && row.is_active ? (
+                                  <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                      revoke.mutate({
+                                        shopId: shop.id,
+                                        salespersonId: row.salesperson_id,
+                                      })
+                                    }
+                                  >
+                                    Revoke
+                                  </Button>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {canAssign && shop.is_active ? (
+                          <AssignForm
+                            people={salespeople.data ?? []}
+                            pending={assign.isPending}
+                            onAssign={(salespersonId) =>
+                              assign.mutate({ shopId: shop.id, salespersonId })
+                            }
+                          />
+                        ) : null}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       </RecordCard>
       {editing ? (
         <ShopDialog
           key={editing === "new" ? "new" : editing.id}
           shop={editing === "new" ? null : editing}
+          routes={routes}
+          memberships={memberships.data ?? []}
+          assignments={assignments.data ?? []}
+          salespersonNames={names}
           canSave={editing === "new" ? canAssign : canEdit(editing.id)}
+          canPersistRoute={canPersistRoute}
           pending={save.isPending}
           onClose={() => setEditing(null)}
           onSave={(values) => save.mutate(values)}
@@ -263,110 +354,5 @@ export function ShopsPage() {
         }}
       />
     </section>
-  )
-}
-
-async function loadSalespeople(): Promise<SalespersonOption[]> {
-  const supabase = getSupabaseBrowserClient()
-  if (!supabase) throw new Error("Supabase is not configured.")
-  const result = await supabase
-    .from("user_roles")
-    .select("user_id, profiles(full_name, is_active), roles(code)")
-  if (result.error) throw new Error(result.error.message)
-  const rows = (result.data ?? []) as unknown as Array<{
-    user_id: string
-    profiles: { full_name: string; is_active: boolean } | { full_name: string; is_active: boolean }[] | null
-    roles: { code: string } | { code: string }[] | null
-  }>
-  return rows.flatMap((row) => {
-    const role = Array.isArray(row.roles) ? row.roles[0] : row.roles
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
-    if (role?.code !== "salesperson" || !profile?.is_active) return []
-    return [{ id: row.user_id, name: profile.full_name || "Salesperson" }]
-  })
-}
-
-function AssignForm({
-  people,
-  pending,
-  onAssign,
-}: {
-  people: SalespersonOption[]
-  pending: boolean
-  onAssign: (salespersonId: string) => void
-}) {
-  const [assignee, setAssignee] = useState("")
-  return (
-    <form
-      className="grid gap-2 sm:grid-cols-[1fr_auto]"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (!assignee) return
-        onAssign(assignee)
-        setAssignee("")
-      }}
-    >
-      <FilterSelect label="Salesperson" value={assignee} onChange={setAssignee}>
-        <option value="">Choose a salesperson</option>
-        {people.map((person) => (
-          <option key={person.id} value={person.id}>
-            {person.name}
-          </option>
-        ))}
-      </FilterSelect>
-      <Button type="submit" disabled={!assignee || pending}>
-        Assign
-      </Button>
-    </form>
-  )
-}
-
-function ShopDialog({
-  shop,
-  canSave,
-  pending,
-  onClose,
-  onSave,
-}: {
-  shop: Shop | null
-  canSave: boolean
-  pending: boolean
-  onClose: () => void
-  onSave: (values: ShopValues) => void
-}) {
-  const form = useForm<ShopValues>({
-    resolver: zodResolver(shopSchema),
-    defaultValues: {
-      name: shop?.name ?? "",
-      phone: shop?.phone ?? "",
-      address: shop?.address ?? "",
-    },
-  })
-
-  return (
-    <AppModal
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-      title={shop ? shop.name : "New shop"}
-      description="A shop is not tied to a godown. That relationship is still undecided."
-      footer={
-        canSave ? (
-          <>
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" form="shop-form" disabled={pending}>Save</Button>
-          </>
-        ) : (
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        )
-      }
-    >
-      <form id="shop-form" className="grid gap-3" onSubmit={form.handleSubmit(onSave)}>
-        <TextField label="Shop name" {...form.register("name")} error={form.formState.errors.name?.message} disabled={!canSave} />
-        <TextField label="Phone" {...form.register("phone")} error={form.formState.errors.phone?.message} disabled={!canSave} />
-        <TextField label="Address" {...form.register("address")} error={form.formState.errors.address?.message} disabled={!canSave} />
-      </form>
-    </AppModal>
   )
 }

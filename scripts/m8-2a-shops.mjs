@@ -1,8 +1,9 @@
 /**
  * M8.2A shop and sales-route source.
- * Rows stay empty until the four screenshots in data/imports/shops/source/
- * are extracted. Tom/Liju/Arun are not mapped. No salesperson ids.
+ * Shop names come from the three owner screenshots. Tom/Liju/Arun are not mapped.
  */
+export { SOURCE_ENTRIES, ROUTE_COUNTS } from "./m8-2a-extracted.mjs"
+
 export const CATALOGUE_VERSION = "m8.2a"
 
 export function normalizeShopName(raw) {
@@ -32,9 +33,6 @@ export const EXPECTED_ROUTE_AREAS = [
   { sourceCollection: "SHEET_B", sourceDay: "saturday", routeArea: "MARKET", expectedCount: 39 },
   { sourceCollection: "SHEET_C", sourceDay: null, routeArea: "CHULLIKKAL", expectedCount: 40 },
 ]
-
-/** Extracted shop visit rows. Empty until screenshots are readable. */
-export const SOURCE_ENTRIES = []
 
 export const SALES_ROUTES = EXPECTED_ROUTE_AREAS.map((row) => ({
   sourceCollection: row.sourceCollection,

@@ -1,1 +1,572 @@
-proposed_shop_key,original_shop_name,normalized_shop_name,source_collection,source_day,route_area,visit_sequence,review_status,matched_existing_shop_id,review_notes
+source_sheet,route_name,weekday,sequence,original_shop_name,normalized_shop_name,proposed_shop_key,review_status
+SHEET_A,thevara,monday,1,Family supermarket,Family supermarket,thevara::family supermarket,extracted
+SHEET_A,thevara,monday,2,Idukki Spice,Idukki Spice,thevara::idukki spice,extracted
+SHEET_A,thevara,monday,3,Krishna Stores,Krishna Stores,thevara::krishna stores,extracted
+SHEET_A,thevara,monday,4,Family Mini mart,Family Mini mart,thevara::family mini mart,extracted
+SHEET_A,thevara,monday,5,S T M,S T M,thevara::s t m,extracted
+SHEET_A,thevara,monday,6,Parameswaran,Parameswaran,thevara::parameswaran,extracted
+SHEET_A,thevara,monday,7,Prime,Prime,thevara::prime,extracted
+SHEET_A,thevara,monday,8,Sradha,Sradha,thevara::sradha,extracted
+SHEET_A,thevara,monday,9,Veeyen,Veeyen,thevara::veeyen,extracted
+SHEET_A,thevara,monday,10,Salim,Salim,thevara::salim,extracted
+SHEET_A,thevara,monday,11,Sharon,Sharon,thevara::sharon,extracted
+SHEET_A,thevara,monday,12,Moli George,Moli George,thevara::moli george,extracted
+SHEET_A,thevara,monday,13,Kujbees,Kujbees,thevara::kujbees,extracted
+SHEET_A,thevara,monday,14,Ann Stores,Ann Stores,thevara::ann stores,extracted
+SHEET_A,thevara,monday,15,Chakkanatt Stores,Chakkanatt Stores,thevara::chakkanatt stores,extracted
+SHEET_A,thevara,monday,16,Joy Supermarket,Joy Supermarket,thevara::joy supermarket,extracted
+SHEET_A,thevara,monday,17,Haritha Thevara,Haritha Thevara,thevara::haritha thevara,extracted
+SHEET_A,thevara,monday,18,M B Menon,M B Menon,thevara::m b menon,extracted
+SHEET_A,thevara,monday,19,Shipyard,Shipyard,thevara::shipyard,extracted
+SHEET_A,thevara,monday,20,True Bell,True Bell,thevara::true bell,extracted
+SHEET_A,thevara,monday,21,Drishya,Drishya,thevara::drishya,extracted
+SHEET_A,thevara,monday,22,Chakkanattu Traders,Chakkanattu Traders,thevara::chakkanattu traders,extracted
+SHEET_A,thevara,monday,23,Milma Ravipuram,Milma Ravipuram,thevara::milma ravipuram,extracted
+SHEET_A,thevara,monday,24,Milma Booth,Milma Booth,thevara::milma booth,extracted
+SHEET_A,thevara,monday,25,Aryas PALLI,Aryas PALLI,thevara::aryas palli,extracted
+SHEET_A,thevara,monday,26,Top in Town,Top in Town,thevara::top in town,extracted
+SHEET_A,thevara,monday,27,Super Bakery Pallimukk,Super Bakery Pallimukk,thevara::super bakery pallimukk,extracted
+SHEET_A,thevara,monday,28,jomon,jomon,thevara::jomon,extracted
+SHEET_A,thevara,monday,29,ALEX,ALEX,thevara::alex,extracted
+SHEET_A,thevara,monday,30,WE CARE,WE CARE,thevara::we care,extracted
+SHEET_A,thevara,monday,31,FRESH-O Mart,FRESH-O Mart,thevara::fresh-o mart,extracted
+SHEET_A,thevara,monday,32,GREENS PROV,GREENS PROV,thevara::greens prov,extracted
+SHEET_A,thevara,monday,33,HARITHA,HARITHA,thevara::haritha,extracted
+SHEET_A,thevara,monday,34,MILMA Kundannoor,MILMA Kundannoor,thevara::milma kundannoor,extracted
+SHEET_A,thevara,monday,35,Super Bakery Thevara,Super Bakery Thevara,thevara::super bakery thevara,extracted
+SHEET_A,thevara,monday,36,SUPER BAKERY,SUPER BAKERY,thevara::super bakery,extracted
+SHEET_A,thevara,monday,37,Shamsookisante Supermarket,Shamsookisante Supermarket,thevara::shamsookisante supermarket,extracted
+SHEET_A,thevara,monday,38,MB MENONS,MB MENONS,thevara::mb menons,extracted
+SHEET_A,thevara,monday,39,VEE VEE,VEE VEE,thevara::vee vee,extracted
+SHEET_A,thevara,monday,40,MATHA VEG,MATHA VEG,thevara::matha veg,extracted
+SHEET_A,thevara,monday,41,STM,STM,thevara::stm,extracted
+SHEET_A,vyttila,tuesday,1,NEW FAMOUS,NEW FAMOUS,vyttila::new famous,extracted
+SHEET_A,vyttila,tuesday,2,FATHIMA,FATHIMA,vyttila::fathima,extracted
+SHEET_A,vyttila,tuesday,3,MOMA,MOMA,vyttila::moma,extracted
+SHEET_A,vyttila,tuesday,4,NAVEEN,NAVEEN,vyttila::naveen,extracted
+SHEET_A,vyttila,tuesday,5,TREESA,TREESA,vyttila::treesa,extracted
+SHEET_A,vyttila,tuesday,6,MODERN BAKERY,MODERN BAKERY,vyttila::modern bakery,extracted
+SHEET_A,vyttila,tuesday,7,HARSH,HARSH,vyttila::harsh,extracted
+SHEET_A,vyttila,tuesday,8,SREEBALAJI,SREEBALAJI,vyttila::sreebalaji,extracted
+SHEET_A,vyttila,tuesday,9,ROYAL BAKERY,ROYAL BAKERY,vyttila::royal bakery,extracted
+SHEET_A,vyttila,tuesday,10,KRD,KRD,vyttila::krd,extracted
+SHEET_A,vyttila,tuesday,11,SAKETH,SAKETH,vyttila::saketh,extracted
+SHEET_A,vyttila,tuesday,12,JEROMS,JEROMS,vyttila::jeroms,extracted
+SHEET_A,vyttila,tuesday,13,SWATHI,SWATHI,vyttila::swathi,extracted
+SHEET_A,vyttila,tuesday,14,KRISHNA,KRISHNA,vyttila::krishna,extracted
+SHEET_A,vyttila,tuesday,15,PANAYIL,PANAYIL,vyttila::panayil,extracted
+SHEET_A,vyttila,tuesday,16,LAL,LAL,vyttila::lal,extracted
+SHEET_A,vyttila,tuesday,17,MANAVALAN,MANAVALAN,vyttila::manavalan,extracted
+SHEET_A,vyttila,tuesday,18,AMALA,AMALA,vyttila::amala,extracted
+SHEET_A,vyttila,tuesday,19,MAMMUS,MAMMUS,vyttila::mammus,extracted
+SHEET_A,vyttila,tuesday,20,BIG MART,BIG MART,vyttila::big mart,extracted
+SHEET_A,vyttila,tuesday,21,MF VYTTILA,MF VYTTILA,vyttila::mf vyttila,extracted
+SHEET_A,vyttila,tuesday,22,ARDF SAINIK,ARDF SAINIK,vyttila::ardf sainik,extracted
+SHEET_A,vyttila,tuesday,23,RV STORES,RV STORES,vyttila::rv stores,extracted
+SHEET_A,vyttila,tuesday,24,VM STORES,VM STORES,vyttila::vm stores,extracted
+SHEET_A,vyttila,tuesday,25,VIJAYA,VIJAYA,vyttila::vijaya,extracted
+SHEET_A,vyttila,tuesday,26,TNS,TNS,vyttila::tns,extracted
+SHEET_A,vyttila,tuesday,27,KRISHNA PROVI,KRISHNA PROVI,vyttila::krishna provi,extracted
+SHEET_A,vyttila,tuesday,28,CHOICE,CHOICE,vyttila::choice,extracted
+SHEET_A,vyttila,tuesday,29,UDHAYABHANU,UDHAYABHANU,vyttila::udhayabhanu,extracted
+SHEET_A,vyttila,tuesday,30,PAULS,PAULS,vyttila::pauls,extracted
+SHEET_A,vyttila,tuesday,31,HORG,HORG,vyttila::horg,extracted
+SHEET_A,nettoor-panangad,wednesday,1,AMAANS,AMAANS,nettoor-panangad::amaans,extracted
+SHEET_A,nettoor-panangad,wednesday,2,A M STORE,A M STORE,nettoor-panangad::a m store,extracted
+SHEET_A,nettoor-panangad,wednesday,3,DIYA,DIYA,nettoor-panangad::diya,extracted
+SHEET_A,nettoor-panangad,wednesday,4,P R BAKERY,P R BAKERY,nettoor-panangad::p r bakery,extracted
+SHEET_A,nettoor-panangad,wednesday,5,HAFES,HAFES,nettoor-panangad::hafes,extracted
+SHEET_A,nettoor-panangad,wednesday,6,JAYAN,JAYAN,nettoor-panangad::jayan,extracted
+SHEET_A,nettoor-panangad,wednesday,7,JOY SUPER MARKET,JOY SUPER MARKET,nettoor-panangad::joy super market,extracted
+SHEET_A,nettoor-panangad,wednesday,8,KAPITHAN,KAPITHAN,nettoor-panangad::kapithan,extracted
+SHEET_A,nettoor-panangad,wednesday,9,KARTHIKA,KARTHIKA,nettoor-panangad::karthika,extracted
+SHEET_A,nettoor-panangad,wednesday,10,KATHERINE,KATHERINE,nettoor-panangad::katherine,extracted
+SHEET_A,nettoor-panangad,wednesday,11,KAVITHA,KAVITHA,nettoor-panangad::kavitha,extracted
+SHEET_A,nettoor-panangad,wednesday,12,M K STORES,M K STORES,nettoor-panangad::m k stores,extracted
+SHEET_A,nettoor-panangad,wednesday,13,MUTTUNKAL,MUTTUNKAL,nettoor-panangad::muttunkal,extracted
+SHEET_A,nettoor-panangad,wednesday,14,N M DISCOUNT,N M DISCOUNT,nettoor-panangad::n m discount,extracted
+SHEET_A,nettoor-panangad,wednesday,15,NASAR,NASAR,nettoor-panangad::nasar,extracted
+SHEET_A,nettoor-panangad,wednesday,16,NATHANIYA,NATHANIYA,nettoor-panangad::nathaniya,extracted
+SHEET_A,nettoor-panangad,wednesday,17,P H MART,P H MART,nettoor-panangad::p h mart,extracted
+SHEET_A,nettoor-panangad,wednesday,18,PANANGAD CO-OP.,PANANGAD CO-OP.,nettoor-panangad::panangad co-op.,extracted
+SHEET_A,nettoor-panangad,wednesday,19,RAVIS,RAVIS,nettoor-panangad::ravis,extracted
+SHEET_A,nettoor-panangad,wednesday,20,ROYAL,ROYAL,nettoor-panangad::royal,extracted
+SHEET_A,nettoor-panangad,wednesday,21,SHOPPE FRESH,SHOPPE FRESH,nettoor-panangad::shoppe fresh,extracted
+SHEET_A,nettoor-panangad,wednesday,22,SIB SADARI,SIB SADARI,nettoor-panangad::sib sadari,extracted
+SHEET_A,nettoor-panangad,wednesday,23,S B S MINI,S B S MINI,nettoor-panangad::s b s mini,extracted
+SHEET_A,nettoor-panangad,wednesday,24,MALABAR,MALABAR,nettoor-panangad::malabar,extracted
+SHEET_A,nettoor-panangad,wednesday,25,KAVYA,KAVYA,nettoor-panangad::kavya,extracted
+SHEET_A,nettoor-panangad,wednesday,26,KINGS,KINGS,nettoor-panangad::kings,extracted
+SHEET_A,nettoor-panangad,wednesday,27,A N,A N,nettoor-panangad::a n,extracted
+SHEET_A,nettoor-panangad,wednesday,28,BAKERS CHOICE,BAKERS CHOICE,nettoor-panangad::bakers choice,extracted
+SHEET_A,nettoor-panangad,wednesday,29,SAMIUITHI,SAMIUITHI,nettoor-panangad::samiuithi,ocr_uncertain
+SHEET_A,nettoor-panangad,wednesday,30,BIG MART,BIG MART,nettoor-panangad::big mart,extracted
+SHEET_A,nettoor-panangad,wednesday,31,SS TRADERS,SS TRADERS,nettoor-panangad::ss traders,extracted
+SHEET_A,nettoor-panangad,wednesday,32,K S TRADING,K S TRADING,nettoor-panangad::k s trading,extracted
+SHEET_A,nettoor-panangad,wednesday,33,R S TRADERS,R S TRADERS,nettoor-panangad::r s traders,extracted
+SHEET_A,nettoor-panangad,wednesday,34,K M K TRADING,K M K TRADING,nettoor-panangad::k m k trading,extracted
+SHEET_A,nettoor-panangad,wednesday,35,ARYAS NETTOOR,ARYAS NETTOOR,nettoor-panangad::aryas nettoor,extracted
+SHEET_A,nettoor-panangad,wednesday,36,IDEAL TRADERS,IDEAL TRADERS,nettoor-panangad::ideal traders,extracted
+SHEET_A,nettoor-panangad,wednesday,37,BISMI NETTOOR,BISMI NETTOOR,nettoor-panangad::bismi nettoor,extracted
+SHEET_A,nettoor-panangad,wednesday,38,SREE VENKITESWARA,SREE VENKITESWARA,nettoor-panangad::sree venkiteswara,extracted
+SHEET_A,nettoor-panangad,wednesday,39,JOSEPH THYKKODAM,JOSEPH THYKKODAM,nettoor-panangad::joseph thykkodam,extracted
+SHEET_A,nettoor-panangad,wednesday,40,METRO MART,METRO MART,nettoor-panangad::metro mart,extracted
+SHEET_A,nettoor-panangad,wednesday,41,MAD OVER,MAD OVER,nettoor-panangad::mad over,extracted
+SHEET_A,nettoor-panangad,wednesday,42,ROSE & TAKE,ROSE & TAKE,nettoor-panangad::rose & take,extracted
+SHEET_A,nettoor-panangad,wednesday,43,NEW GENERAL,NEW GENERAL,nettoor-panangad::new general,extracted
+SHEET_A,nettoor-panangad,wednesday,44,DAILY NEEDS,DAILY NEEDS,nettoor-panangad::daily needs,extracted
+SHEET_A,nettoor-panangad,wednesday,45,PH MART,PH MART,nettoor-panangad::ph mart,extracted
+SHEET_A,nettoor-panangad,wednesday,46,ICE N SPICE,ICE N SPICE,nettoor-panangad::ice n spice,extracted
+SHEET_A,nettoor-panangad,wednesday,47,ANUPAM,ANUPAM,nettoor-panangad::anupam,extracted
+SHEET_A,nettoor-panangad,wednesday,48,NANDHUS,NANDHUS,nettoor-panangad::nandhus,extracted
+SHEET_A,nettoor-panangad,wednesday,49,PR BAKERS,PR BAKERS,nettoor-panangad::pr bakers,extracted
+SHEET_A,nettoor-panangad,wednesday,50,SS BAKERS,SS BAKERS,nettoor-panangad::ss bakers,extracted
+SHEET_A,nettoor-panangad,wednesday,51,NEW IDEAL,NEW IDEAL,nettoor-panangad::new ideal,extracted
+SHEET_A,nettoor-panangad,wednesday,52,AARYAS,AARYAS,nettoor-panangad::aaryas,extracted
+SHEET_A,nettoor-panangad,wednesday,53,GURUKRIVA,GURUKRIVA,nettoor-panangad::gurukriva,extracted
+SHEET_A,nettoor-panangad,wednesday,54,FATHIMA,FATHIMA,nettoor-panangad::fathima,extracted
+SHEET_A,nettoor-panangad,wednesday,55,RMK TRADING,RMK TRADING,nettoor-panangad::rmk trading,extracted
+SHEET_A,nettoor-panangad,wednesday,56,NM DISCOUNT,NM DISCOUNT,nettoor-panangad::nm discount,extracted
+SHEET_A,manjummel-vennala,thursday,1,A M STORE,A M STORE,manjummel-vennala::a m store,extracted
+SHEET_A,manjummel-vennala,thursday,2,ALBA,ALBA,manjummel-vennala::alba,extracted
+SHEET_A,manjummel-vennala,thursday,3,ABADHIYA,ABADHIYA,manjummel-vennala::abadhiya,extracted
+SHEET_A,manjummel-vennala,thursday,4,BALAKRISHNA,BALAKRISHNA,manjummel-vennala::balakrishna,extracted
+SHEET_A,manjummel-vennala,thursday,5,BINEESA TRADERS,BINEESA TRADERS,manjummel-vennala::bineesa traders,extracted
+SHEET_A,manjummel-vennala,thursday,6,BONANZA,BONANZA,manjummel-vennala::bonanza,extracted
+SHEET_A,manjummel-vennala,thursday,7,CHACKO,CHACKO,manjummel-vennala::chacko,extracted
+SHEET_A,manjummel-vennala,thursday,8,CHAKKAPPAN,CHAKKAPPAN,manjummel-vennala::chakkappan,extracted
+SHEET_A,manjummel-vennala,thursday,9,CHITHETH,CHITHETH,manjummel-vennala::chitheth,extracted
+SHEET_A,manjummel-vennala,thursday,10,FAMILY FOOD,FAMILY FOOD,manjummel-vennala::family food,extracted
+SHEET_A,manjummel-vennala,thursday,11,HORIZON,HORIZON,manjummel-vennala::horizon,extracted
+SHEET_A,manjummel-vennala,thursday,12,INDUIT,INDUIT,manjummel-vennala::induit,ocr_uncertain
+SHEET_A,manjummel-vennala,thursday,13,JANATHA,JANATHA,manjummel-vennala::janatha,extracted
+SHEET_A,manjummel-vennala,thursday,14,JOSEPH,JOSEPH,manjummel-vennala::joseph,extracted
+SHEET_A,manjummel-vennala,thursday,15,JOSHI,JOSHI,manjummel-vennala::joshi,extracted
+SHEET_A,manjummel-vennala,thursday,16,JUANS,JUANS,manjummel-vennala::juans,extracted
+SHEET_A,manjummel-vennala,thursday,17,KATTAKATHU,KATTAKATHU,manjummel-vennala::kattakathu,extracted
+SHEET_A,manjummel-vennala,thursday,18,KOONAMAVU,KOONAMAVU,manjummel-vennala::koonamavu,extracted
+SHEET_A,manjummel-vennala,thursday,19,LIGHT HOUSE,LIGHT HOUSE,manjummel-vennala::light house,extracted
+SHEET_A,manjummel-vennala,thursday,20,M FREE MANJUMEL,M FREE MANJUMEL,manjummel-vennala::m free manjumel,extracted
+SHEET_A,manjummel-vennala,thursday,21,MURUGAN,MURUGAN,manjummel-vennala::murugan,extracted
+SHEET_A,manjummel-vennala,thursday,22,NEST BAKERS,NEST BAKERS,manjummel-vennala::nest bakers,extracted
+SHEET_A,manjummel-vennala,thursday,23,NOVEL TRADING,NOVEL TRADING,manjummel-vennala::novel trading,extracted
+SHEET_A,manjummel-vennala,thursday,24,OKAY MART,OKAY MART,manjummel-vennala::okay mart,extracted
+SHEET_A,manjummel-vennala,thursday,25,PANATTIR,PANATTIR,manjummel-vennala::panattir,extracted
+SHEET_A,manjummel-vennala,thursday,26,REGAL,REGAL,manjummel-vennala::regal,extracted
+SHEET_A,manjummel-vennala,thursday,27,SAMPOORNA,SAMPOORNA,manjummel-vennala::sampoorna,extracted
+SHEET_A,manjummel-vennala,thursday,28,SASI PONNURUNNI,SASI PONNURUNNI,manjummel-vennala::sasi ponnurunni,extracted
+SHEET_A,manjummel-vennala,thursday,29,SHANKAR,SHANKAR,manjummel-vennala::shankar,extracted
+SHEET_A,manjummel-vennala,thursday,30,SREE DURGA,SREE DURGA,manjummel-vennala::sree durga,extracted
+SHEET_A,manjummel-vennala,thursday,31,SWEET LAND,SWEET LAND,manjummel-vennala::sweet land,extracted
+SHEET_A,manjummel-vennala,thursday,32,TANISH,TANISH,manjummel-vennala::tanish,extracted
+SHEET_A,manjummel-vennala,thursday,33,Vargheese,Vargheese,manjummel-vennala::vargheese,extracted
+SHEET_A,manjummel-vennala,thursday,34,WE MART,WE MART,manjummel-vennala::we mart,extracted
+SHEET_A,manjummel-vennala,thursday,35,WELCOME,WELCOME,manjummel-vennala::welcome,extracted
+SHEET_A,manjummel-vennala,thursday,36,SAS BAKERY,SAS BAKERY,manjummel-vennala::sas bakery,extracted
+SHEET_A,manjummel-vennala,thursday,37,MISBAH,MISBAH,manjummel-vennala::misbah,extracted
+SHEET_A,manjummel-vennala,thursday,38,KSM TRADING,KSM TRADING,manjummel-vennala::ksm trading,extracted
+SHEET_A,karukappally,friday,1,Joseph,Joseph,karukappally::joseph,extracted
+SHEET_A,karukappally,friday,2,V K S,V K S,karukappally::v k s,extracted
+SHEET_A,karukappally,friday,3,S M Traders,S M Traders,karukappally::s m traders,extracted
+SHEET_A,karukappally,friday,4,Sajitha,Sajitha,karukappally::sajitha,extracted
+SHEET_A,karukappally,friday,5,Alba,Alba,karukappally::alba,extracted
+SHEET_A,karukappally,friday,6,Grand Fresh,Grand Fresh,karukappally::grand fresh,extracted
+SHEET_A,karukappally,friday,7,P M A,P M A,karukappally::p m a,extracted
+SHEET_A,karukappally,friday,8,Prajapathi,Prajapathi,karukappally::prajapathi,extracted
+SHEET_A,karukappally,friday,9,Real Fresh,Real Fresh,karukappally::real fresh,extracted
+SHEET_A,karukappally,friday,10,Green Mart,Green Mart,karukappally::green mart,extracted
+SHEET_A,karukappally,friday,11,Nazar,Nazar,karukappally::nazar,extracted
+SHEET_A,karukappally,friday,12,Safa Bakery,Safa Bakery,karukappally::safa bakery,extracted
+SHEET_A,karukappally,friday,13,Family Fresh,Family Fresh,karukappally::family fresh,extracted
+SHEET_A,karukappally,friday,14,Rashid Traders,Rashid Traders,karukappally::rashid traders,extracted
+SHEET_A,karukappally,friday,15,B R Stores,B R Stores,karukappally::b r stores,extracted
+SHEET_A,karukappally,friday,16,Deepa,Deepa,karukappally::deepa,extracted
+SHEET_A,karukappally,friday,17,Ajay Stores,Ajay Stores,karukappally::ajay stores,extracted
+SHEET_A,karukappally,friday,18,Allepally Co-Op,Allepally Co-Op,karukappally::allepally co-op,extracted
+SHEET_A,karukappally,friday,19,Margin Free,Margin Free,karukappally::margin free,extracted
+SHEET_A,karukappally,friday,20,Venkedeeswara,Venkedeeswara,karukappally::venkedeeswara,extracted
+SHEET_A,karukappally,friday,21,Krishnan,Krishnan,karukappally::krishnan,extracted
+SHEET_A,karukappally,friday,22,Best Bakery,Best Bakery,karukappally::best bakery,extracted
+SHEET_A,karukappally,friday,23,Sunrise,Sunrise,karukappally::sunrise,extracted
+SHEET_A,karukappally,friday,24,Reshma,Reshma,karukappally::reshma,extracted
+SHEET_A,karukappally,friday,25,P A K,P A K,karukappally::p a k,extracted
+SHEET_A,karukappally,friday,26,Sree Narayana,Sree Narayana,karukappally::sree narayana,extracted
+SHEET_A,karukappally,friday,27,Prabhakaran,Prabhakaran,karukappally::prabhakaran,extracted
+SHEET_A,karukappally,friday,28,Parrys,Parrys,karukappally::parrys,extracted
+SHEET_A,karukappally,friday,29,Souhradam,Souhradam,karukappally::souhradam,extracted
+SHEET_A,karukappally,friday,30,Nent,Nent,karukappally::nent,extracted
+SHEET_A,karukappally,friday,31,Jaini,Jaini,karukappally::jaini,extracted
+SHEET_A,karukappally,friday,32,Nasirar,Nasirar,karukappally::nasirar,extracted
+SHEET_A,karukappally,friday,33,Prabhanjan,Prabhanjan,karukappally::prabhanjan,extracted
+SHEET_A,karukappally,friday,34,Ameena,Ameena,karukappally::ameena,extracted
+SHEET_A,karukappally,friday,35,Karna,Karna,karukappally::karna,extracted
+SHEET_A,karukappally,friday,36,Sasi,Sasi,karukappally::sasi,extracted
+SHEET_A,karukappally,friday,37,Fresh Mart,Fresh Mart,karukappally::fresh mart,extracted
+SHEET_A,karukappally,friday,38,Best Bakery MANJALA,Best Bakery MANJALA,karukappally::best bakery manjala,extracted
+SHEET_A,karukappally,friday,39,Raman,Raman,karukappally::raman,extracted
+SHEET_A,karukappally,friday,40,Pallippuril,Pallippuril,karukappally::pallippuril,extracted
+SHEET_A,karukappally,friday,41,Green Leaf,Green Leaf,karukappally::green leaf,extracted
+SHEET_A,karukappally,friday,42,ASIA'S,ASIA'S,karukappally::asia's,extracted
+SHEET_A,karukappally,friday,43,LENIN,LENIN,karukappally::lenin,extracted
+SHEET_A,karukappally,friday,44,CHILLS,CHILLS,karukappally::chills,extracted
+SHEET_A,karukappally,friday,45,CHAMKALAKAL,CHAMKALAKAL,karukappally::chamkalakal,extracted
+SHEET_A,karukappally,friday,46,ASH S M,ASH S M,karukappally::ash s m,extracted
+SHEET_A,karukappally,friday,47,SURESH,SURESH,karukappally::suresh,extracted
+SHEET_A,karukappally,friday,48,SHANMUGAM,SHANMUGAM,karukappally::shanmugam,extracted
+SHEET_A,karukappally,friday,49,SUBIKSHAM,SUBIKSHAM,karukappally::subiksham,extracted
+SHEET_A,karukappally,friday,50,B B ENTPS,B B ENTPS,karukappally::b b entps,extracted
+SHEET_A,karukappally,friday,51,ROYAL,ROYAL,karukappally::royal,extracted
+SHEET_A,karukappally,friday,52,COOL POINT,COOL POINT,karukappally::cool point,extracted
+SHEET_A,thripunithura,saturday,1,AJIWA,AJIWA,thripunithura::ajiwa,extracted
+SHEET_A,thripunithura,saturday,2,PRIME,PRIME,thripunithura::prime,extracted
+SHEET_A,thripunithura,saturday,3,MAS,MAS,thripunithura::mas,extracted
+SHEET_A,thripunithura,saturday,4,SREE SHIVA,SREE SHIVA,thripunithura::sree shiva,extracted
+SHEET_A,thripunithura,saturday,5,AJ STORES,AJ STORES,thripunithura::aj stores,extracted
+SHEET_A,thripunithura,saturday,6,MF SREEKRISHNA,MF SREEKRISHNA,thripunithura::mf sreekrishna,extracted
+SHEET_A,thripunithura,saturday,7,MF STATUE,MF STATUE,thripunithura::mf statue,extracted
+SHEET_A,thripunithura,saturday,8,HIS HIGHNESS,HIS HIGHNESS,thripunithura::his highness,extracted
+SHEET_A,thripunithura,saturday,9,VARIETY,VARIETY,thripunithura::variety,extracted
+SHEET_A,thripunithura,saturday,10,We Mart-Chottanikkara,We Mart-Chottanikkara,thripunithura::we mart-chottanikkara,extracted
+SHEET_A,thripunithura,saturday,11,Hishighns-Thamrkulingra,Hishighns-Thamrkulingra,thripunithura::hishighns-thamrkulingra,ocr_uncertain
+SHEET_A,thripunithura,saturday,12,BPCL,BPCL,thripunithura::bpcl,extracted
+SHEET_A,thripunithura,saturday,13,S S Combines,S S Combines,thripunithura::s s combines,extracted
+SHEET_A,thripunithura,saturday,14,ARYAVELI,ARYAVELI,thripunithura::aryaveli,extracted
+SHEET_A,thripunithura,saturday,15,Select Supermrkt,Select Supermrkt,thripunithura::select supermrkt,extracted
+SHEET_A,thripunithura,saturday,16,DARSHANA,DARSHANA,thripunithura::darshana,extracted
+SHEET_A,thripunithura,saturday,17,PALATHINKAL,PALATHINKAL,thripunithura::palathinkal,extracted
+SHEET_A,thripunithura,saturday,18,WE MART-Thrpunthra,WE MART-Thrpunthra,thripunithura::we mart-thrpunthra,extracted
+SHEET_A,thripunithura,saturday,19,HIS HIGHNESS STORES,HIS HIGHNESS STORES,thripunithura::his highness stores,extracted
+SHEET_A,thripunithura,saturday,20,MOUNTAIN FRESH,MOUNTAIN FRESH,thripunithura::mountain fresh,extracted
+SHEET_A,thripunithura,saturday,21,COLLECTION,COLLECTION,thripunithura::collection,extracted
+SHEET_A,thripunithura,saturday,22,We Mart Express,We Mart Express,thripunithura::we mart express,extracted
+SHEET_A,thripunithura,saturday,23,AISWARYA SUPER BAZAR,AISWARYA SUPER BAZAR,thripunithura::aiswarya super bazar,extracted
+SHEET_A,thripunithura,saturday,24,AADI FAMILY STORE,AADI FAMILY STORE,thripunithura::aadi family store,extracted
+SHEET_A,thripunithura,saturday,25,ERNAKULAM TRADERS,ERNAKULAM TRADERS,thripunithura::ernakulam traders,extracted
+SHEET_A,thripunithura,saturday,26,RAJAN TRADERS,RAJAN TRADERS,thripunithura::rajan traders,extracted
+SHEET_A,thripunithura,saturday,27,CGN SUPER BAZAR,CGN SUPER BAZAR,thripunithura::cgn super bazar,extracted
+SHEET_A,thripunithura,saturday,28,BABY STORE,BABY STORE,thripunithura::baby store,extracted
+SHEET_A,thripunithura,saturday,29,CARE GREEN,CARE GREEN,thripunithura::care green,extracted
+SHEET_A,thripunithura,saturday,30,PERUMTHITTAYIL,PERUMTHITTAYIL,thripunithura::perumthittayil,extracted
+SHEET_A,thripunithura,saturday,31,KMA & COM.,KMA & COM.,thripunithura::kma & com.,extracted
+SHEET_A,thripunithura,saturday,32,NKR OIL MILLS,NKR OIL MILLS,thripunithura::nkr oil mills,extracted
+SHEET_A,thripunithura,saturday,33,K MART,K MART,thripunithura::k mart,extracted
+SHEET_A,thripunithura,saturday,34,KALABHAM,KALABHAM,thripunithura::kalabham,extracted
+SHEET_A,thripunithura,saturday,35,SREE KRISHNA ENTERPRISES,SREE KRISHNA ENTERPRISES,thripunithura::sree krishna enterprises,extracted
+SHEET_A,thripunithura,saturday,36,MANNA,MANNA,thripunithura::manna,extracted
+SHEET_A,thripunithura,saturday,37,MAS AGENCIES,MAS AGENCIES,thripunithura::mas agencies,extracted
+SHEET_A,thripunithura,saturday,38,AJ STORES,AJ STORES,thripunithura::aj stores,duplicate_in_source
+SHEET_A,thripunithura,saturday,39,JJ STORES,JJ STORES,thripunithura::jj stores,extracted
+SHEET_A,thripunithura,saturday,40,AMBAT,AMBAT,thripunithura::ambat,extracted
+SHEET_A,thripunithura,saturday,41,JOHN,JOHN,thripunithura::john,extracted
+SHEET_A,thripunithura,saturday,42,HALO RESIDENCY,HALO RESIDENCY,thripunithura::halo residency,extracted
+SHEET_B,palarivattom,monday,1,YT STORES,YT STORES,palarivattom::yt stores,extracted
+SHEET_B,palarivattom,monday,2,ST. ANTONY,ST. ANTONY,palarivattom::st. antony,extracted
+SHEET_B,palarivattom,monday,3,HARI TN,HARI TN,palarivattom::hari tn,extracted
+SHEET_B,palarivattom,monday,4,IPV,IPV,palarivattom::ipv,extracted
+SHEET_B,palarivattom,monday,5,BLUE STAR,BLUE STAR,palarivattom::blue star,extracted
+SHEET_B,palarivattom,monday,6,BEST BAKERY,BEST BAKERY,palarivattom::best bakery,extracted
+SHEET_B,palarivattom,monday,7,ARM,ARM,palarivattom::arm,extracted
+SHEET_B,palarivattom,monday,8,ANAND,ANAND,palarivattom::anand,extracted
+SHEET_B,palarivattom,monday,9,GANESH,GANESH,palarivattom::ganesh,extracted
+SHEET_B,palarivattom,monday,10,SIDDIQE,SIDDIQE,palarivattom::siddiqe,extracted
+SHEET_B,palarivattom,monday,11,HIGH RANGE,HIGH RANGE,palarivattom::high range,extracted
+SHEET_B,palarivattom,monday,12,N S RAMANI,N S RAMANI,palarivattom::n s ramani,extracted
+SHEET_B,palarivattom,monday,13,SHILIN,SHILIN,palarivattom::shilin,extracted
+SHEET_B,palarivattom,monday,14,KEYES SYNDICATE,KEYES SYNDICATE,palarivattom::keyes syndicate,extracted
+SHEET_B,palarivattom,monday,15,ANEESH,ANEESH,palarivattom::aneesh,extracted
+SHEET_B,palarivattom,monday,16,KAIRAALI,KAIRAALI,palarivattom::kairaali,extracted
+SHEET_B,palarivattom,monday,17,APPS,APPS,palarivattom::apps,extracted
+SHEET_B,palarivattom,monday,18,MR STORES,MR STORES,palarivattom::mr stores,extracted
+SHEET_B,palarivattom,monday,19,CAKE HUT,CAKE HUT,palarivattom::cake hut,extracted
+SHEET_B,palarivattom,monday,20,WE MART,WE MART,palarivattom::we mart,extracted
+SHEET_B,palarivattom,monday,21,CHAKKUNGAL RICE,CHAKKUNGAL RICE,palarivattom::chakkungal rice,extracted
+SHEET_B,palarivattom,monday,22,CHAKKUNGAL STORES,CHAKKUNGAL STORES,palarivattom::chakkungal stores,extracted
+SHEET_B,palarivattom,monday,23,SHAJI,SHAJI,palarivattom::shaji,extracted
+SHEET_B,palarivattom,monday,24,ORANGE,ORANGE,palarivattom::orange,extracted
+SHEET_B,palarivattom,monday,25,KRISHNA SUPER MARKET,KRISHNA SUPER MARKET,palarivattom::krishna super market,extracted
+SHEET_B,palarivattom,monday,26,PETER,PETER,palarivattom::peter,extracted
+SHEET_B,palarivattom,monday,27,JAYA,JAYA,palarivattom::jaya,extracted
+SHEET_B,palarivattom,monday,28,ST MARYS RICE BAZAR,ST MARYS RICE BAZAR,palarivattom::st marys rice bazar,extracted
+SHEET_B,palarivattom,monday,29,BISHNU RAGHAVAN,BISHNU RAGHAVAN,palarivattom::bishnu raghavan,ocr_uncertain
+SHEET_B,palarivattom,monday,30,SABARII,SABARII,palarivattom::sabarii,extracted
+SHEET_B,palarivattom,monday,31,WE MART,WE MART,palarivattom::we mart,duplicate_in_source
+SHEET_B,palarivattom,monday,32,KEERTY,KEERTY,palarivattom::keerty,extracted
+SHEET_B,palarivattom,monday,33,JAYA BAKERY,JAYA BAKERY,palarivattom::jaya bakery,extracted
+SHEET_B,palarivattom,monday,34,lemon & grain,lemon & grain,palarivattom::lemon & grain,extracted
+SHEET_B,palarivattom,monday,35,kaili,kaili,palarivattom::kaili,extracted
+SHEET_B,palarivattom,monday,36,AMAZE,AMAZE,palarivattom::amaze,extracted
+SHEET_B,palarivattom,monday,37,SIDDIQE,SIDDIQE,palarivattom::siddiqe,duplicate_in_source
+SHEET_B,palarivattom,monday,38,HOME MATES,HOME MATES,palarivattom::home mates,extracted
+SHEET_B,palarivattom,monday,39,BISMI CATERING,BISMI CATERING,palarivattom::bismi catering,extracted
+SHEET_B,palarivattom,monday,40,KBM,KBM,palarivattom::kbm,extracted
+SHEET_B,palarivattom,monday,41,ROYAL SUPER MKT,ROYAL SUPER MKT,palarivattom::royal super mkt,extracted
+SHEET_B,palarivattom,monday,42,LEMON & GARIN,LEMON & GARIN,palarivattom::lemon & garin,extracted
+SHEET_B,palarivattom,monday,43,NETTO STORES,NETTO STORES,palarivattom::netto stores,extracted
+SHEET_B,palarivattom,monday,44,TYM FRESH,TYM FRESH,palarivattom::tym fresh,extracted
+SHEET_B,palarivattom,monday,45,BRANDS WORTH,BRANDS WORTH,palarivattom::brands worth,extracted
+SHEET_B,palarivattom,monday,46,MILKOUS STORES,MILKOUS STORES,palarivattom::milkous stores,extracted
+SHEET_B,palarivattom,monday,47,OUR NEEDS,OUR NEEDS,palarivattom::our needs,extracted
+SHEET_B,palarivattom,monday,48,T MART,T MART,palarivattom::t mart,extracted
+SHEET_B,palarivattom,monday,49,MINI STORES,MINI STORES,palarivattom::mini stores,extracted
+SHEET_B,palarivattom,monday,50,PVR STORES,PVR STORES,palarivattom::pvr stores,extracted
+SHEET_B,palarivattom,monday,51,PRAKAD STORES,PRAKAD STORES,palarivattom::prakad stores,extracted
+SHEET_B,palarivattom,monday,52,PREMIER COMBINES,PREMIER COMBINES,palarivattom::premier combines,extracted
+SHEET_B,palarivattom,monday,53,ORANGE,ORANGE,palarivattom::orange,duplicate_in_source
+SHEET_B,palarivattom,monday,54,SINDHA,SINDHA,palarivattom::sindha,extracted
+SHEET_B,palarivattom,monday,55,ADAMS,ADAMS,palarivattom::adams,extracted
+SHEET_B,palarivattom,monday,56,BEST BKKY STADIUM,BEST BKKY STADIUM,palarivattom::best bkky stadium,ocr_uncertain
+SHEET_B,kadavanthra,tuesday,1,ASBI,ASBI,kadavanthra::asbi,ocr_uncertain
+SHEET_B,kadavanthra,tuesday,2,C K S,C K S,kadavanthra::c k s,extracted
+SHEET_B,kadavanthra,tuesday,3,Kairali,Kairali,kadavanthra::kairali,extracted
+SHEET_B,kadavanthra,tuesday,4,Chithra Cool bar,Chithra Cool bar,kadavanthra::chithra cool bar,extracted
+SHEET_B,kadavanthra,tuesday,5,Source,Source,kadavanthra::source,extracted
+SHEET_B,kadavanthra,tuesday,6,Sunrise P.Hagar,Sunrise P.Hagar,kadavanthra::sunrise p.hagar,ocr_uncertain
+SHEET_B,kadavanthra,tuesday,7,New Venche,New Venche,kadavanthra::new venche,extracted
+SHEET_B,kadavanthra,tuesday,8,Jose,Jose,kadavanthra::jose,extracted
+SHEET_B,kadavanthra,tuesday,9,Mathai,Mathai,kadavanthra::mathai,extracted
+SHEET_B,kadavanthra,tuesday,10,Ram Jam,Ram Jam,kadavanthra::ram jam,extracted
+SHEET_B,kadavanthra,tuesday,11,Bismi,Bismi,kadavanthra::bismi,extracted
+SHEET_B,kadavanthra,tuesday,12,A R Store Kodavanthra,A R Store Kodavanthra,kadavanthra::a r store kodavanthra,extracted
+SHEET_B,kadavanthra,tuesday,13,Thara,Thara,kadavanthra::thara,extracted
+SHEET_B,kadavanthra,tuesday,14,Anisham,Anisham,kadavanthra::anisham,extracted
+SHEET_B,kadavanthra,tuesday,15,Roy & Sons,Roy & Sons,kadavanthra::roy & sons,extracted
+SHEET_B,kadavanthra,tuesday,16,Jo Joseph,Jo Joseph,kadavanthra::jo joseph,extracted
+SHEET_B,kadavanthra,tuesday,17,M S,M S,kadavanthra::m s,extracted
+SHEET_B,kadavanthra,tuesday,18,Vincent,Vincent,kadavanthra::vincent,extracted
+SHEET_B,kadavanthra,tuesday,19,Raghavan,Raghavan,kadavanthra::raghavan,extracted
+SHEET_B,kadavanthra,tuesday,20,Pranod,Pranod,kadavanthra::pranod,extracted
+SHEET_B,kadavanthra,tuesday,21,Sunrise-Kadavantha,Sunrise-Kadavantha,kadavanthra::sunrise-kadavantha,extracted
+SHEET_B,kadavanthra,tuesday,22,Sadanandan,Sadanandan,kadavanthra::sadanandan,extracted
+SHEET_B,kadavanthra,tuesday,23,Maruthy,Maruthy,kadavanthra::maruthy,extracted
+SHEET_B,kadavanthra,tuesday,24,S P P,S P P,kadavanthra::s p p,extracted
+SHEET_B,kadavanthra,tuesday,25,Simon Bakery,Simon Bakery,kadavanthra::simon bakery,extracted
+SHEET_B,kadavanthra,tuesday,26,C K Provision,C K Provision,kadavanthra::c k provision,extracted
+SHEET_B,kadavanthra,tuesday,27,SRECCS,SRECCS,kadavanthra::sreccs,extracted
+SHEET_B,kadavanthra,tuesday,28,Sree,Sree,kadavanthra::sree,extracted
+SHEET_B,kadavanthra,tuesday,29,Iffas,Iffas,kadavanthra::iffas,extracted
+SHEET_B,kadavanthra,tuesday,30,Senthosh,Senthosh,kadavanthra::senthosh,extracted
+SHEET_B,kadavanthra,tuesday,31,Ram deli,Ram deli,kadavanthra::ram deli,extracted
+SHEET_B,kadavanthra,tuesday,32,Anjaparambil,Anjaparambil,kadavanthra::anjaparambil,extracted
+SHEET_B,kadavanthra,tuesday,33,FATHIMA,FATHIMA,kadavanthra::fathima,extracted
+SHEET_B,kadavanthra,tuesday,34,PADM SREEN,PADM SREEN,kadavanthra::padm sreen,extracted
+SHEET_B,kadavanthra,tuesday,35,MATHA,MATHA,kadavanthra::matha,extracted
+SHEET_B,kadavanthra,tuesday,36,SHOP N SAVE,SHOP N SAVE,kadavanthra::shop n save,extracted
+SHEET_B,kadavanthra,tuesday,37,NITILESH,NITILESH,kadavanthra::nitilesh,extracted
+SHEET_B,kadavanthra,tuesday,38,WILL MART,WILL MART,kadavanthra::will mart,extracted
+SHEET_B,kadavanthra,tuesday,39,SC MINI,SC MINI,kadavanthra::sc mini,extracted
+SHEET_B,kadavanthra,tuesday,40,PEARL SUPER,PEARL SUPER,kadavanthra::pearl super,extracted
+SHEET_B,kaloor,wednesday,1,R C B Supermarket,R C B Supermarket,kaloor::r c b supermarket,extracted
+SHEET_B,kaloor,wednesday,2,Well Mart-R C Road,Well Mart-R C Road,kaloor::well mart-r c road,extracted
+SHEET_B,kaloor,wednesday,3,Thiruthwoda,Thiruthwoda,kaloor::thiruthwoda,extracted
+SHEET_B,kaloor,wednesday,4,Aziz Munaf,Aziz Munaf,kaloor::aziz munaf,extracted
+SHEET_B,kaloor,wednesday,5,Green Leaf,Green Leaf,kaloor::green leaf,extracted
+SHEET_B,kaloor,wednesday,6,Sana SFM,Sana SFM,kaloor::sana sfm,extracted
+SHEET_B,kaloor,wednesday,7,Foodbasket,Foodbasket,kaloor::foodbasket,extracted
+SHEET_B,kaloor,wednesday,8,Grand Shape,Grand Shape,kaloor::grand shape,extracted
+SHEET_B,kaloor,wednesday,9,Padma,Padma,kaloor::padma,extracted
+SHEET_B,kaloor,wednesday,10,Mithra,Mithra,kaloor::mithra,extracted
+SHEET_B,kaloor,wednesday,11,Margin Free SFM,Margin Free SFM,kaloor::margin free sfm,extracted
+SHEET_B,kaloor,wednesday,12,Aiswarya snjnmums,Aiswarya snjnmums,kaloor::aiswarya snjnmums,ocr_uncertain
+SHEET_B,kaloor,wednesday,13,Menon,Menon,kaloor::menon,extracted
+SHEET_B,kaloor,wednesday,14,D 2,D 2,kaloor::d 2,extracted
+SHEET_B,kaloor,wednesday,15,E A Stores,E A Stores,kaloor::e a stores,extracted
+SHEET_B,kaloor,wednesday,16,Best Bakery,Best Bakery,kaloor::best bakery,extracted
+SHEET_B,kaloor,wednesday,17,Star,Star,kaloor::star,extracted
+SHEET_B,kaloor,wednesday,18,Vienna Bakery,Vienna Bakery,kaloor::vienna bakery,extracted
+SHEET_B,kaloor,wednesday,19,Well Mart-Ashoka Rd,Well Mart-Ashoka Rd,kaloor::well mart-ashoka rd,extracted
+SHEET_B,kaloor,wednesday,20,Shankar,Shankar,kaloor::shankar,extracted
+SHEET_B,kaloor,wednesday,21,Super bakery,Super bakery,kaloor::super bakery,extracted
+SHEET_B,kaloor,wednesday,22,C K C Stores,C K C Stores,kaloor::c k c stores,extracted
+SHEET_B,kaloor,wednesday,23,New Stores,New Stores,kaloor::new stores,extracted
+SHEET_B,kaloor,wednesday,24,Sarithas,Sarithas,kaloor::sarithas,extracted
+SHEET_B,kaloor,wednesday,25,V D S,V D S,kaloor::v d s,extracted
+SHEET_B,kaloor,wednesday,26,Ajwriya Azad,Ajwriya Azad,kaloor::ajwriya azad,ocr_uncertain
+SHEET_B,kaloor,wednesday,27,Jothi,Jothi,kaloor::jothi,extracted
+SHEET_B,kaloor,wednesday,28,CLASSIC SUPER MARKET,CLASSIC SUPER MARKET,kaloor::classic super market,extracted
+SHEET_B,kaloor,wednesday,29,Anvarma STORES,Anvarma STORES,kaloor::anvarma stores,extracted
+SHEET_B,kaloor,wednesday,30,Pichee,Pichee,kaloor::pichee,extracted
+SHEET_B,kaloor,wednesday,31,RADHA STORES,RADHA STORES,kaloor::radha stores,extracted
+SHEET_B,kaloor,wednesday,32,SHINI RAGAM,SHINI RAGAM,kaloor::shini ragam,extracted
+SHEET_B,kaloor,wednesday,33,SARATH,SARATH,kaloor::sarath,extracted
+SHEET_B,kaloor,wednesday,34,LOVES MINI MART,LOVES MINI MART,kaloor::loves mini mart,extracted
+SHEET_B,kaloor,wednesday,35,ST MARYS RICE BASAR,ST MARYS RICE BASAR,kaloor::st marys rice basar,extracted
+SHEET_B,kaloor,wednesday,36,VIMALA HOME STAY,VIMALA HOME STAY,kaloor::vimala home stay,extracted
+SHEET_B,kaloor,wednesday,37,A MINI MART,A MINI MART,kaloor::a mini mart,extracted
+SHEET_B,kaloor,wednesday,38,FEATHER SOFT,FEATHER SOFT,kaloor::feather soft,extracted
+SHEET_B,kaloor,wednesday,39,AISWARYA SFM,AISWARYA SFM,kaloor::aiswarya sfm,extracted
+SHEET_B,kaloor,wednesday,40,GREEN LEAF SFM,GREEN LEAF SFM,kaloor::green leaf sfm,extracted
+SHEET_B,kaloor,wednesday,41,RACHES,RACHES,kaloor::raches,extracted
+SHEET_B,kaloor,wednesday,42,SHANKAR,SHANKAR,kaloor::shankar,duplicate_in_source
+SHEET_B,kaloor,wednesday,43,KRISHNA SPI MKT,KRISHNA SPI MKT,kaloor::krishna spi mkt,extracted
+SHEET_B,kaloor,wednesday,44,ST MARTIN,ST MARTIN,kaloor::st martin,extracted
+SHEET_B,kaloor,wednesday,45,FRESH MART,FRESH MART,kaloor::fresh mart,extracted
+SHEET_B,kaloor,wednesday,46,AKP STORES,AKP STORES,kaloor::akp stores,extracted
+SHEET_B,kaloor,wednesday,47,DAILY NEEDS,DAILY NEEDS,kaloor::daily needs,extracted
+SHEET_B,kaloor,wednesday,48,MALEEKAL BAKERY,MALEEKAL BAKERY,kaloor::maleekal bakery,extracted
+SHEET_B,kaloor,wednesday,49,G P TRADERS,G P TRADERS,kaloor::g p traders,extracted
+SHEET_B,kalamassery,thursday,1,Best Bakery TOLE,Best Bakery TOLE,kalamassery::best bakery tole,ocr_uncertain
+SHEET_B,kalamassery,thursday,2,Shoppers Shape,Shoppers Shape,kalamassery::shoppers shape,extracted
+SHEET_B,kalamassery,thursday,3,M B Stores,M B Stores,kalamassery::m b stores,extracted
+SHEET_B,kalamassery,thursday,4,Mathu,Mathu,kalamassery::mathu,extracted
+SHEET_B,kalamassery,thursday,5,Malabar,Malabar,kalamassery::malabar,extracted
+SHEET_B,kalamassery,thursday,6,Muhammed Son's,Muhammed Son's,kalamassery::muhammed son's,extracted
+SHEET_B,kalamassery,thursday,7,Kudyirikkal,Kudyirikkal,kalamassery::kudyirikkal,extracted
+SHEET_B,kalamassery,thursday,8,Preshitha,Preshitha,kalamassery::preshitha,extracted
+SHEET_B,kalamassery,thursday,9,Sunrise,Sunrise,kalamassery::sunrise,extracted
+SHEET_B,kalamassery,thursday,10,Ponnamcheril,Ponnamcheril,kalamassery::ponnamcheril,extracted
+SHEET_B,kalamassery,thursday,11,M P EXTPO,M P EXTPO,kalamassery::m p extpo,ocr_uncertain
+SHEET_B,kalamassery,thursday,12,Moneuls CUSAT,Moneuls CUSAT,kalamassery::moneuls cusat,extracted
+SHEET_B,kalamassery,thursday,13,Muhammed,Muhammed,kalamassery::muhammed,extracted
+SHEET_B,kalamassery,thursday,14,Ali's Supermarket,Ali's Supermarket,kalamassery::ali's supermarket,extracted
+SHEET_B,kalamassery,thursday,15,Aryas,Aryas,kalamassery::aryas,extracted
+SHEET_B,kalamassery,thursday,16,Ravi,Ravi,kalamassery::ravi,extracted
+SHEET_B,kalamassery,thursday,17,Margin Free CUSAT,Margin Free CUSAT,kalamassery::margin free cusat,extracted
+SHEET_B,kalamassery,thursday,18,B Mare,B Mare,kalamassery::b mare,extracted
+SHEET_B,kalamassery,thursday,19,K M Supermarket,K M Supermarket,kalamassery::k m supermarket,extracted
+SHEET_B,kalamassery,thursday,20,Seven brothers,Seven brothers,kalamassery::seven brothers,extracted
+SHEET_B,kalamassery,thursday,21,Grand Fresh ALUVA,Grand Fresh ALUVA,kalamassery::grand fresh aluva,extracted
+SHEET_B,kalamassery,thursday,22,Brothers Bakery,Brothers Bakery,kalamassery::brothers bakery,extracted
+SHEET_B,kalamassery,thursday,23,Best Bakery ASHOKAPURAM,Best Bakery ASHOKAPURAM,kalamassery::best bakery ashokapuram,extracted
+SHEET_B,kalamassery,thursday,24,Peelay Hyper,Peelay Hyper,kalamassery::peelay hyper,extracted
+SHEET_B,kalamassery,thursday,25,Mannali,Mannali,kalamassery::mannali,extracted
+SHEET_B,kalamassery,thursday,26,MANNAH MART,MANNAH MART,kalamassery::mannah mart,extracted
+SHEET_B,kalamassery,thursday,27,SNIP N BAKE,SNIP N BAKE,kalamassery::snip n bake,extracted
+SHEET_B,kalamassery,thursday,28,NEW CHEF,NEW CHEF,kalamassery::new chef,extracted
+SHEET_B,kalamassery,thursday,29,ALLUZ,ALLUZ,kalamassery::alluz,extracted
+SHEET_B,kalamassery,thursday,30,BHARATH,BHARATH,kalamassery::bharath,extracted
+SHEET_B,kkd-1,friday,1,KHY,KHY,kkd-1::khy,extracted
+SHEET_B,kkd-1,friday,2,Coppes Bakery,Coppes Bakery,kkd-1::coppes bakery,extracted
+SHEET_B,kkd-1,friday,3,CENTRAL BAZAAR ATHANI,CENTRAL BAZAAR ATHANI,kkd-1::central bazaar athani,extracted
+SHEET_B,kkd-1,friday,4,Dolly Angandi,Dolly Angandi,kkd-1::dolly angandi,extracted
+SHEET_B,kkd-1,friday,5,Occasion,Occasion,kkd-1::occasion,extracted
+SHEET_B,kkd-1,friday,6,New Rana,New Rana,kkd-1::new rana,extracted
+SHEET_B,kkd-1,friday,7,Fresh N More,Fresh N More,kkd-1::fresh n more,extracted
+SHEET_B,kkd-1,friday,8,Sunrise,Sunrise,kkd-1::sunrise,extracted
+SHEET_B,kkd-1,friday,9,C M Mall,C M Mall,kkd-1::c m mall,extracted
+SHEET_B,kkd-1,friday,10,Cayeem Supermarket,Cayeem Supermarket,kkd-1::cayeem supermarket,extracted
+SHEET_B,kkd-1,friday,11,We Mart,We Mart,kkd-1::we mart,extracted
+SHEET_B,kkd-1,friday,12,Beevos,Beevos,kkd-1::beevos,extracted
+SHEET_B,kkd-1,friday,13,Big Basket,Big Basket,kkd-1::big basket,extracted
+SHEET_B,kkd-1,friday,14,RSP,RSP,kkd-1::rsp,extracted
+SHEET_B,kkd-1,friday,15,Bism I k kakkand,Bism I k kakkand,kkd-1::bism i k kakkand,ocr_uncertain
+SHEET_B,kkd-1,friday,16,Ajyar,Ajyar,kkd-1::ajyar,extracted
+SHEET_B,kkd-1,friday,17,Operail,Operail,kkd-1::operail,ocr_uncertain
+SHEET_B,kkd-1,friday,18,Pufa Creamery,Pufa Creamery,kkd-1::pufa creamery,extracted
+SHEET_B,kkd-1,friday,19,CENTRAL BAZAAR CHITTETH,CENTRAL BAZAAR CHITTETH,kkd-1::central bazaar chitteth,extracted
+SHEET_B,kkd-1,friday,20,Ain Grocery,Ain Grocery,kkd-1::ain grocery,extracted
+SHEET_B,kkd-1,friday,21,J J Enterprises,J J Enterprises,kkd-1::j j enterprises,extracted
+SHEET_B,kkd-1,friday,22,Bithobin Co-Op,Bithobin Co-Op,kkd-1::bithobin co-op,extracted
+SHEET_B,kkd-1,friday,23,Just Look,Just Look,kkd-1::just look,extracted
+SHEET_B,kkd-1,friday,24,Naveen OLUMKAL,Naveen OLUMKAL,kkd-1::naveen olumkal,extracted
+SHEET_B,kkd-1,friday,25,Biriyani World kkd,Biriyani World kkd,kkd-1::biriyani world kkd,extracted
+SHEET_B,ernakulam,saturday,1,Jo Mart,Jo Mart,ernakulam::jo mart,extracted
+SHEET_B,ernakulam,saturday,2,Buy & Save-DP Mithra,Buy & Save-DP Mithra,ernakulam::buy & save-dp mithra,extracted
+SHEET_B,ernakulam,saturday,3,P K Yeus,P K Yeus,ernakulam::p k yeus,ocr_uncertain
+SHEET_B,ernakulam,saturday,4,Poonvazhy Thomson,Poonvazhy Thomson,ernakulam::poonvazhy thomson,extracted
+SHEET_B,ernakulam,saturday,5,Kovil Mool,Kovil Mool,ernakulam::kovil mool,extracted
+SHEET_B,ernakulam,saturday,6,New 7 Hills,New 7 Hills,ernakulam::new 7 hills,extracted
+SHEET_B,ernakulam,saturday,7,Janaki Teakroom,Janaki Teakroom,ernakulam::janaki teakroom,extracted
+SHEET_B,ernakulam,saturday,8,Jacob,Jacob,ernakulam::jacob,extracted
+SHEET_B,ernakulam,saturday,9,Musthafa,Musthafa,ernakulam::musthafa,extracted
+SHEET_B,ernakulam,saturday,10,Mangalass Stores,Mangalass Stores,ernakulam::mangalass stores,extracted
+SHEET_B,ernakulam,saturday,11,Mangalam,Mangalam,ernakulam::mangalam,extracted
+SHEET_B,ernakulam,saturday,12,Bees Riders,Bees Riders,ernakulam::bees riders,extracted
+SHEET_B,ernakulam,saturday,13,MIL DEPO,MIL DEPO,ernakulam::mil depo,extracted
+SHEET_B,ernakulam,saturday,14,ROSARY,ROSARY,ernakulam::rosary,extracted
+SHEET_B,ernakulam,saturday,15,R K Dineden,R K Dineden,ernakulam::r k dineden,ocr_uncertain
+SHEET_B,ernakulam,saturday,16,Darshana,Darshana,ernakulam::darshana,extracted
+SHEET_B,ernakulam,saturday,17,Sachin,Sachin,ernakulam::sachin,extracted
+SHEET_B,ernakulam,saturday,18,Sareenass,Sareenass,ernakulam::sareenass,extracted
+SHEET_B,ernakulam,saturday,19,Sata Gourmet,Sata Gourmet,ernakulam::sata gourmet,extracted
+SHEET_B,ernakulam,saturday,20,COCHIN GOURMET,COCHIN GOURMET,ernakulam::cochin gourmet,extracted
+SHEET_B,ernakulam,saturday,21,PARAMESWATHY,PARAMESWATHY,ernakulam::parameswathy,extracted
+SHEET_B,ernakulam,saturday,22,LUV CUTLET,LUV CUTLET,ernakulam::luv cutlet,extracted
+SHEET_B,ernakulam,saturday,23,ASHIS,ASHIS,ernakulam::ashis,extracted
+SHEET_B,ernakulam,saturday,24,SELLERS,SELLERS,ernakulam::sellers,extracted
+SHEET_B,ernakulam,saturday,25,CHOCOLATE,CHOCOLATE,ernakulam::chocolate,extracted
+SHEET_B,ernakulam,saturday,26,POOTHIKAS,POOTHIKAS,ernakulam::poothikas,extracted
+SHEET_B,ernakulam,saturday,27,BAKERS TRADERS,BAKERS TRADERS,ernakulam::bakers traders,extracted
+SHEET_B,ernakulam,saturday,28,AMITYA,AMITYA,ernakulam::amitya,extracted
+SHEET_B,ernakulam,saturday,29,JACOB,JACOB,ernakulam::jacob,duplicate_in_source
+SHEET_B,ernakulam,saturday,30,HARISUDHA TEA STALL,HARISUDHA TEA STALL,ernakulam::harisudha tea stall,extracted
+SHEET_B,ernakulam,saturday,31,FRUIT CULTURE-CHINA INN,FRUIT CULTURE-CHINA INN,ernakulam::fruit culture-china inn,extracted
+SHEET_B,ernakulam,saturday,32,M J TRADES,M J TRADES,ernakulam::m j trades,extracted
+SHEET_B,ernakulam,saturday,33,BAKERY J,BAKERY J,ernakulam::bakery j,extracted
+SHEET_B,market,saturday,1,ALEX,ALEX,market::alex,extracted
+SHEET_B,market,saturday,2,ALUNGAL,ALUNGAL,market::alungal,extracted
+SHEET_B,market,saturday,3,AMK,AMK,market::amk,extracted
+SHEET_B,market,saturday,4,AYOOP,AYOOP,market::ayoop,extracted
+SHEET_B,market,saturday,5,CALCUTTA,CALCUTTA,market::calcutta,extracted
+SHEET_B,market,saturday,6,BIBIYANI WORLD,BIBIYANI WORLD,market::bibiyani world,ocr_uncertain
+SHEET_B,market,saturday,7,BOMBAY,BOMBAY,market::bombay,extracted
+SHEET_B,market,saturday,8,CHIRYANKANDATH,CHIRYANKANDATH,market::chiryankandath,extracted
+SHEET_B,market,saturday,9,KARUNAKARAN&SONS,KARUNAKARAN&SONS,market::karunakaran&sons,extracted
+SHEET_B,market,saturday,10,KR VEERARAGAVAN,KR VEERARAGAVAN,market::kr veeraragavan,extracted
+SHEET_B,market,saturday,11,KRISHNAN SONS,KRISHNAN SONS,market::krishnan sons,extracted
+SHEET_B,market,saturday,12,LOTUS,LOTUS,market::lotus,extracted
+SHEET_B,market,saturday,13,MANIPILLY,MANIPILLY,market::manipilly,extracted
+SHEET_B,market,saturday,14,MEEZHUKATTIL,MEEZHUKATTIL,market::meezhukattil,extracted
+SHEET_B,market,saturday,15,MF TRADERS,MF TRADERS,market::mf traders,extracted
+SHEET_B,market,saturday,16,MK SUDHAKARAN,MK SUDHAKARAN,market::mk sudhakaran,extracted
+SHEET_B,market,saturday,17,NEDUNGADEN,NEDUNGADEN,market::nedungaden,extracted
+SHEET_B,market,saturday,18,NEW PESSAPPA,NEW PESSAPPA,market::new pessappa,extracted
+SHEET_B,market,saturday,19,OAK,OAK,market::oak,extracted
+SHEET_B,market,saturday,20,PAVAMA,PAVAMA,market::pavama,extracted
+SHEET_B,market,saturday,21,PK SUKANYA,PK SUKANYA,market::pk sukanya,extracted
+SHEET_B,market,saturday,22,PR ENTER,PR ENTER,market::pr enter,extracted
+SHEET_B,market,saturday,23,RELVA,RELVA,market::relva,extracted
+SHEET_B,market,saturday,24,RS PRABHU,RS PRABHU,market::rs prabhu,extracted
+SHEET_B,market,saturday,25,SELLERS,SELLERS,market::sellers,extracted
+SHEET_B,market,saturday,26,SHANMUGAN,SHANMUGAN,market::shanmugan,extracted
+SHEET_B,market,saturday,27,SREENIV,SREENIV,market::sreeniv,extracted
+SHEET_B,market,saturday,28,SHIBAS,SHIBAS,market::shibas,extracted
+SHEET_B,market,saturday,29,SR TRADERS,SR TRADERS,market::sr traders,extracted
+SHEET_B,market,saturday,30,VARGHESE,VARGHESE,market::varghese,extracted
+SHEET_B,market,saturday,31,VA MAYYER,VA MAYYER,market::va mayyer,ocr_uncertain
+SHEET_B,market,saturday,32,V GEORGE,V GEORGE,market::v george,extracted
+SHEET_B,market,saturday,33,KMR,KMR,market::kmr,extracted
+SHEET_B,market,saturday,34,S K TRADERS,S K TRADERS,market::s k traders,extracted
+SHEET_B,market,saturday,35,CHANAKYATH,CHANAKYATH,market::chanakyath,extracted
+SHEET_B,market,saturday,36,MALABAR,MALABAR,market::malabar,extracted
+SHEET_B,market,saturday,37,P R ENTERPRISES,P R ENTERPRISES,market::p r enterprises,extracted
+SHEET_B,market,saturday,38,ALI JOSEPH,ALI JOSEPH,market::ali joseph,extracted
+SHEET_B,market,saturday,39,NEDUNGADAN,NEDUNGADAN,market::nedungadan,extracted
+SHEET_C,chullikkal,,1,SWATHY,SWATHY,chullikkal::swathy,extracted
+SHEET_C,chullikkal,,2,MANIKANDAN,MANIKANDAN,chullikkal::manikandan,extracted
+SHEET_C,chullikkal,,3,THANKACHAN,THANKACHAN,chullikkal::thankachan,extracted
+SHEET_C,chullikkal,,4,ULLAS,ULLAS,chullikkal::ullas,extracted
+SHEET_C,chullikkal,,5,JOSEPH XAVIER,JOSEPH XAVIER,chullikkal::joseph xavier,extracted
+SHEET_C,chullikkal,,6,TOMYS,TOMYS,chullikkal::tomys,extracted
+SHEET_C,chullikkal,,7,K V MATHEW,K V MATHEW,chullikkal::k v mathew,extracted
+SHEET_C,chullikkal,,8,EMMANUEL,EMMANUEL,chullikkal::emmanuel,extracted
+SHEET_C,chullikkal,,9,MARYA STORE,MARYA STORE,chullikkal::marya store,extracted
+SHEET_C,chullikkal,,10,NOAH MART,NOAH MART,chullikkal::noah mart,extracted
+SHEET_C,chullikkal,,11,KARTHIKEYAN,KARTHIKEYAN,chullikkal::karthikeyan,extracted
+SHEET_C,chullikkal,,12,FATHIMA,FATHIMA,chullikkal::fathima,extracted
+SHEET_C,chullikkal,,13,NANMA,NANMA,chullikkal::nanma,extracted
+SHEET_C,chullikkal,,14,E S TRADERS,E S TRADERS,chullikkal::e s traders,extracted
+SHEET_C,chullikkal,,15,SALT N PEPPER,SALT N PEPPER,chullikkal::salt n pepper,extracted
+SHEET_C,chullikkal,,16,MUBEEN,MUBEEN,chullikkal::mubeen,extracted
+SHEET_C,chullikkal,,17,MILLENNIUM,MILLENNIUM,chullikkal::millennium,extracted
+SHEET_C,chullikkal,,18,ARACKANATTIL,ARACKANATTIL,chullikkal::arackanattil,extracted
+SHEET_C,chullikkal,,19,ARJUN,ARJUN,chullikkal::arjun,extracted
+SHEET_C,chullikkal,,20,PMSC,PMSC,chullikkal::pmsc,extracted
+SHEET_C,chullikkal,,21,KOCHI SUPER MKT,KOCHI SUPER MKT,chullikkal::kochi super mkt,extracted
+SHEET_C,chullikkal,,22,JAINY & SONS,JAINY & SONS,chullikkal::jainy & sons,extracted
+SHEET_C,chullikkal,,23,VIJI STORES,VIJI STORES,chullikkal::viji stores,extracted
+SHEET_C,chullikkal,,24,BAKING CORNER,BAKING CORNER,chullikkal::baking corner,extracted
+SHEET_C,chullikkal,,25,FAMILY MART,FAMILY MART,chullikkal::family mart,extracted
+SHEET_C,chullikkal,,26,A S S ENTPS,A S S ENTPS,chullikkal::a s s entps,extracted
+SHEET_C,chullikkal,,27,GRAND RICE,GRAND RICE,chullikkal::grand rice,extracted
+SHEET_C,chullikkal,,28,MANJADI STORES,MANJADI STORES,chullikkal::manjadi stores,extracted
+SHEET_C,chullikkal,,29,M FREE POLAKANDAM,M FREE POLAKANDAM,chullikkal::m free polakandam,extracted
+SHEET_C,chullikkal,,30,SWING ISLAND,SWING ISLAND,chullikkal::swing island,extracted
+SHEET_C,chullikkal,,31,S KAREEM,S KAREEM,chullikkal::s kareem,extracted
+SHEET_C,chullikkal,,32,PRIYA SUPER SHOPPE,PRIYA SUPER SHOPPE,chullikkal::priya super shoppe,extracted
+SHEET_C,chullikkal,,33,COCHIN BAKERS TPDY,COCHIN BAKERS TPDY,chullikkal::cochin bakers tpdy,extracted
+SHEET_C,chullikkal,,34,SAJITHA STORES,SAJITHA STORES,chullikkal::sajitha stores,extracted
+SHEET_C,chullikkal,,35,REENUS,REENUS,chullikkal::reenus,extracted
+SHEET_C,chullikkal,,36,THUNDICKAL,THUNDICKAL,chullikkal::thundickal,extracted
+SHEET_C,chullikkal,,37,PRADEEP STORES,PRADEEP STORES,chullikkal::pradeep stores,extracted
+SHEET_C,chullikkal,,38,AL AMEEN,AL AMEEN,chullikkal::al ameen,extracted
+SHEET_C,chullikkal,,39,LAKSHMI STORES,LAKSHMI STORES,chullikkal::lakshmi stores,extracted

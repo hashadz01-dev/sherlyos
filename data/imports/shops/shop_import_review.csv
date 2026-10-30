@@ -1,1 +1,24 @@
-proposed_shop_key,original_shop_name,review_status,review_notes
+source_sheet,route_name,weekday,sequence,original_shop_name,normalized_shop_name,proposed_shop_key,review_status,review_notes
+SHEET_A,nettoor-panangad,wednesday,29,SAMIUITHI,SAMIUITHI,nettoor-panangad::samiuithi,ocr_uncertain,Sheet A OCR: SAMIUITHI
+SHEET_A,manjummel-vennala,thursday,12,INDUIT,INDUIT,manjummel-vennala::induit,ocr_uncertain,Sheet A OCR: INDUIT
+SHEET_A,thripunithura,saturday,11,Hishighns-Thamrkulingra,Hishighns-Thamrkulingra,thripunithura::hishighns-thamrkulingra,ocr_uncertain,Sheet A OCR: Hishighns-Thamrkulingra
+SHEET_A,thripunithura,saturday,38,AJ STORES,AJ STORES,thripunithura::aj stores,duplicate_in_source,Second AJ STORES on Thripunithura; kept as own visit row pending owner review; same key as sequence 5
+SHEET_B,palarivattom,monday,29,BISHNU RAGHAVAN,BISHNU RAGHAVAN,palarivattom::bishnu raghavan,ocr_uncertain,Sheet B OCR: BISHNU RAGHAVAN
+SHEET_B,palarivattom,monday,31,WE MART,WE MART,palarivattom::we mart,duplicate_in_source,same key as sequence 20
+SHEET_B,palarivattom,monday,37,SIDDIQE,SIDDIQE,palarivattom::siddiqe,duplicate_in_source,same key as sequence 10
+SHEET_B,palarivattom,monday,53,ORANGE,ORANGE,palarivattom::orange,duplicate_in_source,same key as sequence 24
+SHEET_B,palarivattom,monday,56,BEST BKKY STADIUM,BEST BKKY STADIUM,palarivattom::best bkky stadium,ocr_uncertain,Sheet B OCR: BEST BKKY STADIUM
+SHEET_B,kadavanthra,tuesday,1,ASBI,ASBI,kadavanthra::asbi,ocr_uncertain,Sheet B OCR: ASBI
+SHEET_B,kadavanthra,tuesday,6,Sunrise P.Hagar,Sunrise P.Hagar,kadavanthra::sunrise p.hagar,ocr_uncertain,Sheet B OCR: Sunrise P.Hagar
+SHEET_B,kaloor,wednesday,12,Aiswarya snjnmums,Aiswarya snjnmums,kaloor::aiswarya snjnmums,ocr_uncertain,Sheet B OCR: Aiswarya snjnmums
+SHEET_B,kaloor,wednesday,26,Ajwriya Azad,Ajwriya Azad,kaloor::ajwriya azad,ocr_uncertain,Sheet B OCR: Ajwriya Azad
+SHEET_B,kaloor,wednesday,42,SHANKAR,SHANKAR,kaloor::shankar,duplicate_in_source,same key as sequence 20
+SHEET_B,kalamassery,thursday,1,Best Bakery TOLE,Best Bakery TOLE,kalamassery::best bakery tole,ocr_uncertain,Sheet B OCR: Best Bakery TOLE
+SHEET_B,kalamassery,thursday,11,M P EXTPO,M P EXTPO,kalamassery::m p extpo,ocr_uncertain,Sheet B OCR: M P EXTPO
+SHEET_B,kkd-1,friday,15,Bism I k kakkand,Bism I k kakkand,kkd-1::bism i k kakkand,ocr_uncertain,Sheet B OCR: Bism I k kakkand
+SHEET_B,kkd-1,friday,17,Operail,Operail,kkd-1::operail,ocr_uncertain,Sheet B OCR: Operail
+SHEET_B,ernakulam,saturday,3,P K Yeus,P K Yeus,ernakulam::p k yeus,ocr_uncertain,Sheet B OCR: P K Yeus
+SHEET_B,ernakulam,saturday,15,R K Dineden,R K Dineden,ernakulam::r k dineden,ocr_uncertain,Sheet B OCR: R K Dineden
+SHEET_B,ernakulam,saturday,29,JACOB,JACOB,ernakulam::jacob,duplicate_in_source,same key as sequence 8
+SHEET_B,market,saturday,6,BIBIYANI WORLD,BIBIYANI WORLD,market::bibiyani world,ocr_uncertain,Sheet B OCR: BIBIYANI WORLD
+SHEET_B,market,saturday,31,VA MAYYER,VA MAYYER,market::va mayyer,ocr_uncertain,Sheet B OCR: VA MAYYER

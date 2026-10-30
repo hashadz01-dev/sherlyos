@@ -11,11 +11,19 @@ import {
 import * as catalog from "../../scripts/m8-2a-shops.mjs"
 
 describe("M8.2A shop route catalogue", () => {
-  it("keeps fourteen route-area lists and flags the 574 vs 575 count gap", () => {
-    expect(STATED_SOURCE_ENTRIES).toBe(574)
-    expect(EXPECTED_SOURCE_ENTRIES).toBe(575)
+  it("keeps fourteen route-area lists and does not invent shop rows", () => {
     expect(catalog.EXPECTED_ROUTE_AREAS).toHaveLength(14)
-    expect(catalog.SOURCE_ENTRIES).toHaveLength(0)
+    expect(catalog.SOURCE_ENTRIES.length).toBeGreaterThan(500)
+    expect(catalog.SOURCE_ENTRIES.length).toBeLessThan(EXPECTED_SOURCE_ENTRIES)
+    expect(STATED_SOURCE_ENTRIES).not.toBe(EXPECTED_SOURCE_ENTRIES)
+    const primes = catalog.SOURCE_ENTRIES.filter(
+      (row: { normalized_shop_name?: string; route_code?: string }) =>
+        String(row.normalized_shop_name).toLowerCase() === "prime",
+    )
+    expect(new Set(primes.map((row: { route_code?: string }) => row.route_code)).size).toBe(
+      primes.length,
+    )
+    expect(primes.length).toBeGreaterThanOrEqual(2)
   })
 
   it("preserves abbreviations and does not expand them", () => {

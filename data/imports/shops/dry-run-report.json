@@ -1,27 +1,41 @@
 {
-  "version": "m8.2a",
-  "mode": "dry-run",
-  "ownerDatabaseModified": false,
-  "sourceEntries": 0,
-  "expectedSourceEntries": 575,
-  "uniqueProposedShops": 0,
-  "proposedNew": 0,
-  "existingMatches": 0,
-  "unresolved": 0,
-  "missingMandatoryFields": [
-    "original_shop_name from screenshots"
-  ],
-  "unresolvedBranchMappings": [
-    "shops have no branch_id; order capture still needs a godown at order time"
-  ],
-  "salespersonAssignments": 0,
-  "before": {
-    "shops": 0,
-    "assignments": 0,
-    "ledger": 1054,
-    "lots": 141,
-    "prices": 140,
-    "invoice_notes": 80,
-    "true_flags": 0
+  "total_source_rows": 571,
+  "unique_proposed_shops": 565,
+  "shops_per_route": {
+    "thevara": 41,
+    "vyttila": 31,
+    "nettoor-panangad": 56,
+    "manjummel-vennala": 38,
+    "karukappally": 52,
+    "thripunithura": 42,
+    "palarivattom": 56,
+    "kadavanthra": 40,
+    "kaloor": 49,
+    "kalamassery": 30,
+    "kkd-1": 25,
+    "ernakulam": 33,
+    "market": 39,
+    "chullikkal": 39
+  },
+  "ocr_uncertain": 17,
+  "duplicate_in_source": 6,
+  "unreadable_names": [],
+  "count_gaps": {
+    "thevara": {
+      "extracted": 41,
+      "listed_heading": 42
+    },
+    "kadavanthra": {
+      "extracted": 40,
+      "listed_heading": 41
+    },
+    "kalamassery": {
+      "extracted": 30,
+      "listed_heading": 31
+    },
+    "chullikkal": {
+      "extracted": 39,
+      "listed_heading": 40
+    }
   }
 }

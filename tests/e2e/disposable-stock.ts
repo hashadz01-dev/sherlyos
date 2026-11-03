@@ -55,6 +55,14 @@ export const DISPOSABLE_SKU_PATTERNS = [
   "m81c%",
   // M8.2C isolated Branch-1 UAT fixtures. Never matches operational SKUs.
   "m82c%",
+  // M8.2D Accounts verification fixtures.
+  "m82d%",
+  // M8.2F delivery-note handover fixtures.
+  "m82f%",
+  // M8.2G Accounts company-wide godown fixtures.
+  "m82g%",
+  // M8.2H Godown Manager company-wide godown fixtures.
+  "m82h%",
 ] as const
 
 const OWNER_PSQL_CONTAINER = "supabase_db_sherlyos"

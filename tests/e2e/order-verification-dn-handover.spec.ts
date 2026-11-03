@@ -243,23 +243,26 @@ test("salesperson captures a shop order", async ({ page }) => {
   await page.getByRole("button", { name: "Create draft" }).click()
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}/i, { timeout: 20_000 })
   fixture.submittedUrl = new URL(page.url()).pathname
-  await expect(page.getByText("draft", { exact: true }).first()).toBeVisible()
+  await expect(page.getByText("Draft", { exact: true }).first()).toBeVisible()
   await page.getByRole("button", { name: "Submit order" }).click()
-  await expect(page.getByText("submitted", { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText("Submitted / Awaiting Verification").first()).toBeVisible({
+    timeout: 20_000,
+  })
   await logout(page)
 })
 
 test("accounts verification stays fail-closed before cutover", async ({ page }) => {
   await login(page, "accounts.m72e2e@example.com")
   if (!fixture.submittedUrl) throw new Error("salesperson capture did not record an order URL")
-  await page.goto(fixture.submittedUrl)
+  const orderId = fixture.submittedUrl.split("/").pop()
+  await page.goto(`/orders/verification/${orderId}`)
   await expect(page.getByRole("heading", { name: "Packing-eligible availability" })).toBeVisible({
     timeout: 20_000,
   })
   await expect(page.getByText(/Lot-aware packing is not operational/i)).toBeVisible()
   await page.getByRole("button", { name: "Verify order" }).click()
   await expect(page.getByRole("alert")).toContainText(/insufficient packing-eligible stock/i)
-  await expect(page.getByText("submitted", { exact: true }).first()).toBeVisible()
+  await expect(page.getByText("Submitted / Awaiting Verification").first()).toBeVisible()
   await logout(page)
 })
 

@@ -344,7 +344,6 @@ test("godown manager allocates, store keeper picks, handoff is ready", async ({ 
   await expect(page.getByRole("heading", { name: /^PK-/ })).toBeVisible({ timeout: 20_000 })
   await page.getByRole("button", { name: "Confirm pick" }).click()
   await expect(page.getByText("Quantity confirmed")).toBeVisible({ timeout: 20_000 })
-  await page.getByRole("button", { name: "Complete packing" }).click()
   await expect(page.getByText("Packing completed")).toBeVisible({ timeout: 20_000 })
   await signOut(page)
 

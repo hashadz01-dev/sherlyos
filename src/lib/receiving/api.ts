@@ -203,3 +203,17 @@ export function setStockReceiptLineLotAttributions(
     attributions,
   })
 }
+
+/** First-classify only. Reclassification stays on Admin set_product_expiry_policy. */
+export function classifyUnclassifiedProductForReceiving(
+  targetProduct: string,
+  newPolicy: "expiry_controlled" | "non_expiring",
+) {
+  return callRpc<{ id: string; expiry_policy: "expiry_controlled" | "non_expiring" }>(
+    "classify_unclassified_product_for_receiving",
+    {
+      target_product: targetProduct,
+      new_policy: newPolicy,
+    },
+  )
+}

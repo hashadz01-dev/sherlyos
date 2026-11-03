@@ -38,6 +38,68 @@ export const invoiceNavPermissions = [
 
 export const invoicePreparePermissions = ["invoice_notes.prepare"] as const
 export const invoiceReviewPermissions = ["invoices.review"] as const
+
+/** Queue of posted dispatches that still need a priced draft. Not a tax invoice. */
+export const INVOICE_AWAITING_QUEUE_TITLE = "Confirmed dispatches awaiting invoice note"
+
+export const invoiceEligibleDispatchStatusLabel: Record<string, string> = {
+  dispatched: "Dispatched",
+  in_transit: "In transit",
+  delivered: "Delivered",
+  exception: "Exception",
+}
+
+/**
+ * Accounts reviews drafts; Godown Manager prepares them. Both roles need to
+ * see the confirmed order here or Invoice notes looks empty after delivery.
+ */
+export function invoiceAwaitingQueueCopy(canPrepare: boolean) {
+  if (canPrepare) {
+    return {
+      title: "Prepare from confirmed dispatch",
+      description:
+        "Quantity is the posted DISPATCH consume, not the delivery-note ordered quantity.",
+    }
+  }
+  return {
+    title: INVOICE_AWAITING_QUEUE_TITLE,
+    description:
+      "These confirmed orders are waiting for a Godown Manager to prepare a priced draft. They are not tax invoices.",
+  }
+}
+
+/**
+ * Awaiting dispatches have no invoice-note status yet. Draft / Submitted /
+ * Reviewed / Cancelled must not keep listing SO rows that are only waiting.
+ */
+export function shouldShowInvoiceAwaitingQueue(statusFilter: string) {
+  return statusFilter === "all"
+}
+
+/** Empty drafts list. Keep the awaiting queue visible only on All statuses. */
+export function invoiceNotesEmptyCopy(
+  hasAwaitingDispatch: boolean,
+  statusFilter = "all",
+) {
+  if (hasAwaitingDispatch && shouldShowInvoiceAwaitingQueue(statusFilter)) {
+    return {
+      title: "No invoice-note drafts yet",
+      description:
+        "The confirmed order is listed above. A priced draft appears here after a Godown Manager prepares it.",
+    }
+  }
+  if (isInvoiceNoteStatus(statusFilter)) {
+    return {
+      title: "No invoice notes",
+      description: `No ${invoiceNoteStatusLabel[statusFilter].toLowerCase()} invoice notes.`,
+    }
+  }
+  return {
+    title: "No invoice notes",
+    description:
+      "Drafts appear here after a Godown Manager prepares one from a confirmed dispatch.",
+  }
+}
 export const creditAdjustmentNavPermissions = ["invoices.review"] as const
 export const priceNavPermissions = [
   "products.price.manage",

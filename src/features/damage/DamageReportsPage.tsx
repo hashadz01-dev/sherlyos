@@ -12,8 +12,10 @@ import {
 } from "@/features/damage/components/DamageReportFilters"
 import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
 import {
+  clientWorkflowStatus,
   damageStatusTone,
   formatCases,
+  formatClientDamageCategory,
   formatDamageScenario,
   formatDamageStatus,
   formatDate,
@@ -43,11 +45,15 @@ function ReportCard({ row }: { row: DamageReportSummary }) {
         <div>
           <p className="font-medium">{row.report_number}</p>
           <p className="text-sm text-muted-foreground">
+            {formatClientDamageCategory(row.scenario)} ·{" "}
             {formatDamageScenario(row.scenario)} · {row.godown_name}
           </p>
         </div>
         <StatusBadge tone={damageStatusTone[row.status]}>
           {formatDamageStatus(row.status)}
+          {clientWorkflowStatus(row.status)
+            ? ` · ${clientWorkflowStatus(row.status)}`
+            : ""}
         </StatusBadge>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">

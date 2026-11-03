@@ -23,6 +23,7 @@ export function DamageSourcePicker({
   disabled,
   onSelect,
   onCatalogs,
+  hydrateOnMatch = false,
 }: {
   scenario: DamageScenario
   godownId: string
@@ -32,8 +33,11 @@ export function DamageSourcePicker({
     item: DamageSourceItem,
     catalogs: DamageSourceCatalogs,
     refs: SourceRefs,
+    meta?: { hydrate?: boolean },
   ) => void
   onCatalogs?: (catalogs: DamageSourceCatalogs) => void
+  /** Re-attach the saved receipt/source without wiping draft lines. */
+  hydrateOnMatch?: boolean
 }) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
@@ -81,12 +85,25 @@ export function DamageSourcePicker({
       item,
       sources.data.catalogs ?? {},
       sourceRefsForScenario("storage", item),
+      { hydrate: true },
     )
   }, [scenario, sources.data, selectedId, onSelect])
 
+  useEffect(() => {
+    if (!hydrateOnMatch || !selectedId || !sources.data) return
+    const item = sources.data.items.find((row) => row.id === selectedId)
+    if (!item) return
+    onSelect(
+      item,
+      sources.data.catalogs ?? {},
+      sourceRefsForScenario(scenario, item),
+      { hydrate: true },
+    )
+  }, [hydrateOnMatch, selectedId, sources.data, scenario, onSelect])
+
   const helper = useMemo(() => {
     if (scenario === "refill_supply" || scenario === "unloading") {
-      return "Posted receipts with remaining damaged cases at this godown."
+      return "Posted receipts that recorded damaged carton cases at this godown."
     }
     if (scenario === "storage") {
       return "Authorized godown crates and products with on-hand carton cases."

@@ -26,11 +26,14 @@ begin
   from public.app_configuration
   where key = 'damage.stock_hold_ready';
 
-  if blocked is distinct from 'false' then
-    raise exception 'aggregate_only_blocked must stay false for M8.2C UAT';
-  end if;
   if damage is distinct from 'false' then
     raise exception 'damage.stock_hold_ready must stay false for M8.2C UAT';
+  end if;
+  -- dual-write may be enabled only after isolated cutover. Lot flags must move together.
+  if (dual = 'true' and blocked is distinct from 'true')
+     or (blocked = 'true' and dual is distinct from 'true')
+  then
+    raise exception 'lot flags must be both false or both true, dual=% blocked=%', dual, blocked;
   end if;
 
   if exists (

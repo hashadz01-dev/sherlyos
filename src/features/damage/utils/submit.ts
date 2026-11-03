@@ -91,14 +91,16 @@ export function collectSubmitBlockers(input: {
     blockers.push({
       code: "isolation",
       message:
-        "Stock isolation is not ready. Storage, loading, and shop-return reports cannot be submitted until operations enables isolation.",
+        input.scenario === "storage"
+          ? "Storage submit is blocked because submit isolates on-hand stock. Until isolation is enabled, save a draft only — damaged cases stay pickable and manager verification cannot complete without holds."
+          : "Stock isolation is not ready. Storage, loading, and shop-return reports cannot be submitted until operations enables isolation.",
     })
   }
   if (input.scenario === "shop_return" && !input.custodyConfirmed) {
     blockers.push({
       code: "custody",
       message:
-        "Confirm physical custody at the receiving godown before submitting this shop-return report.",
+        "Confirm physical custody at the receiving godown before submitting this shop-return report. Use Confirm physical custody on this report (edit or detail), then refresh submit readiness.",
     })
   }
   return blockers
@@ -111,6 +113,9 @@ export function scenarioSubmitHint(
   if (!scenario) return null
   if (scenarioMaySubmitWithoutHold(scenario)) {
     return "Inbound and transit reports may submit while stock isolation is inactive. Isolation-required scenarios stay blocked."
+  }
+  if (!stockHoldReady && scenario === "storage") {
+    return "Storage damage reports can be saved as drafts only. Review and submit stays disabled because warehouse submission removes cases from available stock; that isolation control is not enabled. Damaged cartons remain allocatable until an owner-approved isolation cutover."
   }
   if (!stockHoldReady) {
     return "This scenario requires on-hand isolation. Submission stays blocked until isolation is ready."
@@ -195,11 +200,20 @@ export function mapDamageMutationError(
   if (/a reason is required/i.test(raw)) {
     return "A reason is required."
   }
+  if (/damaged quantity exceeds the receipt line/i.test(raw)) {
+    return "These damaged cases exceed the remaining quantity on the receipt line."
+  }
   if (/photographic evidence is required/i.test(raw)) {
     return "Finalized photographic evidence is required."
   }
+  if (/damage evidence cannot be deleted/i.test(raw)) {
+    return "This photo cannot be deleted."
+  }
+  if (/damage evidence cannot be changed/i.test(raw)) {
+    return "This photo can only be deleted while the report is still open for editing."
+  }
   if (/photo content could not be verified/i.test(raw)) {
-    return "The photo could not be verified. Upload did not finalize."
+    return "Photo uploaded but evidence verification failed. Retry the upload."
   }
   if (/already submitted|cannot be submitted|cannot be changed/i.test(raw)) {
     return raw

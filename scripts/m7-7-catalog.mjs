@@ -21,45 +21,49 @@ export const CATEGORIES = [
   { code: "DESSERTS", name: "Desserts & Mixes", description: "Catalogue code DESSERTS." },
 ]
 
-/** Invoicing supplier is not verified. Records stay inactive; products keep supplier_id null. */
+/** Operational receiving suppliers. GSTIN / phone / email stay empty until invoicing details are supplied. */
 export const SUPPLIERS = [
   {
     ref: "AVT",
-    name: "AVT (pending invoicing confirmation)",
+    name: "AVT",
     brands: "AVT Premium, Supreme, Raja, Gold Cup, Dairy Sure",
-    verification: "Actual invoicing supplier pending",
+    verification: "Active for receiving. GSTIN and contacts are not stored.",
     email: null,
     phone: null,
   },
   {
     ref: "KERA",
-    name: "Kera (pending invoicing confirmation)",
+    name: "Kera",
     brands: "Kera coconut products",
-    verification: "Actual invoicing supplier pending",
+    verification: "Active for receiving. GSTIN and contacts are not stored.",
     email: null,
     phone: null,
   },
   {
     ref: "MK_AGROTECH",
-    name: "Sunpure (MK Agrotech; invoicing pending)",
+    name: "Sunpure",
+    formerNames: ["Sunpure (MK Agrotech; invoicing pending)"],
     brands: "SUNPURE, Ricebran Health, Palmpure",
     verification:
-      "Manufacturer/marketer identified from SUNPURE catalogue. Not proven as Sherlys invoicing supplier. Address and manufacturer email are not stored: schema has no address column and email would imply a verified contact.",
+      "Active for receiving. Manufacturer/marketer is MK Agrotech. Address and GSTIN are not stored.",
     email: null,
     phone: null,
   },
   {
     ref: "PARRYS",
-    name: "Parry's (pending invoicing confirmation)",
+    name: "Parry's",
     brands: "Parry's sugar and jaggery",
-    verification: "Actual invoicing supplier pending",
+    verification: "Active for receiving. GSTIN and contacts are not stored.",
     email: null,
     phone: null,
   },
   {
     ref: "NANDINI",
-    name: "Nandini (pending invoicing confirmation)",
-    formerNames: ["GoodLife (pending invoicing confirmation)"],
+    name: "Nandini",
+    formerNames: [
+      "GoodLife (pending invoicing confirmation)",
+      "Nandini (pending invoicing confirmation)",
+    ],
     brands: "GoodLife milk, Slim, Gold, Fresh Cream",
     verification:
       "Owner confirmed Nandini is the supplier of GoodLife products. GSTIN, phone, and invoicing entity are still not stored.",
@@ -68,10 +72,10 @@ export const SUPPLIERS = [
   },
   {
     ref: "MATTANAAD",
-    name: "MattaNaad (pending invoicing confirmation)",
+    name: "MattaNaad",
     brands: "MattaNaad Matta Vadi rice",
     verification:
-      "TPF Bharat Private Limited is named on MattaNaad material and is not stored as the invoicing supplier.",
+      "Active for receiving. TPF Bharat Private Limited is named on MattaNaad material and is not stored as a separate invoicing supplier.",
     email: null,
     phone: null,
   },

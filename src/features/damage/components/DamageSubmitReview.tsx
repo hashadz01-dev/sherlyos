@@ -51,7 +51,12 @@ export function DamageSubmitReview({
       <ul className="grid gap-1 text-sm">
         {lines.map((line) => (
           <li key={line.key}>
-            {line.product_sku || "Product"} · {line.quantity_cases} cases
+            {line.product_sku || "Product"}
+            {line.crate_code ? ` · ${line.crate_code}` : ""}
+            {line.lot_id
+              ? ` · lot ${line.lot_id.slice(0, 8)}`
+              : ""}{" "}
+            · {line.quantity_cases} cases
             {line.damage_reason ? ` · ${line.damage_reason}` : ""}
           </li>
         ))}

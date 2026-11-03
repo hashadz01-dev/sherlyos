@@ -15,6 +15,7 @@ import { useAccess } from "@/lib/access/use-access"
 import { getStockLotCutoverState } from "@/lib/inventory/api"
 import {
   cancelStockReceipt,
+  classifyUnclassifiedProductForReceiving,
   getStockReceipt,
   holdStockReceipt,
   listReceivingOptions,
@@ -26,7 +27,14 @@ import {
   type ReceiptLine,
   type StockReceipt,
 } from "@/lib/receiving/api"
-import { receiptActions, receiptTotals, type ReceiptStatus } from "@/lib/receiving/rules"
+import {
+  receiptActions,
+  receiptLineNeedsExpiryClassification,
+  receiptTotals,
+  receivingErrorMessage,
+  type ReceiptStatus,
+} from "@/lib/receiving/rules"
+import type { ReceiptWorkflowMode } from "@/lib/receiving/verification"
 import { notify } from "@/lib/utilities/notify"
 import type { ReceiptFormValues } from "@/lib/validations/receiving"
 
@@ -46,9 +54,10 @@ const auditLabel: Record<string, string> = {
   release_stock_receipt: "Returned for correction",
   verify_stock_receipt: "Verified and posted",
   cancel_stock_receipt: "Cancelled",
+  classify_unclassified_product_for_receiving: "Expiry policy classified",
 }
 
-export function ReceiptDetailPage() {
+function ReceiptRecordPage({ mode }: { mode: ReceiptWorkflowMode }) {
   const { receiptId = "" } = useParams()
   const receipt = useQuery({
     queryKey: ["stock-receipt", receiptId],
@@ -65,12 +74,18 @@ export function ReceiptDetailPage() {
           {receipt.error.message}
         </p>
       ) : null}
-      {receipt.data ? <ReceiptDetail receipt={receipt.data} /> : null}
+      {receipt.data ? <ReceiptDetail receipt={receipt.data} mode={mode} /> : null}
     </section>
   )
 }
 
-function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
+function ReceiptDetail({
+  receipt,
+  mode,
+}: {
+  receipt: StockReceipt
+  mode: ReceiptWorkflowMode
+}) {
   const { session } = useAuth()
   const { can } = useAccess()
   const queryClient = useQueryClient()
@@ -112,6 +127,9 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
     if (!dualWriteEnabled) return true
     return receipt.lines.every((line) => {
       if (line.accepted_cases === 0) return (line.lot_attributions ?? []).length === 0
+      if (receiptLineNeedsExpiryClassification(line.expiry_policy, line.accepted_cases)) {
+        return false
+      }
       const attributed = (line.lot_attributions ?? []).reduce(
         (sum, row) => sum + row.carton_quantity,
         0,
@@ -199,7 +217,7 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
       )
       await refresh()
     },
-    onError: (error: Error) => notify.error(error.message),
+    onError: (error: Error) => notify.error(receivingErrorMessage(error)),
   })
   const initial: ReceiptDraft = {
     godownId: receipt.godown_id,
@@ -224,7 +242,24 @@ function ReceiptDetail({ receipt }: { receipt: StockReceipt }) {
       <PageHeader
         title={receipt.receipt_number}
         description={`${receipt.supplier_name} · ${receipt.godown_name} · ${receipt.document_reference}`}
-        action={<StatusBadge tone={statusTone[receipt.status]}>{receipt.status}</StatusBadge>}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <Link
+                to={
+                  mode === "verification"
+                    ? "/receiving/verification"
+                    : "/receiving"
+                }
+              >
+                {mode === "verification"
+                  ? "Back to receipt verification"
+                  : "Back to receiving"}
+              </Link>
+            </Button>
+            <StatusBadge tone={statusTone[receipt.status]}>{receipt.status}</StatusBadge>
+          </div>
+        }
       />
       <dl className="mb-6 grid gap-3 text-sm md:grid-cols-3">
         <Fact label="Received date" value={receipt.received_date} />
@@ -482,6 +517,10 @@ function LineAttributionEditor({
   const [rows, setRows] = useState<AttributionDraft[]>(
     existing.length > 0 ? existing : line.accepted_cases > 0 ? [emptyAttribution()] : [],
   )
+  const needsClassification = receiptLineNeedsExpiryClassification(
+    line.expiry_policy,
+    line.accepted_cases,
+  )
   const save = useMutation({
     mutationFn: () =>
       setStockReceiptLineLotAttributions(
@@ -499,7 +538,20 @@ function LineAttributionEditor({
       notify.success(`Lot attributions saved for ${line.product_sku}`)
       await onSaved()
     },
-    onError: (error: Error) => notify.error(error.message),
+    onError: (error: Error) => notify.error(receivingErrorMessage(error)),
+  })
+  const classify = useMutation({
+    mutationFn: (policy: "expiry_controlled" | "non_expiring") =>
+      classifyUnclassifiedProductForReceiving(line.product_id, policy),
+    onSuccess: async (_product, policy) => {
+      notify.success(
+        policy === "expiry_controlled"
+          ? `${line.product_sku} classified as expiry-controlled`
+          : `${line.product_sku} classified as non-expiring`,
+      )
+      await onSaved()
+    },
+    onError: (error: Error) => notify.error(receivingErrorMessage(error)),
   })
   const attributed = rows.reduce((sum, row) => sum + (Number(row.cartonQuantity) || 0), 0)
 
@@ -518,6 +570,32 @@ function LineAttributionEditor({
         <p className="text-sm text-muted-foreground">Zero-accepted lines cannot carry lots.</p>
       ) : (
         <>
+          {needsClassification ? (
+            <div className="grid gap-2">
+              <p role="alert" className="text-sm text-destructive">
+                This product has no expiry policy. Classify it before lots can be saved.
+              </p>
+              {canEdit ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    disabled={classify.isPending}
+                    onClick={() => classify.mutate("expiry_controlled")}
+                  >
+                    Expiry-controlled
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={classify.isPending}
+                    onClick={() => classify.mutate("non_expiring")}
+                  >
+                    Does not expire
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {rows.map((row, index) => (
             <div key={index} className="grid gap-2 md:grid-cols-4">
               <TextField
@@ -575,7 +653,11 @@ function LineAttributionEditor({
                   Remove last
                 </Button>
               ) : null}
-              <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+              <Button
+                type="button"
+                disabled={save.isPending || needsClassification}
+                onClick={() => save.mutate()}
+              >
                 Save attributions
               </Button>
             </div>
@@ -620,6 +702,14 @@ function ReceiptLines({ receipt }: { receipt: StockReceipt }) {
       </table>
     </div>
   )
+}
+
+export function ReceiptDetailPage() {
+  return <ReceiptRecordPage mode="capture" />
+}
+
+export function ReceiptVerificationDetailPage() {
+  return <ReceiptRecordPage mode="verification" />
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

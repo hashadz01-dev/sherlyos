@@ -88,6 +88,23 @@ export const vehicleTypeLabel: Record<string, string> = {
   other: "Other",
 }
 
+export const DISPATCH_ASSIGNEE_EMPTY_MESSAGE =
+  "No delivery personnel are available for this godown. Add a Delivery Person in Users & role and assign them to the godown."
+
+/**
+ * Delivery personnel open this screen from Delivery runs. Godown Managers
+ * open it from the Dispatch queue. Do not send a driver to /dispatch.
+ */
+export function dispatchDetailBackLink(input: {
+  canConfirmDispatch: boolean
+  canExecuteDelivery: boolean
+}) {
+  if (input.canExecuteDelivery && !input.canConfirmDispatch) {
+    return { to: "/delivery-runs", label: "Back to delivery runs" }
+  }
+  return { to: "/dispatch", label: "Back to dispatch" }
+}
+
 /** Reassignment is allowed only after consume and before the run starts. */
 export function canReassignDelivery(
   status: DispatchRequestStatus,

@@ -32,6 +32,18 @@ describe("verification eligibility", () => {
     expect(collectVerificationBlockers(eligibleVerify)).toHaveLength(0)
   })
 
+  it("blocks Store Keeper verification without damage.verify", () => {
+    expect(
+      canVerifyDamageReport({ ...eligibleVerify, canVerify: false }),
+    ).toBe(false)
+    expect(
+      collectVerificationBlockers({
+        ...eligibleVerify,
+        canVerify: false,
+      }).some((row) => row.code === "permission"),
+    ).toBe(true)
+  })
+
   it("blocks self-verification even when other facts are ready", () => {
     const blockers = collectVerificationBlockers({
       ...eligibleVerify,
@@ -126,7 +138,7 @@ describe("ordinary write-off eligibility", () => {
   const ready = {
     status: "verified",
     scenario: "storage",
-    canVerify: true,
+    canDisposition: true,
     hasFinalizedEvidence: true,
     remainingHoldCases: 2,
     exceptionalOpen: false,
@@ -151,6 +163,21 @@ describe("ordinary write-off eligibility", () => {
         remainingHoldCases: 0,
         alreadyWrittenOff: true,
       }).some((row) => row.code === "posted"),
+    ).toBe(true)
+  })
+
+  it("blocks write-off when damage.verify is present without damage.disposition", () => {
+    expect(
+      canPostOrdinaryDamageWriteoff({
+        ...ready,
+        canDisposition: false,
+      }),
+    ).toBe(false)
+    expect(
+      collectOrdinaryWriteoffBlockers({
+        ...ready,
+        canDisposition: false,
+      }).some((row) => row.code === "permission"),
     ).toBe(true)
   })
 })

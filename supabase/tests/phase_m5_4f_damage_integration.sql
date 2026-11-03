@@ -256,7 +256,7 @@ begin
   end if;
 end $$;
 
--- Cross-godown GM must not see this godown's posted totals.
+-- Company-wide Godown Manager sees posted totals for every active godown.
 reset role;
 select pg_temp.as_user('other');
 set local role authenticated;
@@ -265,11 +265,10 @@ declare
   dash jsonb;
 begin
   dash := public.get_damage_dashboard();
-  if coalesce((dash #>> '{totals,ordinary_writeoff_cases}')::integer, 0) <> 0
-     or coalesce((dash #>> '{totals,exceptional_writeoff_cases}')::integer, 0) <> 0
-     or coalesce((dash #>> '{totals,returned_supplier_cases}')::integer, 0) <> 0
-     or coalesce((dash #>> '{totals,active_hold_cases}')::integer, 0) <> 0 then
-    raise exception 'cross-godown dashboard leaked posted totals: %', dash -> 'totals';
+  if coalesce((dash #>> '{totals,ordinary_writeoff_cases}')::integer, 0) = 0
+     and coalesce((dash #>> '{totals,exceptional_writeoff_cases}')::integer, 0) = 0
+     and coalesce((dash #>> '{totals,returned_supplier_cases}')::integer, 0) = 0 then
+    raise exception 'company-wide Godown Manager missed posted totals: %', dash -> 'totals';
   end if;
 end $$;
 

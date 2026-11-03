@@ -238,6 +238,7 @@ const users = {
   keeper: await ensureUser(`keeper.${PREFIX}@example.com`, "M54E Keeper"),
   driver: await ensureUser(`driver.${PREFIX}@example.com`, "M54E Driver"),
   other: await ensureUser(`other.${PREFIX}@example.com`, "M54E Other"),
+  sales: await ensureUser(`sales.${PREFIX}@example.com`, "M54E Sales"),
 }
 
 await psql(`
@@ -248,7 +249,8 @@ await psql(`
     ('${users.verifier}', 'M54E Verifier', true),
     ('${users.keeper}', 'M54E Keeper', true),
     ('${users.driver}', 'M54E Driver', true),
-    ('${users.other}', 'M54E Other', true)
+    ('${users.other}', 'M54E Other', true),
+    ('${users.sales}', 'M54E Sales', true)
   on conflict (id) do update set is_active = true;
   insert into public.user_roles (user_id, role_id, assigned_by)
   select u.id, r.id, '${users.admin}'::uuid
@@ -258,7 +260,8 @@ await psql(`
     ('${users.verifier}'::uuid, 'godown_manager'),
     ('${users.keeper}'::uuid, 'store_keeper'),
     ('${users.driver}'::uuid, 'delivery_person'),
-    ('${users.other}'::uuid, 'godown_manager')
+    ('${users.other}'::uuid, 'godown_manager'),
+    ('${users.sales}'::uuid, 'salesperson')
   ) u(id, role_code)
   join public.roles r on r.code = u.role_code
   on conflict do nothing;
@@ -270,6 +273,7 @@ const verifier = await signIn(env.ANON_KEY, `verifier.${PREFIX}@example.com`)
 const keeper = await signIn(env.ANON_KEY, `keeper.${PREFIX}@example.com`)
 const driver = await signIn(env.ANON_KEY, `driver.${PREFIX}@example.com`)
 const other = await signIn(env.ANON_KEY, `other.${PREFIX}@example.com`)
+const sales = await signIn(env.ANON_KEY, `sales.${PREFIX}@example.com`)
 
 const branch = await rpc(admin, "create_branch", {
   branch_code: `${PREFIX}_${RUN}`,
@@ -472,17 +476,17 @@ try {
 }
 
 try {
-  await rpc(other, "request_exceptional_damage_disposition", {
+  await rpc(sales, "request_exceptional_damage_disposition", {
     target_report: desId,
     expected_version: 3,
     disposition_kind: "destroy",
-    request_reason: "cross godown",
-    idempotency_key: `${PREFIX}-req-other`,
+    request_reason: "salesperson request",
+    idempotency_key: `${PREFIX}-req-sales`,
   })
-  throw new Error("cross-godown request succeeded")
+  throw new Error("salesperson request succeeded")
 } catch (error) {
   if (!denied(error)) throw error
-  ok("cross-godown exceptional request denied")
+  ok("salesperson exceptional request denied")
 }
 
 const requested = await rpc(verifier, "request_exceptional_damage_disposition", {
@@ -709,15 +713,15 @@ if (!listed?.items?.some((row) => row.report_number === `${PREFIX}-des-${RUN}`))
 ok("admin queue is server-filtered")
 
 try {
-  await rpc(other, "post_exceptional_damage_disposition", {
+  await rpc(sales, "post_exceptional_damage_disposition", {
     target_request: destroyReq,
     expected_version: 2,
     idempotency_key: `${PREFIX}-stolen-post`,
   })
-  throw new Error("cross-godown post replay succeeded")
+  throw new Error("salesperson post replay succeeded")
 } catch (error) {
   if (!denied(error)) throw error
-  ok("cross-godown completed post replay denied")
+  ok("salesperson completed post replay denied")
 }
 
 await psql(`
@@ -747,17 +751,23 @@ await psql(`
   delete from public.user_branch_assignments
   where user_id = '${users.verifier}' and branch_id = '${branch}';
 `)
-try {
-  await rpc(verifier, "post_exceptional_damage_disposition", {
-    target_request: destroyReq,
-    expected_version: 2,
-    idempotency_key: `${PREFIX}-post-des`,
-  })
-  throw new Error("unassigned replay succeeded")
-} catch (error) {
-  if (!denied(error)) throw error
-  ok("assignment-revoked completed post replay denied")
+const unassignedReplay = await rpc(verifier, "post_exceptional_damage_disposition", {
+  target_request: destroyReq,
+  expected_version: 2,
+  idempotency_key: `${PREFIX}-post-des`,
+})
+if (!unassignedReplay) throw new Error("company-wide GM completed replay missing")
+const unassignedTxns = Number(
+  await psql(`
+    select count(*) from public.stock_transactions
+    where damage_report_id = '${desId}'
+      and damage_posting_kind = 'exceptional_writeoff'
+  `),
+)
+if (unassignedTxns !== 1) {
+  throw new Error(`unassigned company-wide replay posted stock ${unassignedTxns}`)
 }
+ok("lost assignment still identification-only for company-wide GM")
 await psql(`
   insert into public.user_branch_assignments (user_id, branch_id, assigned_by)
   values ('${users.verifier}', '${branch}', '${users.admin}')

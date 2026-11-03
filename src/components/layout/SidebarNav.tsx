@@ -1,15 +1,20 @@
-import { NavLink } from "react-router"
+import { NavLink, useLocation } from "react-router"
 import { cn } from "cn"
 import { navigationGroups, navigationItems } from "@/app/navigation"
+import {
+  canSeeNavigationItem,
+  isNavigationPathActive,
+} from "@/lib/access/navigation-visibility"
 import { useAccess } from "@/lib/access/use-access"
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation()
   const { can, loading } = useAccess()
   const visible = navigationItems.filter((item) => {
-    if (item.anyPermissions) {
-      return !loading && item.anyPermissions.some((permission) => can(permission))
+    if (loading) {
+      return !item.permission && !item.anyPermissions
     }
-    return !item.permission || (!loading && can(item.permission))
+    return canSeeNavigationItem(item, can)
   })
 
   return (
@@ -36,10 +41,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     to={item.to}
                     end={item.end}
                     onClick={onNavigate}
-                    className={({ isActive }) =>
+                    className={() =>
                       cn(
                         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70",
-                        isActive &&
+                        isNavigationPathActive(item.to, pathname, item.end) &&
                           "bg-brand text-white shadow-sm hover:bg-brand",
                       )
                     }

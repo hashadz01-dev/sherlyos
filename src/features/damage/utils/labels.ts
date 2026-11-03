@@ -10,6 +10,62 @@ export const damageScenarioLabels: Record<DamageScenario, string> = {
   shop_return: "Shop return",
 }
 
+/**
+ * Client Excel three-tab names. Internal scenario codes stay unchanged.
+ * Loading and shop-return are extra operational scenarios, not extra DB statuses.
+ */
+export const clientDamageCategoryLabels = {
+  receiving: "Receiving / Stock-In Damage",
+  warehouse: "Warehouse Damage",
+  loading: "Loading Damage",
+  transit: "Transit Damage",
+} as const
+
+export type ClientDamageCategory = keyof typeof clientDamageCategoryLabels
+
+/** Client classifications stored in free-text damage_reason (1–80). */
+export const clientDamageClassifications = [
+  "Leakage",
+  "Box / Packaging Damage",
+  "Crushed",
+  "Torn Packaging",
+  "Moisture Damage",
+  "Handling Damage",
+  "Product Breakage",
+  "Contamination",
+  "Transit Damage",
+  "Other",
+] as const
+
+/**
+ * Map internal scenario → client category. Does not collapse the six
+ * operational codes; UAT still records refill vs unloading separately.
+ */
+export function clientDamageCategory(scenario: string): ClientDamageCategory | null {
+  if (scenario === "refill_supply" || scenario === "unloading") return "receiving"
+  if (scenario === "storage" || scenario === "shop_return") return "warehouse"
+  if (scenario === "loading") return "loading"
+  if (scenario === "transit") return "transit"
+  return null
+}
+
+export function formatClientDamageCategory(scenario: string) {
+  const category = clientDamageCategory(scenario)
+  return category ? clientDamageCategoryLabels[category] : "—"
+}
+
+/**
+ * Client Open / Verified only. Closed is a ledger event, not a header status.
+ * cancelled and rejected stay internal so they are not mistaken for Closed.
+ */
+export function clientWorkflowStatus(status: string) {
+  if (status === "draft" || status === "submitted" || status === "returned") {
+    return "Open"
+  }
+  if (status === "verified") return "Verified"
+  return null
+}
+
 export const damageScenarioDescriptions: Record<DamageScenario, string> = {
   refill_supply:
     "DMG-01. Damaged cases recorded on a posted supplier or refill receipt. Accepted stock is not reduced.",

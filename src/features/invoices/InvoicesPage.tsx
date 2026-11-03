@@ -18,9 +18,13 @@ import {
 import {
   INVOICE_DRAFT_WATERMARK,
   formatInr,
+  invoiceAwaitingQueueCopy,
+  invoiceEligibleDispatchStatusLabel,
   invoiceNoteStatusLabel,
   invoiceNoteStatusTone,
   invoiceNoteStatuses,
+  invoiceNotesEmptyCopy,
+  shouldShowInvoiceAwaitingQueue,
 } from "@/lib/invoices/rules"
 import { matchesSearch } from "@/lib/masters/filters"
 import { notify } from "@/lib/utilities/notify"
@@ -30,6 +34,7 @@ export function InvoicesPage() {
   const { can } = useAccess()
   const queryClient = useQueryClient()
   const canPrepare = can("invoice_notes.prepare")
+  const awaitingCopy = invoiceAwaitingQueueCopy(canPrepare)
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState("all")
 
@@ -37,10 +42,11 @@ export function InvoicesPage() {
     queryKey: invoiceKeys.list(status, "all", "all"),
     queryFn: () => listInvoiceNotes({ status }),
   })
+  // Reviewers must see posted dispatches too; otherwise a delivered order
+  // looks missing until Godown Manager prepares a draft.
   const eligible = useQuery({
     queryKey: invoiceKeys.eligible,
     queryFn: listInvoiceEligibleDispatches,
-    enabled: canPrepare,
   })
 
   const prepare = useMutation({
@@ -59,8 +65,26 @@ export function InvoicesPage() {
   })
 
   const rows = (notes.data ?? []).filter((row) =>
-    matchesSearch(search, [row.note_number, row.shop_name, row.status]),
+    matchesSearch(search, [
+      row.note_number,
+      row.order_number,
+      row.dispatch_number,
+      row.shop_name,
+      row.status,
+    ]),
   )
+  const showAwaitingQueue = shouldShowInvoiceAwaitingQueue(status)
+  const awaitingRows = showAwaitingQueue
+    ? (eligible.data ?? []).filter((row) =>
+        matchesSearch(search, [
+          row.order_number,
+          row.dispatch_number,
+          row.shop_name,
+          row.status,
+        ]),
+      )
+    : []
+  const emptyNotes = invoiceNotesEmptyCopy(awaitingRows.length > 0, status)
 
   return (
     <section className="min-w-0">
@@ -87,37 +111,54 @@ export function InvoicesPage() {
         </FilterSelect>
       </FilterToolbar>
 
-      {canPrepare ? (
+      {showAwaitingQueue && eligible.isLoading ? (
+        <LoadingBlock label="Loading confirmed dispatches" />
+      ) : null}
+      {showAwaitingQueue && eligible.error ? (
+        <p role="alert" className="mb-6 text-sm text-destructive">
+          {eligible.error.message}
+        </p>
+      ) : null}
+      {showAwaitingQueue && !eligible.isLoading && !eligible.error ? (
         <div className="mb-6 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
-          <h2 className="text-sm font-semibold">Prepare from confirmed dispatch</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Quantity is the posted DISPATCH consume, not the delivery-note ordered quantity.
-          </p>
-          {eligible.isLoading ? <LoadingBlock label="Loading eligible dispatches" /> : null}
-          {(eligible.data ?? []).length === 0 && !eligible.isLoading ? (
+          <h2 className="text-sm font-semibold">{awaitingCopy.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{awaitingCopy.description}</p>
+          {awaitingRows.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
               No confirmed dispatches are waiting for an invoice-note draft.
             </p>
           ) : (
             <ul className="mt-3 divide-y divide-slate-200/80">
-              {(eligible.data ?? []).map((row) => (
+              {awaitingRows.map((row) => (
                 <li
                   key={row.dispatch_id}
                   className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="text-sm">
-                    <span className="font-medium">{row.dispatch_number}</span>
-                    <span className="text-muted-foreground">
-                      {` · ${row.order_number} · ${row.shop_name}`}
-                    </span>
-                  </span>
-                  <Button
-                    type="button"
-                    onClick={() => prepare.mutate(row.dispatch_id)}
-                    disabled={prepare.isPending}
+                  <Link
+                    to={`/orders/${row.order_id}`}
+                    className="text-sm"
                   >
-                    Prepare draft
-                  </Button>
+                    <span className="font-medium">{row.order_number}</span>
+                    <span className="text-muted-foreground">
+                      {` · ${row.dispatch_number} · ${row.shop_name}`}
+                    </span>
+                  </Link>
+                  <span className="flex items-center gap-2">
+                    <StatusBadge tone="info">
+                      {invoiceEligibleDispatchStatusLabel[row.status] ?? row.status}
+                    </StatusBadge>
+                    {canPrepare ? (
+                      <Button
+                        type="button"
+                        onClick={() => prepare.mutate(row.dispatch_id)}
+                        disabled={prepare.isPending}
+                      >
+                        Prepare draft
+                      </Button>
+                    ) : (
+                      <StatusBadge tone="warning">Awaiting draft</StatusBadge>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -132,10 +173,7 @@ export function InvoicesPage() {
         </p>
       ) : null}
       {!notes.isLoading && rows.length === 0 ? (
-        <EmptyState
-          title="No invoice notes"
-          description="Drafts appear here after a Godown Manager prepares one from a confirmed dispatch."
-        />
+        <EmptyState title={emptyNotes.title} description={emptyNotes.description} />
       ) : (
         <ul className="divide-y divide-slate-200/80 rounded-2xl bg-white ring-1 ring-slate-200/80">
           {rows.map((row) => (
@@ -147,6 +185,7 @@ export function InvoicesPage() {
                 <span>
                   <span className="block text-sm font-medium">{row.note_number}</span>
                   <span className="text-xs text-muted-foreground">
+                    {row.order_number ? `${row.order_number} · ` : ""}
                     {row.shop_name} · {row.billed_cases} cases · {formatInr(row.grand_total)}
                   </span>
                 </span>

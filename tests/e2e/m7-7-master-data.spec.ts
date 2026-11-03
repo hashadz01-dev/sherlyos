@@ -24,13 +24,10 @@ test("categories, suppliers, and catalogue products are searchable", async ({ pa
 
   await page.goto("/masters/suppliers")
   await expect(page.getByRole("heading", { name: "Suppliers" })).toBeVisible({ timeout: 20_000 })
-  await page.getByLabel("Search suppliers").fill("AVT (pending invoicing confirmation)")
-  const pendingSupplier = page
-    .getByRole("listitem")
-    .filter({ hasText: "AVT (pending invoicing confirmation)" })
-  await expect(pendingSupplier).toBeVisible()
-  // Status <option> also says Inactive; assert the row badge, not the filter.
-  await expect(pendingSupplier.getByText("Inactive", { exact: true })).toBeVisible()
+  await page.getByLabel("Search suppliers").fill("AVT")
+  const avtSupplier = page.getByRole("listitem").filter({ has: page.getByText("AVT", { exact: true }) })
+  await expect(avtSupplier).toBeVisible()
+  await expect(avtSupplier.getByText("Active", { exact: true })).toBeVisible()
 
   await page.goto("/masters/products")
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible({ timeout: 20_000 })

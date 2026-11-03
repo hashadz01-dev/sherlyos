@@ -132,9 +132,38 @@ export function sourceRefsForScenario(
  * Client-side line checks that match replace_damage_lines constraints.
  * The RPC remains the source of truth.
  */
+export type InboundLineCap = {
+  damagedCases: number
+  remaining: number
+  claimingNumbers: string[]
+}
+
+export function inboundQuantityMessage(
+  qty: number,
+  cap: InboundLineCap,
+) {
+  if (qty > cap.damagedCases) {
+    return `Only ${cap.damagedCases} damaged cases were recorded on this receipt.`
+  }
+  if (qty > cap.remaining && cap.claimingNumbers.length > 0) {
+    return `These damaged cases are already linked to damage report ${cap.claimingNumbers.join(", ")}.`
+  }
+  if (qty > cap.remaining) {
+    return `Only ${cap.remaining} damaged cases remain to report on this receipt.`
+  }
+  return null
+}
+
 export function validateDraftLines(
   scenario: DamageScenario | "",
   lines: DraftLine[],
+  inboundCaps?: Record<string, InboundLineCap>,
+  options?: {
+    /** When dual-write is on, storage drafts must name the damaged lot. */
+    requireStorageLot?: boolean
+    /** Optional available floor per lot_id for UX (backend still authoritative). */
+    lotAvailableById?: Record<string, number>
+  },
 ) {
   const errors: string[] = []
   if (lines.length < 1) {
@@ -149,6 +178,14 @@ export function validateDraftLines(
     const qty = parseCartonQuantity(line.quantity_cases)
     if (qty === null) {
       errors.push(`${label}: quantity must be a whole number of carton cases.`)
+    } else if (
+      inboundCaps &&
+      (scenario === "refill_supply" || scenario === "unloading") &&
+      line.receipt_line_id
+    ) {
+      const cap = inboundCaps[line.receipt_line_id]
+      const inboundError = cap ? inboundQuantityMessage(qty, cap) : null
+      if (inboundError) errors.push(`${label}: ${inboundError}`)
     }
     const reason = line.damage_reason.trim()
     if (reason.length < 1 || reason.length > 80) {
@@ -162,6 +199,23 @@ export function validateDraftLines(
     }
     if ((scenario === "storage" || scenario === "loading") && !line.crate_id) {
       errors.push(`${label}: a crate in this godown is required.`)
+    }
+    if (scenario === "storage" && options?.requireStorageLot && !line.lot_id) {
+      errors.push(`${label}: select the damaged stock lot.`)
+    }
+    if (
+      scenario === "storage" &&
+      qty !== null &&
+      line.lot_id &&
+      options?.lotAvailableById &&
+      Object.prototype.hasOwnProperty.call(options.lotAvailableById, line.lot_id)
+    ) {
+      const available = options.lotAvailableById[line.lot_id] ?? 0
+      if (qty > available) {
+        errors.push(
+          `${label}: quantity exceeds available cases on the selected lot (${available}).`,
+        )
+      }
     }
     const grain = lineGrain(line)
     if (line.product_id && grains.has(grain)) {

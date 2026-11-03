@@ -45,7 +45,7 @@ export function DamageExceptionalExecutionPanel({
     request?.id,
   )
   const blockers = collectExceptionalExecuteBlockers({
-    canVerify: access.canVerify,
+    canDisposition: access.canDisposition,
     requestStatus: request?.status,
     remainingHoldCases: breakdown.remainingHoldCases,
     godownActive: report.godown_active,
@@ -73,7 +73,7 @@ export function DamageExceptionalExecutionPanel({
     setIdempotencyKey(newPostKey())
   }, [alreadyPosted])
 
-  if (!access.canVerify && !access.canMonitor) return null
+  if (!access.canDisposition && !access.canMonitor) return null
   if (!request) return null
 
   async function post() {
@@ -159,7 +159,7 @@ export function DamageExceptionalExecutionPanel({
         emptyLabel="This approved request is eligible for trusted ledger posting."
       />
 
-      {access.canVerify ? (
+      {access.canDisposition ? (
         <div className="mt-4">
           <Button
             type="button"

@@ -57,6 +57,7 @@ vi.mock("@/features/damage/hooks/use-damage-access", () => ({
     canRead: true,
     canRecord: true,
     canVerify: true,
+    canDisposition: true,
     canDispose: false,
     canMonitor: false,
     canTransitOnly: false,

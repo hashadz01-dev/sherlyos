@@ -37,6 +37,11 @@ export const OrdersPage = lazy(() =>
     default: m.OrdersPage,
   })),
 )
+export const OrderVerificationPage = lazy(() =>
+  import("@/features/orders/OrdersPage").then((m) => ({
+    default: m.OrderVerificationPage,
+  })),
+)
 export const NewOrderPage = lazy(() =>
   import("@/features/orders/OrderEditorPage").then((m) => ({
     default: m.NewOrderPage,
@@ -50,6 +55,11 @@ export const EditOrderPage = lazy(() =>
 export const OrderDetailPage = lazy(() =>
   import("@/features/orders/OrderDetailPage").then((m) => ({
     default: m.OrderDetailPage,
+  })),
+)
+export const OrderVerificationDetailPage = lazy(() =>
+  import("@/features/orders/OrderDetailPage").then((m) => ({
+    default: m.OrderVerificationDetailPage,
   })),
 )
 export const PickingPage = lazy(() =>
@@ -157,6 +167,11 @@ export const ReceivingPage = lazy(() =>
     default: m.ReceivingPage,
   })),
 )
+export const ReceiptVerificationPage = lazy(() =>
+  import("@/features/receiving/ReceivingPage").then((m) => ({
+    default: m.ReceiptVerificationPage,
+  })),
+)
 export const ReceiptEditorPage = lazy(() =>
   import("@/features/receiving/ReceiptEditorPage").then((m) => ({
     default: m.ReceiptEditorPage,
@@ -165,6 +180,11 @@ export const ReceiptEditorPage = lazy(() =>
 export const ReceiptDetailPage = lazy(() =>
   import("@/features/receiving/ReceiptDetailPage").then((m) => ({
     default: m.ReceiptDetailPage,
+  })),
+)
+export const ReceiptVerificationDetailPage = lazy(() =>
+  import("@/features/receiving/ReceiptDetailPage").then((m) => ({
+    default: m.ReceiptVerificationDetailPage,
   })),
 )
 export const StockVerificationPage = lazy(() =>

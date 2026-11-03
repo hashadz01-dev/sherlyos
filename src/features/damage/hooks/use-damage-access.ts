@@ -18,6 +18,8 @@ export function useDamageAccess() {
   const canRead = can("damage.read") || can("operations.monitor")
   const canRecord = can("damage.record")
   const canVerify = can("damage.verify")
+  // Stock-changing disposition is separate from inspection verify.
+  const canDisposition = can("damage.disposition")
   const canDispose = can("damage.dispose")
   const canMonitor = can("operations.monitor")
   const canCreate = canOpenDamageCreate(can)
@@ -26,19 +28,19 @@ export function useDamageAccess() {
     can("deliveries.execute") && !canRead && !canRecord && !canVerify
   const isAdminMonitor = canMonitor && !canVerify
   const showVerificationQueues = canVerify || canMonitor
-  const showDispositionQueues = canVerify || canMonitor
+  const showDispositionQueues = canDisposition || canMonitor
   const showExceptionalQueues = damageExceptionalQueuePermissions.some(
     (permission) => can(permission),
   )
-  const canRequestExceptional = canVerify
+  const canRequestExceptional = canDisposition
   const canApproveExceptional = canDispose
-  const canExecuteExceptional = canVerify
+  const canExecuteExceptional = canDisposition
   const canViewExceptionalQueue = showExceptionalQueues
   const canViewQuarantine = damageQuarantinePermissions.some((permission) =>
     can(permission),
   )
   const canConfirmCustody = canRecord && canVerify
-  const canTransferQuarantine = canVerify
+  const canTransferQuarantine = canDisposition
   const canViewVerification = damageVerificationPermissions.some((permission) =>
     can(permission),
   )
@@ -53,6 +55,7 @@ export function useDamageAccess() {
     canRead,
     canRecord,
     canVerify,
+    canDisposition,
     canDispose,
     canMonitor,
     canTransitOnly,

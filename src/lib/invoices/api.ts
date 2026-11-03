@@ -337,7 +337,9 @@ export type InvoiceNoteListRow = {
   status: InvoiceNoteStatus
   version: number
   dispatch_id: string
+  dispatch_number?: string
   order_id: string
+  order_number?: string
   shop_id: string
   shop_name: string
   branch_id: string

@@ -5,9 +5,17 @@ import {
   acceptedCases,
   normalizeDocumentReference,
   receiptActions,
+  receiptLineNeedsExpiryClassification,
   receiptTotals,
   receivingErrorMessage,
 } from "@/lib/receiving/rules"
+import {
+  awaitingReceiptVerification,
+  RECEIPT_VERIFICATION_DEFAULT_STATUS,
+  receiptRecordPath,
+  receiptVerificationRows,
+} from "@/lib/receiving/verification"
+import { isNavigationPathActive } from "@/lib/access/navigation-visibility"
 import { receiptFormSchema } from "@/lib/validations/receiving"
 
 const ids = {
@@ -107,7 +115,17 @@ describe("receiving rules", () => {
     expect(receivingErrorMessage(new Error("document reference was already used"))).toBe(
       "document reference was already used",
     )
+    expect(
+      receivingErrorMessage(new Error("product expiry policy is unclassified")),
+    ).toBe("Classify this product as expiry-controlled or non-expiring before saving lots.")
     expect(receivingErrorMessage("nope")).toBe("The receipt could not be saved.")
+  })
+
+  it("blocks dual-write lots until an accepted line is classified", () => {
+    expect(receiptLineNeedsExpiryClassification(null, 8)).toBe(true)
+    expect(receiptLineNeedsExpiryClassification("expiry_controlled", 8)).toBe(false)
+    expect(receiptLineNeedsExpiryClassification("non_expiring", 8)).toBe(false)
+    expect(receiptLineNeedsExpiryClassification(null, 0)).toBe(false)
   })
 
   it("labels a posted receipt in inventory history", () => {
@@ -162,5 +180,59 @@ describe("receiving navigation", () => {
       "receiving.verify",
       "operations.monitor",
     ])
+  })
+
+  it("exposes a Godown Manager receipt verification queue", () => {
+    expect(
+      navigationItems.find((item) => item.to === "/receiving/verification")?.permission,
+    ).toBe("receiving.verify")
+    expect(
+      navigationItems.find((item) => item.to === "/receiving/verification")?.label,
+    ).toBe("Receipt verification")
+    expect(isNavigationPathActive("/receiving", "/receiving/verification")).toBe(false)
+    expect(
+      isNavigationPathActive(
+        "/receiving",
+        "/receiving/verification/96173d7e-3d94-4843-96c2-c7bb6d6eea",
+      ),
+    ).toBe(false)
+    expect(isNavigationPathActive("/receiving/verification", "/receiving/verification")).toBe(
+      true,
+    )
+    expect(
+      isNavigationPathActive(
+        "/receiving/verification",
+        "/receiving/verification/96173d7e-3d94-4843-96c2-c7bb6d6eea",
+      ),
+    ).toBe(true)
+    expect(receiptRecordPath("verification", "abc")).toBe("/receiving/verification/abc")
+    expect(receiptRecordPath("capture", "abc")).toBe("/receiving/abc")
+  })
+})
+
+describe("receipt verification queue", () => {
+  it("defaults the GM inbox to verification history, including posted receipts", () => {
+    expect(RECEIPT_VERIFICATION_DEFAULT_STATUS).toBe("all")
+  })
+
+  it("treats submitted and held receipts as awaiting verification", () => {
+    expect(
+      awaitingReceiptVerification([
+        { id: "1", status: "draft" } as never,
+        { id: "2", status: "submitted" } as never,
+        { id: "3", status: "held" } as never,
+        { id: "4", status: "posted" } as never,
+      ]).map((row) => row.id),
+    ).toEqual(["2", "3"])
+  })
+
+  it("lists posted history on the verification queue and keeps drafts off it", () => {
+    const rows = [
+      { id: "1", status: "draft" },
+      { id: "2", status: "submitted" },
+      { id: "3", status: "posted" },
+    ] as never
+    expect(receiptVerificationRows(rows, "all").map((row) => row.id)).toEqual(["2", "3"])
+    expect(receiptVerificationRows(rows, "posted").map((row) => row.id)).toEqual(["3"])
   })
 })

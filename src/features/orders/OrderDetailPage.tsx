@@ -3,10 +3,19 @@ import { Link, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
-import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
+import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import {
+  hasCompanyWideGodownAccess,
+  loadOwnAssignedBranchIds,
+} from "@/lib/access/godown-scope"
+import {
+  canIssueDeliveryNoteForOrder,
+  describeDeliveryNoteFormBlock,
+  isActiveDeliveryNote,
+} from "@/lib/delivery-notes/handover"
 import { useAuth } from "@/hooks/use-auth"
 import {
   cancelOrder,
@@ -20,12 +29,21 @@ import {
   submitOrder,
   verifyOrder,
   type AvailabilityLine,
-  type OrderStatus,
 } from "@/lib/orders/api"
 import {
   deliveryNoteHandoverLabel,
+  describeAtpLine,
   isAcknowledgedDeliveryNote,
 } from "@/lib/orders/availability"
+import {
+  describeOrderLoadFailure,
+  describeVerificationBlock,
+  orderRecordPath,
+  readableSiteLabel,
+  verificationStatusLabel,
+  verificationStatusTone,
+  type OrderWorkflowMode,
+} from "@/lib/orders/verification"
 import {
   cutoverBlocksPicking,
   nextOrderPickingAction,
@@ -38,18 +56,12 @@ import {
   type ShipmentStatus,
 } from "@/lib/shipments/rules"
 
-const tone: Record<OrderStatus, StatusTone> = {
-  draft: "neutral",
-  submitted: "info",
-  held: "warning",
-  verified: "success",
-  cancelled: "danger",
-}
-
-export function OrderDetailPage() {
+function OrderRecordPage({ mode }: { mode: OrderWorkflowMode }) {
+  const isVerification = mode === "verification"
   const { orderId = "" } = useParams()
   const { session } = useAuth()
-  const { can } = useAccess()
+  const { can, roles } = useAccess()
+  const companyWideGodownAccess = hasCompanyWideGodownAccess(can, roles)
   const queryClient = useQueryClient()
   const [holdNote, setHoldNote] = useState("")
   const [cancelReason, setCancelReason] = useState("")
@@ -75,28 +87,51 @@ export function OrderDetailPage() {
     queryKey: ["order-availability", orderId],
     queryFn: () => checkOrderAvailability(orderId),
     enabled:
+      isVerification &&
       orderId !== "" &&
       can("orders.verify") &&
       detail.data?.order.status === "submitted",
   })
+  // Assignment, not catalog visibility: get_order can succeed for unassigned Accounts.
+  const assignments = useQuery({
+    queryKey: ["own-branch-assignments"],
+    queryFn: loadOwnAssignedBranchIds,
+    enabled: isVerification && can("delivery_notes.issue") && !companyWideGodownAccess,
+  })
 
   const order = detail.data?.order
   useDocumentTitle(order ? order.order_number : "Order")
-  const shopName = shops.data?.find((shop) => shop.id === order?.shop_id)?.name
-  const branchName = branches.data?.find((branch) => branch.id === order?.branch_id)?.name
+  const shopName = readableSiteLabel(
+    shops.data?.find((shop) => shop.id === order?.shop_id)?.name,
+    "Shop",
+  )
+  const branchName = readableSiteLabel(
+    branches.data?.find((branch) => branch.id === order?.branch_id)?.name,
+    "Godown",
+  )
   const productName = new Map(
     (products.data ?? []).map((product) => [product.id, `${product.sku} · ${product.name}`]),
   )
 
   const isCreator = Boolean(order && session?.user.id === order.created_by)
-  const canEdit = isCreator && (order?.status === "draft" || order?.status === "held")
-  const canSubmit = isCreator && can("orders.capture") && (order?.status === "draft" || order?.status === "held")
-  const canHold = can("orders.verify") && order?.status === "submitted"
-  const canVerify = can("orders.verify") && order?.status === "submitted"
+  const canEdit =
+    !isVerification && isCreator && (order?.status === "draft" || order?.status === "held")
+  const canSubmit =
+    !isVerification &&
+    isCreator &&
+    can("orders.capture") &&
+    (order?.status === "draft" || order?.status === "held")
+  const canHold = isVerification && can("orders.verify") && order?.status === "submitted"
+  const canVerify = isVerification && can("orders.verify") && order?.status === "submitted"
   const canCancelCreator =
-    isCreator && can("orders.capture") && (order?.status === "draft" || order?.status === "held")
+    !isVerification &&
+    isCreator &&
+    can("orders.capture") &&
+    (order?.status === "draft" || order?.status === "held")
   const canCancelAccounts =
-    can("orders.verify") && (order?.status === "submitted" || order?.status === "verified")
+    isVerification &&
+    can("orders.verify") &&
+    (order?.status === "submitted" || order?.status === "verified")
   const openNote = detail.data?.open_delivery_note ?? null
   const openPicking = detail.data?.open_picking_request ?? null
   const pickingCutover = detail.data?.picking_cutover ?? null
@@ -115,8 +150,36 @@ export function OrderDetailPage() {
         fulfilmentStatus: order.fulfilment_status ?? null,
       })
     : null
+  const assignedBranchIds = assignments.data ?? []
+  const hasActiveDeliveryNote = isActiveDeliveryNote(openNote)
   const canCreateDeliveryNote =
-    can("delivery_notes.issue") && order?.status === "verified" && openNote == null
+    isVerification &&
+    (!assignments.isLoading || companyWideGodownAccess) &&
+    canIssueDeliveryNoteForOrder({
+      canIssue: can("delivery_notes.issue"),
+      orderStatus: order?.status,
+      hasActiveDeliveryNote,
+      orderBranchId: order?.branch_id,
+      assignedBranchIds,
+      listedInHandoverQueue: false,
+      companyWideGodownAccess,
+    })
+  const deliveryNoteBlock =
+    isVerification && order?.status === "verified"
+      ? describeDeliveryNoteFormBlock({
+          canIssue: can("delivery_notes.issue"),
+          orderId: order.id,
+          orderFound: true,
+          loading: assignments.isLoading && !companyWideGodownAccess,
+          orderStatus: order.status,
+          hasActiveDeliveryNote,
+          activeNoteNumber: openNote?.delivery_note_number ?? null,
+          assignedBranchCount: assignedBranchIds.length,
+          listedInHandoverQueue: false,
+          companyWideGodownAccess,
+          canCreate: canCreateDeliveryNote,
+        })
+      : null
   const canAllocatePicking =
     can("picking.allocate") &&
     order?.status === "verified" &&
@@ -131,6 +194,7 @@ export function OrderDetailPage() {
     await queryClient.invalidateQueries({ queryKey: ["orders"] })
     await queryClient.invalidateQueries({ queryKey: ["order", orderId] })
     await queryClient.invalidateQueries({ queryKey: ["order-availability", orderId] })
+    await queryClient.invalidateQueries({ queryKey: ["verified-orders-without-dn"] })
   }
 
   const submit = useMutation({
@@ -224,30 +288,78 @@ export function OrderDetailPage() {
     cancel.isPending ||
     approveShipment.isPending
   const shortageRows = shortages ?? []
+  const verificationGate =
+    isVerification && order && can("orders.verify")
+      ? describeVerificationBlock({
+          orderFound: true,
+          canVerify: true,
+          assignedBranchCount: branches.data?.length ?? 0,
+          orderBranchId: order.branch_id,
+          assignedBranchIds: (branches.data ?? []).map((branch) => branch.id),
+          godownName: branchName,
+          availability: availability.data,
+          rpcError: actionError && shortageRows.length === 0 ? actionError : null,
+        })
+      : null
 
   return (
     <section className="min-w-0">
       <PageHeader
-        title={order?.order_number ?? "Order"}
-        description="Capture, submit, hold, verify, or cancel a shop request. Verification checks packing-eligible stock and does not reserve it."
+        title={order?.order_number ?? (isVerification ? "Order verification" : "Order")}
+        description={
+          isVerification
+            ? "Accounts reviews packing-eligible ATP, then verifies or holds. Inventory does not change here."
+            : "Create, submit, and track this shop request. Approval happens in Order verification."
+        }
         action={
-          canEdit ? (
-            <Button asChild>
-              <Link to={`/orders/${order.id}/edit`}>Edit</Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <Link to={isVerification ? "/orders/verification" : "/orders"}>
+                {isVerification ? "Back to verification" : "Back to orders"}
+              </Link>
             </Button>
-          ) : null
+            {canEdit && order ? (
+              <Button asChild>
+                <Link to={`/orders/${order.id}/edit`}>Edit</Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
       {detail.isLoading ? <LoadingBlock label="Loading order" /> : null}
       {detail.error ? (
         <p role="alert" className="text-sm text-destructive">
-          {detail.error.message}
+          {
+            describeOrderLoadFailure({
+              errorMessage: detail.error.message,
+              canVerify: can("orders.verify"),
+              assignedBranchCount: branches.data?.length ?? 0,
+            }).message
+          }
         </p>
       ) : null}
       {order && detail.data ? (
         <div className="grid gap-6">
           <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge tone={tone[order.status]}>{order.status}</StatusBadge>
+            <StatusBadge tone={verificationStatusTone(order.status)}>
+              {verificationStatusLabel(order.status)}
+            </StatusBadge>
+            {isVerification && order.status === "submitted" ? (
+              <StatusBadge tone="info">Awaiting Verification</StatusBadge>
+            ) : null}
+            {verificationGate?.label === "Blocked by Stock" ? (
+              <StatusBadge tone="warning">Blocked by Stock</StatusBadge>
+            ) : null}
+            {verificationGate?.label === "Blocked by Access" ? (
+              <StatusBadge tone="danger">Blocked by Access</StatusBadge>
+            ) : null}
+            {!isVerification && can("orders.verify") && (order.status === "submitted" || order.status === "verified") ? (
+              <Button asChild variant="outline">
+                <Link to={orderRecordPath("verification", order.id)}>
+                  Open in Order verification
+                </Link>
+              </Button>
+            ) : null}
             {order.fulfilment_status && order.fulfilment_status !== "open" ? (
               <StatusBadge tone={order.fulfilment_status === "fulfilled" ? "success" : "warning"}>
                 {order.fulfilment_status.replace("_", " ")}
@@ -255,14 +367,26 @@ export function OrderDetailPage() {
             ) : null}
             <p className="text-sm text-muted-foreground">Version {order.version}</p>
           </div>
+          {verificationGate &&
+          (verificationGate.kind === "missing_godown_assignment" ||
+            verificationGate.kind === "wrong_godown" ||
+            verificationGate.kind === "not_authorized") ? (
+            <p
+              role="status"
+              className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            >
+              <span className="font-medium">{verificationGate.label}. </span>
+              {verificationGate.message}
+            </p>
+          ) : null}
           <dl className="grid gap-3 sm:grid-cols-2">
             <div>
               <dt className="text-sm text-muted-foreground">Shop</dt>
-              <dd>{shopName ?? order.shop_id}</dd>
+              <dd>{shopName}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Godown</dt>
-              <dd>{branchName ?? order.branch_id}</dd>
+              <dd>{branchName}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Source</dt>
@@ -372,7 +496,7 @@ export function OrderDetailPage() {
             <div>
               <h2 className="mb-2 text-sm font-medium">Linked backorder</h2>
               <p className="text-sm">
-                <Link className="underline" to={`/orders/${linkedBackorder.id}`}>
+                <Link className="underline" to={orderRecordPath(mode, linkedBackorder.id)}>
                   {linkedBackorder.order_number}
                 </Link>{" "}
                 · {linkedBackorder.status} · outstanding remainder, not reserved
@@ -399,8 +523,8 @@ export function OrderDetailPage() {
             <div>
               <h2 className="mb-2 text-sm font-medium">Packing-eligible availability</h2>
               <p className="mb-2 text-sm text-muted-foreground">
-                Eligible cases exclude reservations, quarantine, and ineligible lots. On-hand is
-                informational. This check does not reserve stock.
+                Eligible cases are the packing-coverable quantity for this request, not remaining
+                warehouse stock. On-hand is informational crate stock. This check does not reserve.
               </p>
               {availability.isLoading ? <LoadingBlock label="Checking stock" /> : null}
               {availability.error ? (
@@ -426,9 +550,10 @@ export function OrderDetailPage() {
                       <span>On hand {row.on_hand_cases}</span>
                       <span>Eligible {row.eligible_cases}</span>
                       <span>Shortfall {row.shortfall_cases}</span>
-                      {row.blockers.length > 0 ? (
-                        <span className="sm:col-span-5 text-muted-foreground">{row.blockers.join(" ")}</span>
-                      ) : null}
+                      <span className="sm:col-span-5 text-muted-foreground">
+                        {describeAtpLine(row).summary}
+                        {row.blockers.length > 0 ? ` ${row.blockers.join(" ")}` : ""}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -467,7 +592,7 @@ export function OrderDetailPage() {
           ) : null}
 
           <div className="grid gap-4">
-            {canAllocatePicking ? (
+            {!isVerification && canAllocatePicking ? (
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to={`/picking/allocate/${order.id}`}>Allocate for packing</Link>
               </Button>
@@ -491,10 +616,27 @@ export function OrderDetailPage() {
               </Button>
             ) : null}
 
-            {canOpenDispatch ? (
+            {!isVerification && canOpenDispatch ? (
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to={`/dispatch/prepare/${order.id}`}>Open dispatch</Link>
               </Button>
+            ) : null}
+
+            {isVerification && order.status === "verified" && hasActiveDeliveryNote && openNote ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                An active delivery note already exists
+                {openNote.delivery_note_number ? ` (${openNote.delivery_note_number})` : ""}. A
+                second note cannot be created for this order.
+              </p>
+            ) : null}
+
+            {isVerification &&
+            order.status === "verified" &&
+            !hasActiveDeliveryNote &&
+            deliveryNoteBlock ? (
+              <p role="status" className="text-sm text-muted-foreground">
+                {deliveryNoteBlock}
+              </p>
             ) : null}
 
             {canCreateDeliveryNote ? (
@@ -607,4 +749,12 @@ export function OrderDetailPage() {
       ) : null}
     </section>
   )
+}
+
+export function OrderDetailPage() {
+  return <OrderRecordPage mode="capture" />
+}
+
+export function OrderVerificationDetailPage() {
+  return <OrderRecordPage mode="verification" />
 }

@@ -70,6 +70,30 @@ export function remainingCases(reserved: number, picked: number) {
   return Math.max(reserved - picked, 0)
 }
 
+/**
+ * Confirm pick records the carton count. When every active hold is fully
+ * picked, packing can complete in the same action so the operator is not
+ * left staring at an unchanged Packing screen.
+ */
+export function shouldCompletePackingAfterQuantity(reservations: {
+  status: string
+  picked_cases: number
+  reserved_cases: number
+}[]) {
+  const active = reservations.filter((row) => row.status === "active")
+  return (
+    active.length > 0 &&
+    active.every((row) => row.picked_cases === row.reserved_cases)
+  )
+}
+
+/** Whole-case quantity from the packing input. Blank or decimal is invalid. */
+export function parsePickedQuantity(raw: string) {
+  const trimmed = raw.trim()
+  if (!/^\d+$/.test(trimmed)) return null
+  return Number.parseInt(trimmed, 10)
+}
+
 export function cutoverBlocksPicking(input: {
   dual_write_enabled: boolean
   aggregate_only_blocked: boolean

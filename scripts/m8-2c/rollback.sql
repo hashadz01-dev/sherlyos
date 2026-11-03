@@ -16,7 +16,10 @@ begin
 
   update public.app_configuration
   set value = 'false'::jsonb
-  where key = 'stock.lots.dual_write_enabled';
+  where key in (
+    'stock.lots.dual_write_enabled',
+    'stock.lots.aggregate_only_blocked'
+  );
 end $$;
 
 select 'M8.2C dual-write returned to false on isolated database' as status;

@@ -48,18 +48,34 @@ export function DamageCustodyConfirmDialog({
         </>
       }
     >
+      {/* Intentional confirmation summary — must mirror panel facts before RPC. */}
       <dl className="grid gap-2 text-sm">
         <div>
           <dt className="text-muted-foreground">Report</dt>
           <dd>{report.report_number}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Receiving godown</dt>
-          <dd>{report.godown_name}</dd>
+          <dt className="text-muted-foreground">Shop</dt>
+          <dd>{report.shop_name ?? report.shop_id?.slice(0, 8) ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Product</dt>
+          <dd>
+            {report.lines[0]
+              ? `${report.lines[0].product_sku} · ${report.lines[0].product_name}`
+              : "—"}
+            {report.lines.length > 1
+              ? ` +${report.lines.length - 1} more`
+              : null}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Returned quantity</dt>
           <dd>{formatCases(cases)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Receiving godown</dt>
+          <dd>{report.godown_name}</dd>
         </div>
       </dl>
     </AppModal>

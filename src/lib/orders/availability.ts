@@ -93,6 +93,37 @@ export function isAcknowledgedDeliveryNote(note: OpenDeliveryNoteSummary | null 
   return note?.status === "acknowledged"
 }
 
+/**
+ * Eligible cases are the packing-coverable portion of *this* request, not
+ * remaining warehouse ATP. On-hand can be larger without being a shortage.
+ */
+export function describeAtpLine(line: AvailabilityLine) {
+  const covering =
+    line.eligible === true &&
+    line.shortfall_cases === 0 &&
+    line.eligible_cases >= line.requested_cases
+  const onHandExceedsEligible = line.on_hand_cases > line.eligible_cases
+  if (covering && onHandExceedsEligible) {
+    return {
+      covering: true,
+      onHandExceedsEligible: true,
+      summary: `Eligible ${line.eligible_cases} covers this ${line.requested_cases}-case request. On-hand ${line.on_hand_cases} is informational crate stock, not extra ATP.`,
+    }
+  }
+  if (covering) {
+    return {
+      covering: true,
+      onHandExceedsEligible: false,
+      summary: `Eligible ${line.eligible_cases} covers the requested ${line.requested_cases} cases.`,
+    }
+  }
+  return {
+    covering: false,
+    onHandExceedsEligible,
+    summary: `Shortfall ${line.shortfall_cases}. Eligible ${line.eligible_cases} of ${line.requested_cases} requested. On-hand ${line.on_hand_cases} is not packing ATP.`,
+  }
+}
+
 export function deliveryNoteHandoverLabel(status: string | null | undefined) {
   switch (status) {
     case "draft":

@@ -1,61 +1,56 @@
-import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
-import { formatTimestamp } from "@/features/damage/utils/labels"
-import { damagePhotoPreview, type DamageReportDetail } from "@/lib/damage/api"
+import { DamageEvidenceViewer } from "@/features/damage/components/DamageEvidenceViewer"
+import type { DamageReportDetail } from "@/lib/damage/api"
 
-function EvidencePreview({ evidenceId }: { evidenceId: string }) {
-  const [expired, setExpired] = useState(false)
-  const preview = useQuery({
-    queryKey: ["damage-photo", evidenceId],
-    queryFn: () => damagePhotoPreview(evidenceId),
-    staleTime: 45_000,
-    retry: 1,
-  })
-
-  if (preview.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading evidence…</p>
-  }
-  if (preview.error || expired) {
-    return (
-      <div className="grid gap-2">
-        <p role="alert" className="text-sm text-destructive">
-          {expired ? "Signed preview expired." : preview.error?.message}
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setExpired(false)
-            void preview.refetch()
-          }}
-        >
-          Refresh preview
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <img
-      src={preview.data}
-      alt="Finalized damage evidence"
-      className="max-h-64 w-full rounded-xl object-contain ring-1 ring-border"
-      onError={() => setExpired(true)}
-    />
-  )
+export type SessionDamagePhoto = {
+  id: string
+  url: string
+  name: string
+  /** Server evidence id after a successful finalize. */
+  evidenceId?: string
 }
 
+/**
+ * Finalized photos use signed Storage previews. Session files (just chosen in
+ * this browser) use a local object URL so the operator can view immediately.
+ */
 export function DamageEvidencePanel({
   evidence,
+  sessionPhotos = [],
+  onRemove,
+  removingId,
 }: {
   evidence: DamageReportDetail["evidence"]
+  sessionPhotos?: SessionDamagePhoto[]
+  onRemove?: (photo: {
+    id: string
+    evidenceId?: string
+    src?: string
+  }) => void | Promise<void>
+  removingId?: string | null
 }) {
   const finalized = evidence.filter((row) => row.finalized)
   const pending = evidence.filter((row) => !row.finalized)
+  const photos =
+    finalized.length > 0
+      ? finalized.map((row, index) => ({
+          id: row.id,
+          evidenceId: row.id,
+          // Stable alt for browser UAT and screen readers after trusted finalize.
+          label:
+            index === 0
+              ? "Finalized damage evidence"
+              : `Finalized damage evidence ${index + 1}`,
+          caption: row.note ?? null,
+        }))
+      : sessionPhotos.map((row, index) => ({
+          id: row.id,
+          evidenceId: row.evidenceId,
+          src: row.url,
+          label: `Photo ${index + 1}`,
+          caption: row.name,
+        }))
 
-  if (finalized.length === 0) {
+  if (photos.length === 0) {
     return (
       <div className="grid gap-2">
         <p className="text-sm text-muted-foreground">
@@ -73,16 +68,19 @@ export function DamageEvidencePanel({
   }
 
   return (
-    <ul className="grid gap-4 sm:grid-cols-2">
-      {finalized.map((row) => (
-        <li key={row.id} className="rounded-2xl bg-card p-3 ring-1 ring-border">
-          <p className="mb-2 text-xs text-muted-foreground">
-            Uploaded {formatTimestamp(row.uploaded_at)}
-            {row.mime_type ? ` · ${row.mime_type}` : ""}
-          </p>
-          <EvidencePreview evidenceId={row.id} />
-        </li>
-      ))}
-    </ul>
+    <div className="grid gap-2">
+      <DamageEvidenceViewer
+        photos={photos}
+        onRemove={onRemove}
+        removingId={removingId}
+      />
+      {pending.length > 0 ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {pending.length} earlier upload
+          {pending.length === 1 ? "" : "s"} did not finalize and are not in
+          this viewer.
+        </p>
+      ) : null}
+    </div>
   )
 }

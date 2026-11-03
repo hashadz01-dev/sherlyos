@@ -38,7 +38,7 @@ export function DamageHoldsPanel({
   const eligible = canTransferVerifiedDamage({
     scenario: report.scenario,
     status: report.status,
-    canVerify: access.canVerify,
+    canDisposition: access.canDisposition,
     activeOnHandHolds: activeOnHand.length,
   })
   const [open, setOpen] = useState(false)

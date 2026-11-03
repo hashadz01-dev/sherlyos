@@ -21,8 +21,10 @@ import { useDamageAccess } from "@/features/damage/hooks/use-damage-access"
 import { useAuth } from "@/hooks/use-auth"
 import { isEditableDamageStatus } from "@/lib/damage/rules"
 import {
+  clientWorkflowStatus,
   damageStatusTone,
   formatCases,
+  formatClientDamageCategory,
   formatDamageScenario,
   formatDamageStatus,
   formatTimestamp,
@@ -114,6 +116,17 @@ export function DamageReportDetailPage() {
                 <div>
                   <dt className="text-muted-foreground">Scenario</dt>
                   <dd>{formatDamageScenario(report.scenario)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Client category</dt>
+                  <dd>{formatClientDamageCategory(report.scenario)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Client workflow</dt>
+                  <dd>
+                    {clientWorkflowStatus(report.status) ??
+                      "Internal — not Open/Verified/Closed"}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Godown</dt>

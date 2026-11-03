@@ -29,6 +29,7 @@ const accessState = {
   canRead: true,
   canRecord: true,
   canVerify: true,
+  canDisposition: true,
   canMonitor: false,
   canTransitOnly: false,
   isAdminMonitor: false,
@@ -184,6 +185,8 @@ describe("custody panel and dialog", () => {
       screen.getByRole("button", { name: /confirm physical custody/i }),
     )
     expect(screen.getByText(/does not submit the report/i)).toBeInTheDocument()
+    expect(screen.getAllByText("Corner Shop").length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/SKU-1/).length).toBeGreaterThan(0)
     await user.click(
       screen.getByRole("button", { name: /confirm physical custody now/i }),
     )

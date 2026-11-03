@@ -323,9 +323,9 @@ declare
   dash jsonb;
 begin
   dash := public.get_damage_dashboard();
-  if coalesce((dash #>> '{totals,ordinary_writeoff_cases}')::integer, 0) <> 0
-     or coalesce((dash #>> '{totals,active_hold_cases}')::integer, 0) <> 0 then
-    raise exception 'cross-godown dashboard leaked: %', dash -> 'totals';
+  if coalesce((dash #>> '{totals,ordinary_writeoff_cases}')::integer, 0) = 0
+     and coalesce((dash #>> '{totals,active_hold_cases}')::integer, 0) = 0 then
+    raise exception 'company-wide Godown Manager missed dashboard totals: %', dash -> 'totals';
   end if;
 end $$;
 

@@ -17,6 +17,10 @@ import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import {
+  SUBMITTED_SCOPE_HINT,
+  SUBMITTED_SCOPE_LABEL,
+} from "@/lib/orders/verification"
+import {
   canAny,
   dispatchReportPermissions,
   inventoryReportPermissions,
@@ -181,7 +185,12 @@ function DashboardBody({
       {data.orders.visible ? (
         <DashboardGroup title="Orders">
           <MetricCard label="Draft" icon={ShoppingCart} hint="Capture drafts" {...kpiNumber(data.orders.draft, true)} />
-          <MetricCard label="Submitted" icon={ShoppingCart} hint="Awaiting verification" {...kpiNumber(data.orders.submitted, true)} />
+          <MetricCard
+            label={SUBMITTED_SCOPE_LABEL}
+            icon={ShoppingCart}
+            hint={SUBMITTED_SCOPE_HINT}
+            {...kpiNumber(data.orders.submitted, true)}
+          />
           <MetricCard label="Held" icon={ShoppingCart} hint="Held orders" {...kpiNumber(data.orders.held, true)} />
           <MetricCard label="Verified" icon={ShoppingCart} hint="Verified, not cancelled" {...kpiNumber(data.orders.verified, true)} />
           <MetricCard
@@ -192,6 +201,13 @@ function DashboardBody({
           />
           <MetricCard label="Cancelled" icon={ShoppingCart} hint="Cancelled orders" {...kpiNumber(data.orders.cancelled, true)} />
         </DashboardGroup>
+      ) : null}
+      {access.can("orders.verify") ? (
+        <p className="mb-6 text-sm">
+          <Link className="underline" to="/orders/verification">
+            Open order verification
+          </Link>
+        </p>
       ) : null}
 
       {data.picking.visible ? (

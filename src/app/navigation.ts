@@ -52,10 +52,20 @@ export const navigationItems: AppNavItem[] = [
     label: "Orders",
     title: "Orders",
     description:
-      "Capture shop requests and review their status. Verification does not change inventory.",
+      "Create, submit, and track shop orders. Approval happens in Order verification.",
     group: "Operations",
     icon: ShoppingCart,
     anyPermissions: ["orders.capture", "orders.verify", "operations.monitor"],
+  },
+  {
+    to: "/orders/verification",
+    label: "Order verification",
+    title: "Order verification",
+    description:
+      "Accounts reviews submitted shop orders, then verifies or holds them. Inventory does not change here.",
+    group: "Operations",
+    icon: ClipboardCheck,
+    permission: "orders.verify",
   },
 
   {
@@ -162,8 +172,18 @@ export const navigationItems: AppNavItem[] = [
     ],
   },
   {
+    to: "/receiving/verification",
+    label: "Receipt verification",
+    title: "Receipt verification",
+    description:
+      "Godown Manager reviews submitted supplier receipts, posts accepted cartons, and reopens past verifications.",
+    group: "Operations",
+    icon: ClipboardCheck,
+    permission: "receiving.verify",
+  },
+  {
     to: "/stock-verification",
-    label: "Verification",
+    label: "Daily count",
     title: "Daily Stock Verification",
     description:
       "Count selected crates against a frozen stock snapshot and record any difference.",

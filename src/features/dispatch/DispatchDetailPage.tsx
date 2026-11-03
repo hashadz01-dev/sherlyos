@@ -28,6 +28,8 @@ import {
   canReassignDelivery,
   canStartDelivery,
   deliveryReturnStatusLabel,
+  DISPATCH_ASSIGNEE_EMPTY_MESSAGE,
+  dispatchDetailBackLink,
   dispatchEventLabel,
   dispatchStatusLabel,
   dispatchStatusTone,
@@ -42,6 +44,10 @@ export function DispatchDetailPage() {
   const { dispatchId = "" } = useParams()
   const queryClient = useQueryClient()
   const { can } = useAccess()
+  const backLink = dispatchDetailBackLink({
+    canConfirmDispatch: can("dispatch.confirm"),
+    canExecuteDelivery: can("deliveries.execute"),
+  })
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [ackOpen, setAckOpen] = useState(false)
@@ -197,6 +203,11 @@ export function DispatchDetailPage() {
       <PageHeader
         title={request ? request.request_number : "Dispatch"}
         description="One physical dispatch consumes reserved carton cases exactly once. Delivery acknowledgement does not change inventory."
+        action={
+          <Button asChild variant="outline">
+            <Link to={backLink.to}>{backLink.label}</Link>
+          </Button>
+        }
       />
       {detail.isLoading ? <LoadingBlock label="Loading dispatch" /> : null}
       {detail.error ? (
@@ -212,6 +223,7 @@ export function DispatchDetailPage() {
           canExecute={can("deliveries.execute")}
           canException={can("dispatch.exception") || can("deliveries.execute")}
           assignees={assignees.data ?? []}
+          assigneesError={assignees.error?.message ?? null}
           vehicles={vehicles.data ?? []}
           assignee={assignee}
           vehicle={vehicle}
@@ -430,6 +442,7 @@ function DispatchBody({
   canExecute,
   canException,
   assignees,
+  assigneesError,
   vehicles,
   assignee,
   vehicle,
@@ -451,6 +464,7 @@ function DispatchBody({
   canExecute: boolean
   canException: boolean
   assignees: { id: string; full_name: string }[]
+  assigneesError: string | null
   vehicles: AssignableVehicle[]
   assignee: string
   vehicle: string
@@ -636,6 +650,14 @@ function DispatchBody({
                 </option>
               ))}
             </select>
+            {assigneesError ? (
+              <span className="text-xs font-normal text-destructive">{assigneesError}</span>
+            ) : null}
+            {!assigneesError && assignees.length === 0 ? (
+              <span className="text-xs font-normal text-muted-foreground">
+                {DISPATCH_ASSIGNEE_EMPTY_MESSAGE}
+              </span>
+            ) : null}
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Assign vehicle

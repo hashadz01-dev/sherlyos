@@ -203,6 +203,19 @@ export type DamageSourceItem = {
   lines?: DamageSourceLine[]
 }
 
+/** Lot grain from list_damage_report_sources storage catalogs (dual-write). */
+export type DamageStorageLotOption = {
+  lot_id: string
+  product_id: string
+  crate_id: string
+  manufacturer_lot_code: string | null
+  expiry_date: string | null
+  on_hand_cases: number
+  reserved_cases: number
+  held_cases: number
+  available_cases: number
+}
+
 export type DamageSourceCatalogs = {
   crates?: {
     id: string
@@ -218,6 +231,9 @@ export type DamageSourceCatalogs = {
     product_id: string
     on_hand_cases: number
   }[]
+  /** True when stock.lots.dual_write_enabled — storage lines must pick a lot. */
+  dual_write_enabled?: boolean
+  lots?: DamageStorageLotOption[]
 }
 
 export type DamageSourceList = {
@@ -592,6 +608,13 @@ export async function uploadDamagePhoto(
     image_base64: bytesToBase64(payload),
   })
   return created.id
+}
+
+/** Remove private evidence before verification. Verified reports stay immutable. */
+export function discardDamagePhoto(targetEvidence: string) {
+  return callRpc<DamageReportDetail>("discard_damage_photo", {
+    target_evidence: targetEvidence,
+  })
 }
 
 export function verifyDamageReport(

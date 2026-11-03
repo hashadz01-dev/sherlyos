@@ -6,12 +6,15 @@ import {
   parseCartonQuantity,
   sourceRefsForScenario,
   submitIdempotencyKey,
+  inboundQuantityMessage,
   validateDraftLines,
   type DraftLine,
 } from "@/features/damage/utils/draft"
+import { inboundReceiptAvailability } from "@/features/damage/utils/quantities"
 import {
   collectSubmitBlockers,
   mapDamageMutationError,
+  reportHasFinalizedEvidence,
   scenarioSubmitHint,
 } from "@/features/damage/utils/submit"
 import {
@@ -56,7 +59,7 @@ describe("damage scenario availability", () => {
     ])
   })
 
-  it("limits Store Keeper to inbound and loading", () => {
+  it("limits Store Keeper to inbound, storage drafts, and loading", () => {
     const can = (permission: string) =>
       ["damage.record", "receiving.execute", "loading.assist"].includes(
         permission,
@@ -64,9 +67,18 @@ describe("damage scenario availability", () => {
     expect(scenariosAvailableForPermissions(can)).toEqual([
       "refill_supply",
       "unloading",
+      "storage",
       "loading",
       "transit",
     ])
+  })
+
+  it("still denies shop-return to Store Keeper without damage.verify", () => {
+    const can = (permission: string) =>
+      ["damage.record", "receiving.execute", "loading.assist"].includes(
+        permission,
+      )
+    expect(scenariosAvailableForPermissions(can)).not.toContain("shop_return")
   })
 
   it("limits Delivery Person to transit and denies general create for admin monitors", () => {
@@ -164,6 +176,53 @@ describe("damage draft line validation", () => {
     )
   })
 
+  it("does not double-count this draft when remaining is listed as zero", () => {
+    expect(
+      inboundReceiptAvailability({
+        damagedCases: 2,
+        alreadyReported: 2,
+        ownQuantity: 2,
+      }),
+    ).toEqual({
+      damagedCases: 2,
+      claimedByOthers: 0,
+      ownQuantity: 2,
+      remaining: 2,
+    })
+    expect(
+      inboundReceiptAvailability({
+        damagedCases: 2,
+        alreadyReported: 2,
+        ownQuantity: 0,
+      }).remaining,
+    ).toBe(0)
+  })
+
+  it("rejects 10 or 3 against a 2-case receipt and accepts 2 when unclaimed", () => {
+    const cap = {
+      damagedCases: 2,
+      remaining: 2,
+      claimingNumbers: [] as string[],
+    }
+    expect(inboundQuantityMessage(10, cap)).toMatch(/only 2 damaged cases/i)
+    expect(inboundQuantityMessage(3, cap)).toMatch(/only 2 damaged cases/i)
+    expect(inboundQuantityMessage(2, cap)).toBeNull()
+    expect(
+      inboundQuantityMessage(2, {
+        damagedCases: 2,
+        remaining: 0,
+        claimingNumbers: ["DMG-20261102-000001"],
+      }),
+    ).toMatch(/already linked to damage report DMG-20261102-000001/i)
+    expect(
+      validateDraftLines(
+        "refill_supply",
+        [line({ quantity_cases: "10", receipt_line_id: "rl1" })],
+        { rl1: cap },
+      ).join(" "),
+    ).toMatch(/only 2 damaged cases/i)
+  })
+
   it("blocks duplicate grains", () => {
     const errors = validateDraftLines("storage", [
       line({ key: "a" }),
@@ -185,7 +244,13 @@ describe("damage submission readiness", () => {
       custodyConfirmed: true,
     })
     expect(blockers.some((row) => row.code === "isolation")).toBe(true)
-    expect(scenarioSubmitHint("storage", false)).toMatch(/blocked/i)
+    expect(scenarioSubmitHint("storage", false)).toMatch(
+      /drafts only/i,
+    )
+    expect(scenarioSubmitHint("storage", false)).toMatch(
+      /remain allocatable/i,
+    )
+    expect(scenarioSubmitHint("loading", false)).toMatch(/blocked/i)
   })
 
   it("allows inbound and transit submit messaging without holds", () => {
@@ -211,6 +276,19 @@ describe("damage submission readiness", () => {
       custodyConfirmed: false,
     })
     expect(blockers.some((row) => row.code === "custody")).toBe(true)
+    expect(blockers.find((row) => row.code === "custody")?.message).toMatch(
+      /Confirm physical custody/i,
+    )
+    expect(
+      collectSubmitBlockers({
+        scenario: "shop_return",
+        stockHoldReady: true,
+        linesValid: true,
+        sourceSelected: true,
+        finalizedEvidence: 1,
+        custodyConfirmed: true,
+      }).some((row) => row.code === "custody"),
+    ).toBe(false)
   })
 
   it("blocks missing evidence and invalid lines", () => {
@@ -226,6 +304,7 @@ describe("damage submission readiness", () => {
       expect.arrayContaining(["lines", "evidence"]),
     )
   })
+
 })
 
 describe("damage mutation error mapping", () => {
@@ -256,6 +335,19 @@ describe("damage mutation error mapping", () => {
     expect(isSupportedDamagePhotoMime("application/pdf")).toBe(false)
     expect(
       mapDamageMutationError("photo content could not be verified", "finalize"),
-    ).toMatch(/did not finalize/i)
+    ).toMatch(/evidence verification failed/i)
+    expect(
+      mapDamageMutationError("damaged quantity exceeds the receipt line"),
+    ).toMatch(/remaining quantity on the receipt line/i)
+    expect(
+      reportHasFinalizedEvidence({
+        evidence: [{ id: "e1", finalized: false }],
+      } as never),
+    ).toBe(false)
+    expect(
+      reportHasFinalizedEvidence({
+        evidence: [{ id: "e1", finalized: true }],
+      } as never),
+    ).toBe(true)
   })
 })

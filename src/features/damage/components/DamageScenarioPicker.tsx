@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label"
 import {
   damageScenarioDescriptions,
+  formatClientDamageCategory,
   formatDamageScenario,
 } from "@/features/damage/utils/labels"
 import { damageScenarios, type DamageScenario } from "@/lib/damage/rules"
@@ -42,6 +43,9 @@ export function DamageScenarioPicker({
                 <span>
                   <span className="block text-sm font-medium">
                     {formatDamageScenario(scenario)}
+                  </span>
+                  <span className="mt-1 block text-xs font-medium text-muted-foreground">
+                    {formatClientDamageCategory(scenario)}
                   </span>
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {damageScenarioDescriptions[scenario]}

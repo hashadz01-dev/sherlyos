@@ -137,4 +137,51 @@ describe("dashboard", () => {
     expect(screen.getByText("Inactive (historical)")).toBeInTheDocument()
     expect(screen.queryByText("Orders Today")).not.toBeInTheDocument()
   })
+
+  it("scopes submitted counts and explains a missing godown assignment", async () => {
+    access.permissions = ["orders.verify", "stock.read"]
+    reports.getOperationsDashboard.mockResolvedValue({
+      timezone: "UTC",
+      filter_branch: null,
+      authorized_branches: [],
+      cutover: { dual_write_enabled: false, aggregate_only_blocked: false },
+      inventory: {
+        visible: true,
+        total_cartons_on_hand: 0,
+        products_with_positive_stock: 0,
+        stock_by_godown: [],
+        lot_attributed_cartons: 0,
+        legacy_unattributed_cartons: 0,
+        active_reserved_cartons: 0,
+        available_to_pick: {
+          state: "not_applicable",
+          reason: "lot_aware_allocation_inactive",
+          value: null,
+        },
+      },
+      orders: {
+        visible: true,
+        draft: 0,
+        submitted: 0,
+        held: 0,
+        verified: 0,
+        cancelled: 0,
+        awaiting_picking: 0,
+      },
+      picking: { visible: false },
+      dispatch: { visible: false },
+      deliveries: { visible: false },
+      operations: { visible: false },
+    })
+    renderDashboard()
+
+    expect(await screen.findByText("Submitted")).toBeInTheDocument()
+    expect(screen.queryByText(/You are not assigned to Godown-1/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Open order verification" })).toHaveAttribute(
+      "href",
+      "/orders/verification",
+    )
+    expect(screen.getByRole("link", { name: "Order verification" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Employees" })).not.toBeInTheDocument()
+  })
 })

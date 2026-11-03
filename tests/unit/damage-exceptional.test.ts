@@ -20,7 +20,7 @@ import {
 const eligibleRequest = {
   status: "verified",
   scenario: "storage",
-  canVerify: true,
+  canDisposition: true,
   hasFinalizedEvidence: true,
   remainingHoldCases: 2,
   ordinaryPosted: false,
@@ -82,7 +82,7 @@ describe("exceptional approval and execution", () => {
     ).toBe(false)
     expect(
       canExecuteExceptionalDisposition({
-        canVerify: true,
+        canDisposition: true,
         requestStatus: "requested",
         remainingHoldCases: 2,
         godownActive: true,
@@ -93,7 +93,7 @@ describe("exceptional approval and execution", () => {
   it("allows GM execution only after approval", () => {
     expect(
       canExecuteExceptionalDisposition({
-        canVerify: true,
+        canDisposition: true,
         requestStatus: "approved",
         remainingHoldCases: 2,
         godownActive: true,
@@ -101,7 +101,7 @@ describe("exceptional approval and execution", () => {
     ).toBe(true)
     expect(
       collectExceptionalExecuteBlockers({
-        canVerify: false,
+        canDisposition: false,
         requestStatus: "approved",
         remainingHoldCases: 2,
         godownActive: true,

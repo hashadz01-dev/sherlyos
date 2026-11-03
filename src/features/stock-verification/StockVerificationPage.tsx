@@ -72,6 +72,21 @@ export function StockVerificationPage() {
       ) : null}
       {verifications.data ? (
         <>
+          {can("receiving.verify") ? (
+            <p
+              role="status"
+              className="mb-4 max-w-3xl rounded-2xl bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950 ring-1 ring-sky-200"
+            >
+              Submitted supplier receipts are verified under{" "}
+              <Link
+                className="font-medium underline-offset-2 hover:underline"
+                to="/receiving/verification"
+              >
+                Receipt verification
+              </Link>
+              . This page is the daily crate count and does not post inbound stock.
+            </p>
+          ) : null}
           {missingNotice ? (
             <p
               role="status"

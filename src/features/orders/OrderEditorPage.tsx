@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate, useParams } from "react-router"
+import { Link, useNavigate, useParams } from "react-router"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
+import { Button } from "@/components/ui/button"
 import { OrderForm, type OrderFormValues } from "@/features/orders/OrderForm"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
@@ -47,6 +48,11 @@ export function NewOrderPage() {
       <PageHeader
         title="New order"
         description="Save a draft request for an authorized shop and godown. Stock is not reserved."
+        action={
+          <Button asChild variant="outline">
+            <Link to="/orders">Back to orders</Link>
+          </Button>
+        }
       />
       {shops.isLoading || branches.isLoading ? (
         <LoadingBlock label="Loading catalog" />
@@ -126,6 +132,13 @@ export function EditOrderPage() {
       <PageHeader
         title={order ? `Edit ${order.order_number}` : "Edit order"}
         description="Replace the shop, godown, source, and lines. Status stays the same."
+        action={
+          <Button asChild variant="outline">
+            <Link to={orderId !== "" ? `/orders/${orderId}` : "/orders"}>
+              Back to order
+            </Link>
+          </Button>
+        }
       />
       {detail.isLoading || shops.isLoading || branches.isLoading ? (
         <LoadingBlock label="Loading order" />

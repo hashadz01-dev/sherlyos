@@ -59,9 +59,10 @@ Sequence after owner approval:
   6. ${APPROVAL_ENV}=1 node scripts/m8-2c/http-seed.mjs --stock
   7. npx playwright test -c playwright.m82c.config.ts
 
-Default flags on a fresh stack stay false. Dual-write is enabled only in step 5
-on this isolated database. damage.stock_hold_ready and aggregate_only_blocked
-stay false. SHORT_SHIPMENT_OPERATIONAL stays false in source.
+Default flags on a fresh stack stay false. Isolated cutover (step 5) sets
+stock.lots.dual_write_enabled and stock.lots.aggregate_only_blocked together
+because the schema requires that pair. damage.stock_hold_ready stays false.
+SHORT_SHIPMENT_OPERATIONAL stays false in source.
 `)
 }
 
@@ -76,19 +77,24 @@ function writeRehearsal() {
     "-- Isolated M8.2C seed is applied later through guarded scripts.\n",
   )
   let config = readFileSync(resolve(rehearsalSupabase, "config.toml"), "utf8")
-  config = config
-    .replace('project_id = "sherlyos"', `project_id = "${PROJECT_ID}"`)
-    .replace("port = 54321", `port = ${API_PORT}`)
-    .replace("port = 54322", `port = ${DB_PORT}`)
-    .replace("shadow_port = 54320", `shadow_port = ${SHADOW_PORT}`)
-    .replace("port = 54329", `port = ${POOLER_PORT}`)
-    .replace("[realtime]\nenabled = true", "[realtime]\nenabled = false")
-    .replace("[studio]\nenabled = true", "[studio]\nenabled = false")
-    .replace("port = 54323", `port = ${STUDIO_PORT}`)
-    .replace("port = 54324", `port = ${INBUCKET_PORT}`)
-    .replace("[analytics]\nenabled = true", "[analytics]\nenabled = false")
-    .replace("port = 54327", `port = ${ANALYTICS_PORT}`)
-    .replace("[db.seed]\nenabled = true", "[db.seed]\nenabled = false")
+  // Unique port rewrite so this stack cannot bind owner 5432x or m81c 5632x.
+  const ports = [
+    ["54329", POOLER_PORT],
+    ["54327", ANALYTICS_PORT],
+    ["54324", INBUCKET_PORT],
+    ["54323", STUDIO_PORT],
+    ["54322", DB_PORT],
+    ["54321", API_PORT],
+    ["54320", SHADOW_PORT],
+  ]
+  for (const [from, to] of ports) {
+    config = config.split(from).join(to)
+  }
+  config = config.replace('project_id = "sherlyos"', `project_id = "${PROJECT_ID}"`)
+  config = config.replace(/\[realtime\]\r?\nenabled = true/, "[realtime]\nenabled = false")
+  config = config.replace(/\[studio\]\r?\nenabled = true/, "[studio]\nenabled = false")
+  config = config.replace(/\[analytics\]\r?\nenabled = true/, "[analytics]\nenabled = false")
+  config = config.replace(/\[db\.seed\]\r?\nenabled = true/, "[db.seed]\nenabled = false")
   writeFileSync(resolve(rehearsalSupabase, "config.toml"), config)
   writeFileSync(
     resolve(repo, ".env.m82c.local"),

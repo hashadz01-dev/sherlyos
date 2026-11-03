@@ -3,7 +3,7 @@
  * Submit always goes through submit_damage_report. Isolation and custody
  * remain backend fail-closed gates; this page never posts stock.
  */
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppModal } from "@/components/shared/AppModal"
@@ -12,8 +12,12 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { DamageCustodyPanel } from "@/features/damage/components/DamageCustodyPanel"
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
-import { DamageLineEditor } from "@/features/damage/components/DamageLineEditor"
+import {
+  DamageLineEditor,
+  type ClaimingDamageReport,
+} from "@/features/damage/components/DamageLineEditor"
 import { DamageReadinessBanner } from "@/features/damage/components/DamageReadinessBanner"
 import { DamageScenarioPicker } from "@/features/damage/components/DamageScenarioPicker"
 import { DamageSourcePicker } from "@/features/damage/components/DamageSourcePicker"
@@ -27,8 +31,10 @@ import {
   toReportLineInputs,
   validateDraftLines,
   type DraftLine,
+  type InboundLineCap,
   type SourceRefs,
 } from "@/features/damage/utils/draft"
+import { inboundReceiptAvailability } from "@/features/damage/utils/quantities"
 import {
   damageStatusTone,
   formatDamageStatus,
@@ -45,6 +51,7 @@ import {
   createDamageReport,
   getDamageReport,
   getDamageStockHoldReadyStatus,
+  listDamageReports,
   submitDamageReport,
   updateDamageReport,
   type DamageSourceCatalogs,
@@ -96,10 +103,15 @@ function DamageReportEditor({
     queryFn: () => getDamageReport(savedId),
     enabled: savedId !== "",
   })
+  // Backend RPC is authoritative; short staleTime + focus refetch so a
+  // cutover is visible without a hard reload. Never enable submit from a
+  // client-only constant.
   const readiness = useQuery({
     queryKey: ["damage-hold-ready"],
     queryFn: getDamageStockHoldReadyStatus,
     enabled: access.canOpenDamage,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
   })
 
   const report = existing.data ?? null
@@ -166,24 +178,96 @@ function DamageReportEditor({
       item: DamageSourceItem,
       nextCatalogs: DamageSourceCatalogs,
       nextRefs: SourceRefs,
+      meta?: { hydrate?: boolean },
     ) => {
       setCatalogs(nextCatalogs)
       setRefs(nextRefs)
-      // Storage auto-selects the godown after catalogs load. Keep any lines
-      // already entered for that same source so a late catalog refresh does
-      // not wipe the draft form.
+      // Hydrating an existing draft must keep its lines. A real source change
+      // still drops incompatible quantities so counted-cases cannot linger.
       setSource((previous) => {
-        if (previous?.id !== item.id) {
+        if (previous && previous.id !== item.id) {
           setLines([])
         }
         return item
       })
-      markDirty()
+      if (!meta?.hydrate) markDirty()
     },
     [markDirty],
   )
 
-  const lineErrors = scenario ? validateDraftLines(scenario, lines) : []
+  const inboundScenario =
+    scenario === "refill_supply" || scenario === "unloading"
+  const claims = useQuery({
+    queryKey: ["damage-reports", godownId, scenario, "inbound-claims"],
+    queryFn: () =>
+      listDamageReports({
+        page: 1,
+        pageSize: 50,
+        targetGodown: godownId,
+        scenario: scenario || null,
+      }),
+    enabled: inboundScenario && Boolean(godownId),
+  })
+  const claimingReports: ClaimingDamageReport[] = useMemo(() => {
+    const receiptId = source?.receipt_id ?? source?.id ?? refs.receiptId
+    if (!receiptId) return []
+    return (claims.data?.items ?? [])
+      .filter(
+        (row) =>
+          row.receipt_id === receiptId &&
+          row.id !== report?.id &&
+          row.status !== "cancelled" &&
+          row.status !== "rejected",
+      )
+      .map((row) => ({
+        id: row.id,
+        report_number: row.report_number,
+        status: row.status,
+      }))
+  }, [claims.data, source, refs.receiptId, report?.id])
+
+  const savedOwnByReceiptLine = useMemo(() => {
+    const own: Record<string, number> = {}
+    for (const line of report?.lines ?? []) {
+      if (!line.receipt_line_id) continue
+      own[line.receipt_line_id] =
+        (own[line.receipt_line_id] ?? 0) + Number(line.quantity_cases || 0)
+    }
+    return own
+  }, [report?.lines])
+
+  const inboundCaps = useMemo(() => {
+    const caps: Record<string, InboundLineCap> = {}
+    for (const sourceLine of source?.lines ?? []) {
+      if (!sourceLine.receipt_line_id) continue
+      const available = inboundReceiptAvailability({
+        damagedCases: sourceLine.damaged_cases ?? 0,
+        alreadyReported: sourceLine.already_reported ?? 0,
+        ownQuantity: savedOwnByReceiptLine[sourceLine.receipt_line_id] ?? 0,
+      })
+      caps[sourceLine.receipt_line_id] = {
+        damagedCases: available.damagedCases,
+        remaining: available.remaining,
+        claimingNumbers: claimingReports.map((row) => row.report_number),
+      }
+    }
+    return caps
+  }, [source?.lines, savedOwnByReceiptLine, claimingReports])
+
+  const lotAvailableById = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const lot of catalogs.lots ?? []) {
+      map[lot.lot_id] = lot.available_cases
+    }
+    return map
+  }, [catalogs.lots])
+
+  const lineErrors = scenario
+    ? validateDraftLines(scenario, lines, inboundCaps, {
+        requireStorageLot: catalogs.dual_write_enabled === true,
+        lotAvailableById,
+      })
+    : []
   const sourceSelected =
     scenario === "storage"
       ? Boolean(godownId)
@@ -210,7 +294,7 @@ function DamageReportEditor({
     await existing.refetch()
   }
 
-  async function saveDraft() {
+  async function saveDraft(options?: { replaceUrl?: boolean }) {
     if (!scenario || !godownId) {
       setActionError("Select a scenario and godown.")
       return null
@@ -259,7 +343,9 @@ function DamageReportEditor({
           ? `${saved.report_number} saved`
           : `Draft ${saved.report_number} created`,
       )
-      if (mode === "create" && !reportId) {
+      // Photo attach on /damage/new must keep this form mounted until upload
+      // finishes. The Save draft button still moves to the edit URL.
+      if (options?.replaceUrl !== false && mode === "create" && !reportId) {
         await navigate(`/damage/${saved.id}/edit`, { replace: true })
       }
       return saved
@@ -293,7 +379,15 @@ function DamageReportEditor({
       )
       setDirty(false)
       queryClient.setQueryData(["damage-report", submitted.id], submitted)
-      notify.success(`${submitted.report_number} submitted`)
+      await queryClient.invalidateQueries({ queryKey: ["damage-hold-ready"] })
+      const heldCases = (submitted.holds ?? [])
+        .filter((hold) => hold.status === "active" || hold.status === "transferred")
+        .reduce((sum, hold) => sum + hold.quantity_cases, 0)
+      notify.success(
+        heldCases > 0
+          ? `${submitted.report_number} submitted — ${heldCases} case(s) isolated from picking`
+          : `${submitted.report_number} submitted`,
+      )
       await navigate(`/damage/${submitted.id}`)
     } catch (caught) {
       const message = mapDamageMutationError(caught, "submit")
@@ -429,7 +523,8 @@ function DamageReportEditor({
         <DamageSourcePicker
           scenario={scenario}
           godownId={godownId}
-          selectedId={source?.id ?? ""}
+          selectedId={source?.id || refs.receiptId || ""}
+          hydrateOnMatch={Boolean(refs.receiptId && !source)}
           disabled={busy !== null}
           onSelect={onSelectSource}
           onCatalogs={setCatalogs}
@@ -443,6 +538,8 @@ function DamageReportEditor({
           catalogs={catalogs}
           lines={lines}
           disabled={busy !== null}
+          savedOwnByReceiptLine={savedOwnByReceiptLine}
+          claimingReports={claimingReports}
           onChange={(next) => {
             setLines(next)
             markDirty()
@@ -475,8 +572,25 @@ function DamageReportEditor({
       <DamageEvidenceUploader
         report={report}
         disabled={busy !== null || !editable}
-        onUploaded={() => refreshReport()}
+        ensureDraft={() => saveDraft({ replaceUrl: false })}
+        onUploaded={async (id) => {
+          await refreshReport(id)
+          if (mode === "create" && !reportId && id) {
+            await navigate(`/damage/${id}/edit`, { replace: true })
+          }
+        }}
       />
+
+      {/*
+        Shop-return custody must be confirmable on the edit screen where submit
+        blockers appear. Detail page keeps the same panel; this is not a bypass.
+      */}
+      {report?.scenario === "shop_return" ? (
+        <DamageCustodyPanel
+          report={report}
+          onConfirmed={() => void refreshReport(report.id)}
+        />
+      ) : null}
 
       <DamageSubmitReview
         scenario={scenario}

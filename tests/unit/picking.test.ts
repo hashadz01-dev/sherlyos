@@ -6,7 +6,9 @@ import {
   nextOrderPickingAction,
   parsePickingFulfilment,
   pickingHasShortage,
+  parsePickedQuantity,
   remainingCases,
+  shouldCompletePackingAfterQuantity,
   shortShipmentNotOperationalMessage,
 } from "@/lib/picking/rules"
 
@@ -15,6 +17,34 @@ describe("picking rules", () => {
     expect(remainingCases(10, 4)).toBe(6)
     expect(remainingCases(4, 4)).toBe(0)
     expect(remainingCases(4, 9)).toBe(0)
+  })
+
+  it("completes packing only after every active hold is fully picked", () => {
+    expect(
+      shouldCompletePackingAfterQuantity([
+        { status: "active", picked_cases: 2, reserved_cases: 2 },
+      ]),
+    ).toBe(true)
+    expect(
+      shouldCompletePackingAfterQuantity([
+        { status: "active", picked_cases: 1, reserved_cases: 2 },
+      ]),
+    ).toBe(false)
+    expect(
+      shouldCompletePackingAfterQuantity([
+        { status: "active", picked_cases: 2, reserved_cases: 2 },
+        { status: "released", picked_cases: 0, reserved_cases: 0 },
+      ]),
+    ).toBe(true)
+    expect(shouldCompletePackingAfterQuantity([])).toBe(false)
+  })
+
+  it("rejects blank or decimal picked quantities", () => {
+    expect(parsePickedQuantity("2")).toBe(2)
+    expect(parsePickedQuantity("0")).toBe(0)
+    expect(parsePickedQuantity("")).toBeNull()
+    expect(parsePickedQuantity("1.5")).toBeNull()
+    expect(parsePickedQuantity("-1")).toBeNull()
   })
 
   it("blocks allocation while dual-write is off", () => {

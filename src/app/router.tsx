@@ -50,6 +50,8 @@ import {
   OrderDetailPage,
   OrderPickingReportPage,
   OrdersPage,
+  OrderVerificationDetailPage,
+  OrderVerificationPage,
   PickingAllocatePage,
   PickingDetailPage,
   PickingExceptionsPage,
@@ -58,6 +60,8 @@ import {
   ProductsPage,
   ReceiptDetailPage,
   ReceiptEditorPage,
+  ReceiptVerificationDetailPage,
+  ReceiptVerificationPage,
   ReceivingPage,
   EditRefillRequestPage,
   NewRefillRequestPage,
@@ -133,6 +137,22 @@ export const appRouteObjects: RouteObject[] = [
               >
                 <OrdersPage />
               </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "orders/verification",
+            element: (
+              <RequirePermission permission="orders.verify">
+                <OrderVerificationPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "orders/verification/:orderId",
+            element: (
+              <RequirePermission permission="orders.verify">
+                <OrderVerificationDetailPage />
+              </RequirePermission>
             ),
           },
           {
@@ -451,6 +471,22 @@ export const appRouteObjects: RouteObject[] = [
               >
                 <ReceivingPage />
               </RequireAnyPermission>
+            ),
+          },
+          {
+            path: "receiving/verification",
+            element: (
+              <RequirePermission permission="receiving.verify">
+                <ReceiptVerificationPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "receiving/verification/:receiptId",
+            element: (
+              <RequirePermission permission="receiving.verify">
+                <ReceiptVerificationDetailPage />
+              </RequirePermission>
             ),
           },
           {

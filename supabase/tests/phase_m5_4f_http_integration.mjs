@@ -330,7 +330,9 @@ try {
     set session_replication_role = origin;
   `)
 
-  const dash = await rpc(godown, "get_damage_dashboard", {})
+  const dash = await rpc(godown, "get_damage_dashboard", {
+    target_godown: branch,
+  })
   if (Number(dash?.totals?.ordinary_writeoff_cases) !== 3) {
     throw new Error(`ordinary dashboard ${JSON.stringify(dash?.totals)}`)
   }

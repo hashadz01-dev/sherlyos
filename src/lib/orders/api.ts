@@ -1,4 +1,5 @@
 import { callRpc, loadRows } from "@/lib/masters/api"
+import { fetchAllRows } from "@/lib/supabase/fetch-all"
 import {
   parseAvailabilitySnapshot,
   shortageLinesFromErrorDetails,
@@ -308,4 +309,27 @@ export function loadOrderBranches() {
 
 export function loadOrderProducts() {
   return loadRows<OrderCatalogProduct>("products", "id, sku, name, is_active", "name")
+}
+
+/** RLS on order_lines already uses can_view_order, so hidden orders stay hidden. */
+export async function loadOrderLineRows(orderIds: string[]) {
+  if (orderIds.length === 0) return [] as { order_id: string; requested_cases: number }[]
+  const supabase = client()
+  return fetchAllRows<{ order_id: string; requested_cases: number }>((from, to) =>
+    supabase
+      .from("order_lines")
+      .select("order_id, requested_cases")
+      .in("order_id", orderIds)
+      .order("id")
+      .range(from, to),
+  )
+}
+
+export async function loadOrderCaseTotals(orderIds: string[]) {
+  const totals = new Map<string, number>()
+  const rows = await loadOrderLineRows(orderIds)
+  for (const row of rows) {
+    totals.set(row.order_id, (totals.get(row.order_id) ?? 0) + Number(row.requested_cases ?? 0))
+  }
+  return totals
 }

@@ -47,7 +47,7 @@ export function DamageExceptionalRequestPanel({
   const blockers = collectExceptionalRequestBlockers({
     status: report.status,
     scenario: report.scenario,
-    canVerify: access.canVerify,
+    canDisposition: access.canDisposition,
     hasFinalizedEvidence: (report.evidence ?? []).some((row) => row.finalized),
     remainingHoldCases: breakdown.remainingHoldCases,
     ordinaryPosted: reportHasCompletedOrdinaryWriteoff(report),
@@ -72,7 +72,8 @@ export function DamageExceptionalRequestPanel({
     setIdempotencyKey(newRequestKey())
   }, [openRequest])
 
-  if (!access.canVerify && !access.canMonitor && !access.canDispose) return null
+  if (!access.canDisposition && !access.canMonitor && !access.canDispose)
+    return null
 
   async function submit() {
     setBusy(true)
@@ -150,7 +151,7 @@ export function DamageExceptionalRequestPanel({
         emptyLabel="This report is eligible for an exceptional disposition request."
       />
 
-      {access.canVerify ? (
+      {access.canDisposition ? (
         <div className="mt-4">
           <Button
             type="button"

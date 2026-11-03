@@ -119,7 +119,9 @@ export function scenariosAvailableForPermissions(
   if (recorder && (can("receiving.execute") || verifier)) {
     available.push("refill_supply", "unloading")
   }
-  if (recorder && verifier) {
+  // DMG-03 drafts: damage.record is enough. Submit stays isolation-gated.
+  // Shop-return still needs damage.verify (custody / GM workflow).
+  if (recorder) {
     available.push("storage")
   }
   if (recorder && (can("loading.assist") || verifier)) {
@@ -167,17 +169,17 @@ export function canConfirmShopReturnCustody(input: {
 }
 
 /**
- * UX gate only. transfer_verified_damage_to_quarantine requires damage.verify,
- * verified storage, and remaining active on-hand holds. Quantity is not partial.
+ * UX gate only. transfer_verified_damage_to_quarantine requires
+ * damage.disposition, verified storage, and remaining active on-hand holds.
  */
 export function canTransferVerifiedDamage(input: {
   scenario: string
   status: string
-  canVerify: boolean
+  canDisposition: boolean
   activeOnHandHolds: number
 }) {
   return (
-    input.canVerify &&
+    input.canDisposition &&
     input.scenario === "storage" &&
     input.status === "verified" &&
     input.activeOnHandHolds > 0
@@ -380,7 +382,7 @@ export function canRejectDamageReport(
 export function collectOrdinaryWriteoffBlockers(input: {
   status: string
   scenario: string
-  canVerify: boolean
+  canDisposition: boolean
   hasFinalizedEvidence: boolean
   remainingHoldCases: number
   exceptionalOpen: boolean
@@ -388,10 +390,10 @@ export function collectOrdinaryWriteoffBlockers(input: {
   godownActive?: boolean | null
 }): DamageDecisionBlocker[] {
   const blockers: DamageDecisionBlocker[] = []
-  if (!input.canVerify) {
+  if (!input.canDisposition) {
     blockers.push({
       code: "permission",
-      message: "Ordinary write-off requires damage.verify.",
+      message: "Ordinary write-off requires damage.disposition.",
     })
   }
   const statusReady =
@@ -461,7 +463,7 @@ export type ExceptionalDispositionKind =
 export function collectExceptionalRequestBlockers(input: {
   status: string
   scenario: string
-  canVerify: boolean
+  canDisposition: boolean
   hasFinalizedEvidence: boolean
   remainingHoldCases: number
   ordinaryPosted: boolean
@@ -470,10 +472,10 @@ export function collectExceptionalRequestBlockers(input: {
   godownActive?: boolean | null
 }): DamageDecisionBlocker[] {
   const blockers: DamageDecisionBlocker[] = []
-  if (!input.canVerify) {
+  if (!input.canDisposition) {
     blockers.push({
       code: "permission",
-      message: "Exceptional requests require damage.verify.",
+      message: "Exceptional requests require damage.disposition.",
     })
   }
   const statusReady =
@@ -606,16 +608,17 @@ export function canRejectExceptionalDisposition(
  * Execution is GM-only after admin approval. Quantity is remaining holds.
  */
 export function collectExceptionalExecuteBlockers(input: {
-  canVerify: boolean
+  canDisposition: boolean
   requestStatus?: string | null
   remainingHoldCases: number
   godownActive?: boolean | null
 }): DamageDecisionBlocker[] {
   const blockers: DamageDecisionBlocker[] = []
-  if (!input.canVerify) {
+  if (!input.canDisposition) {
     blockers.push({
       code: "permission",
-      message: "Executing an exceptional disposition requires damage.verify.",
+      message:
+        "Executing an exceptional disposition requires damage.disposition.",
     })
   }
   if (input.requestStatus === "posted") {

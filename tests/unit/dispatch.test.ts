@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  DISPATCH_ASSIGNEE_EMPTY_MESSAGE,
   canReassignDelivery,
+  dispatchDetailBackLink,
   canStartDelivery,
   cutoverBlocksDeliveryReturn,
   cutoverBlocksDispatch,
@@ -39,6 +41,20 @@ describe("dispatch rules", () => {
         missing_cases: 1,
       }),
     ).toBe(5)
+  })
+
+  it("sends delivery personnel back to delivery runs and managers to dispatch", () => {
+    expect(
+      dispatchDetailBackLink({ canConfirmDispatch: false, canExecuteDelivery: true }),
+    ).toEqual({ to: "/delivery-runs", label: "Back to delivery runs" })
+    expect(
+      dispatchDetailBackLink({ canConfirmDispatch: true, canExecuteDelivery: false }),
+    ).toEqual({ to: "/dispatch", label: "Back to dispatch" })
+  })
+
+  it("explains an empty delivery-personnel list instead of a blank dropdown", () => {
+    expect(DISPATCH_ASSIGNEE_EMPTY_MESSAGE).toMatch(/Delivery Person/i)
+    expect(DISPATCH_ASSIGNEE_EMPTY_MESSAGE).toMatch(/godown/i)
   })
 
   it("allows assignment only before transit and requires vehicle to start", () => {

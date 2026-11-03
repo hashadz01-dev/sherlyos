@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
+import { Button } from "@/components/ui/button"
 import { ReceiptForm } from "@/features/receiving/ReceiptForm"
 import { emptyReceiptLine, type ReceiptDraft } from "@/features/receiving/receipt-draft"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -60,6 +61,11 @@ export function ReceiptEditorPage() {
       <PageHeader
         title="New receipt"
         description="Save a draft for the godown you work at. Submitting it asks a Godown Manager to verify accepted cases. Saving does not add stock."
+        action={
+          <Button asChild variant="outline">
+            <Link to="/receiving">Back to receiving</Link>
+          </Button>
+        }
       />
       {options.isLoading ? <LoadingBlock label="Loading receiving options" /> : null}
       {options.error ? (

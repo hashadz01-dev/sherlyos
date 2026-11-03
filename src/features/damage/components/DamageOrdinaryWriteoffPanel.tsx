@@ -37,7 +37,7 @@ export function DamageOrdinaryWriteoffPanel({
   const blockers = collectOrdinaryWriteoffBlockers({
     status: report.status,
     scenario: report.scenario,
-    canVerify: access.canVerify,
+    canDisposition: access.canDisposition,
     hasFinalizedEvidence: (report.evidence ?? []).some((row) => row.finalized),
     remainingHoldCases: breakdown.remainingHoldCases,
     exceptionalOpen: (report.exceptional_requests ?? []).some((row) =>
@@ -71,7 +71,7 @@ export function DamageOrdinaryWriteoffPanel({
     setIdempotencyKey(newWriteoffKey())
   }, [alreadyWrittenOff])
 
-  if (!access.canVerify && !access.canMonitor) return null
+  if (!access.canDisposition && !access.canMonitor) return null
 
   async function post() {
     setBusy(true)
@@ -130,7 +130,7 @@ export function DamageOrdinaryWriteoffPanel({
         emptyLabel="This report is eligible for an ordinary write-off of remaining isolated cases."
       />
 
-      {access.canVerify ? (
+      {access.canDisposition ? (
         <div className="mt-4">
           <Button
             type="button"

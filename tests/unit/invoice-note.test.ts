@@ -5,6 +5,7 @@ import {
   handoverPdfFilename,
 } from "@/lib/invoices/handover-pdf"
 import {
+  INVOICE_AWAITING_QUEUE_TITLE,
   INVOICE_DRAFT_WATERMARK,
   INVOICE_NO_LEGAL_SEAL,
   INVOICE_PREVIEW_WATERMARK,
@@ -12,10 +13,13 @@ import {
   TAX_PREVIEW_WATERMARK,
   CREDIT_ADJUSTMENT_WATERMARK,
   formatInr,
+  invoiceAwaitingQueueCopy,
   invoiceEventLabel,
+  invoiceNotesEmptyCopy,
   isDriverHandoverCopy,
   isInvoiceHandoverCopy,
   isInvoiceNoteStatus,
+  shouldShowInvoiceAwaitingQueue,
 } from "@/lib/invoices/rules"
 import { SHORT_SHIPMENT_OPERATIONAL } from "@/lib/picking/rules"
 
@@ -117,6 +121,21 @@ describe("invoice-note presentation", () => {
 
   it("does not treat short-shipment as operational", () => {
     expect(SHORT_SHIPMENT_OPERATIONAL).toBe(false)
+  })
+
+  it("shows confirmed dispatches to Accounts before a draft exists", () => {
+    expect(invoiceAwaitingQueueCopy(false).title).toBe(INVOICE_AWAITING_QUEUE_TITLE)
+    expect(invoiceAwaitingQueueCopy(true).title).toMatch(/Prepare from confirmed dispatch/)
+    expect(invoiceNotesEmptyCopy(true).description).toMatch(/listed above/)
+    expect(invoiceNotesEmptyCopy(false).title).toBe("No invoice notes")
+  })
+
+  it("hides awaiting dispatches when an invoice-note status filter is selected", () => {
+    expect(shouldShowInvoiceAwaitingQueue("all")).toBe(true)
+    expect(shouldShowInvoiceAwaitingQueue("reviewed")).toBe(false)
+    expect(shouldShowInvoiceAwaitingQueue("cancelled")).toBe(false)
+    expect(invoiceNotesEmptyCopy(true, "reviewed").description).toMatch(/reviewed/)
+    expect(invoiceNotesEmptyCopy(true, "cancelled").description).toMatch(/cancelled/)
   })
 
   it("keeps statutory issuance hard-blocked even after foundation records exist", () => {

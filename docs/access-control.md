@@ -180,7 +180,8 @@ Fails safely if an Admin already exists, if the profile is missing, or if the co
 | Admin approves exceptional adjustments                | **Confirmed**                                                                             |
 | Exceptional unit threshold                            | **Approved for Phase 3.3 as 10 carton cases per line.** Greater than 10 makes the whole request exceptional. |
 | Value-based exceptional threshold (INR)               | **Deferred** until product valuation exists                                               |
-| Delivery Person + BPM transit damage (DMG-05)         | **Unresolved** — `damage.record` is **not** granted; do not add without explicit approval |
+| Delivery Person + BPM transit damage (DMG-05)         | Driver create uses `deliveries.execute` + dispatch assignment (no `damage.record`). Site scope: `delivery_person.godowns.all` (active godowns). Do not grant `damage.record` without explicit approval |
+| Delivery Person company-wide godowns                  | **Approved** — `delivery_person.godowns.all` (same pattern as Store Keeper / GM / Accounts). Not Admin `branches.access_all`. |
 | Telecalling / enquiry as order channels               | **Approved for Phase 4.1** as order source values, not roles.             |
 | Auth email on profile                                 | Stays in Auth only                                                                        |
 

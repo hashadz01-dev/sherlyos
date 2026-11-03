@@ -125,7 +125,7 @@ describe("custody and transfer eligibility", () => {
       canTransferVerifiedDamage({
         scenario: "storage",
         status: "verified",
-        canVerify: true,
+        canDisposition: true,
         activeOnHandHolds: 1,
       }),
     ).toBe(true)
@@ -133,7 +133,7 @@ describe("custody and transfer eligibility", () => {
       canTransferVerifiedDamage({
         scenario: "shop_return",
         status: "verified",
-        canVerify: true,
+        canDisposition: true,
         activeOnHandHolds: 1,
       }),
     ).toBe(false)
@@ -141,8 +141,16 @@ describe("custody and transfer eligibility", () => {
       canTransferVerifiedDamage({
         scenario: "storage",
         status: "verified",
-        canVerify: true,
+        canDisposition: true,
         activeOnHandHolds: 0,
+      }),
+    ).toBe(false)
+    expect(
+      canTransferVerifiedDamage({
+        scenario: "storage",
+        status: "verified",
+        canDisposition: false,
+        activeOnHandHolds: 1,
       }),
     ).toBe(false)
   })

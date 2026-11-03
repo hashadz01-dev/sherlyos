@@ -9,12 +9,19 @@ import { Button } from "@/components/ui/button"
 import { FilterSelect, FilterToolbar, SearchField } from "@/features/masters/MasterControls"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
+import { hasCompanyWideGodownAccess, loadOwnAssignedBranchIds } from "@/lib/access/godown-scope"
 import {
   listDeliveryNotes,
   listVerifiedOrdersWithoutDn,
   type DeliveryNoteStatus,
 } from "@/lib/delivery-notes/api"
-import { loadOrderBranches, loadOrderShops } from "@/lib/orders/api"
+import {
+  describeHandoverQueue,
+  HANDOVER_QUEUE_TITLE,
+  summarizeOrderLines,
+} from "@/lib/delivery-notes/handover"
+import { loadOrderBranches, loadOrderLineRows, loadOrderShops } from "@/lib/orders/api"
+import { formatOrderTimestamp, readableSiteLabel } from "@/lib/orders/verification"
 import { matchesSearch } from "@/lib/masters/filters"
 
 const tone: Record<DeliveryNoteStatus, StatusTone> = {
@@ -32,8 +39,9 @@ function formatStamp(value: string | null | undefined) {
 
 export function DeliveriesPage() {
   useDocumentTitle("Delivery notes")
-  const { can } = useAccess()
+  const { can, roles } = useAccess()
   const canIssue = can("delivery_notes.issue")
+  const companyWideGodownAccess = hasCompanyWideGodownAccess(can, roles)
   const canAcknowledge = can("delivery_notes.acknowledge")
   const isGodownInbox = canAcknowledge && !canIssue
   const [search, setSearch] = useState("")
@@ -55,10 +63,21 @@ export function DeliveriesPage() {
     queryFn: listVerifiedOrdersWithoutDn,
     enabled: canIssue,
   })
+  const assignments = useQuery({
+    queryKey: ["own-branch-assignments"],
+    queryFn: loadOwnAssignedBranchIds,
+    enabled: canIssue && !companyWideGodownAccess,
+  })
   const shops = useQuery({ queryKey: ["order-shops"], queryFn: loadOrderShops })
   const branches = useQuery({
     queryKey: ["order-branches"],
     queryFn: loadOrderBranches,
+  })
+  const queueIds = (queue.data ?? []).map((row) => row.id)
+  const lineSummary = useQuery({
+    queryKey: ["order-line-summary", queueIds.join(",")],
+    queryFn: async () => summarizeOrderLines(await loadOrderLineRows(queueIds)),
+    enabled: canIssue && queueIds.length > 0,
   })
 
   const shopName = useMemo(
@@ -79,6 +98,14 @@ export function DeliveriesPage() {
       row.status,
     ]),
   )
+  const handover = describeHandoverQueue({
+    canIssue,
+    loading: queue.isLoading || assignments.isLoading,
+    errorMessage: (queue.error ?? assignments.error)?.message ?? null,
+    assignedBranchCount: assignments.data?.length ?? 0,
+    queueLength: queue.data?.length ?? 0,
+    companyWideGodownAccess,
+  })
 
   return (
     <section className="min-w-0">
@@ -109,43 +136,73 @@ export function DeliveriesPage() {
 
       {canIssue ? (
         <div className="mb-8 grid gap-3">
-          <h2 className="text-sm font-medium">Verified orders without a delivery note</h2>
-          {queue.isLoading ? <LoadingBlock label="Loading verified orders" /> : null}
-          {queue.error ? (
+          {/* Queue comes from list_verified_orders_without_dn, not list_orders. */}
+          <h2 className="text-sm font-medium">{HANDOVER_QUEUE_TITLE}</h2>
+          {handover.state === "loading" ? (
+            <LoadingBlock label="Loading verified orders" />
+          ) : null}
+          {handover.state === "error" ? (
             <p role="alert" className="text-sm text-destructive">
-              {queue.error.message}
+              {handover.message}
             </p>
           ) : null}
-          {(queue.data ?? []).length === 0 && !queue.isLoading ? (
-            <EmptyState
-              title="No verified orders waiting"
-              description="Orders appear here after Accounts verifies them and before a non-voided delivery note exists."
-            />
+          {handover.state === "unauthorized" ||
+          handover.state === "no_site_assignment" ||
+          handover.state === "empty" ? (
+            <EmptyState title={handover.title} description={handover.message} />
           ) : null}
-          <ul className="grid gap-2">
-            {(queue.data ?? []).map((order) => (
-              <li
-                key={order.id}
-                className="flex flex-col gap-3 rounded-2xl bg-card p-4 ring-1 ring-border sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{order.order_number}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {shopName.get(order.shop_id) ?? order.shop_id} ·{" "}
-                    {branchName.get(order.branch_id) ?? order.branch_id}
-                  </p>
-                </div>
-                <Button asChild className="w-full sm:w-auto">
-                  <Link to={`/deliveries/new?orderId=${order.id}`}>Create draft</Link>
-                </Button>
-              </li>
-            ))}
-          </ul>
+          {handover.state === "ready" ? (
+            <ul className="grid gap-2">
+              {(queue.data ?? []).map((order) => {
+                const summary = lineSummary.data?.get(order.id)
+                return (
+                  <li
+                    key={order.id}
+                    className="flex flex-col gap-3 rounded-2xl bg-card p-4 ring-1 ring-border sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{order.order_number}</p>
+                      <dl className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
+                        <div>
+                          <dt className="inline">Shop: </dt>
+                          <dd className="inline">
+                            {readableSiteLabel(shopName.get(order.shop_id), "Shop")}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline">Godown: </dt>
+                          <dd className="inline">
+                            {readableSiteLabel(branchName.get(order.branch_id), "Godown")}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline">Verified: </dt>
+                          <dd className="inline">{formatOrderTimestamp(order.verified_at)}</dd>
+                        </div>
+                        <div>
+                          <dt className="inline">Lines: </dt>
+                          <dd className="inline">{summary?.lines ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="inline">Whole cases: </dt>
+                          <dd className="inline">{summary?.cases ?? "—"}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                    <Button asChild className="w-full sm:w-auto">
+                      <Link to={`/deliveries/new?orderId=${order.id}`}>Create Delivery Note</Link>
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
         </div>
       ) : null}
 
       {notes.data ? (
         <>
+          <h2 className="mb-3 text-sm font-medium">Delivery notes already created</h2>
           <FilterToolbar>
             <SearchField label="Search delivery notes" value={search} onChange={setSearch} />
             <FilterSelect label="Status" value={status} onChange={setStatus}>
@@ -197,8 +254,8 @@ export function DeliveriesPage() {
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {row.order_number ? `Order ${row.order_number} · ` : null}
-                      {shopName.get(row.shop_id) ?? row.shop_id} ·{" "}
-                      {branchName.get(row.branch_id) ?? row.branch_id}
+                      {readableSiteLabel(shopName.get(row.shop_id), "Shop")} ·{" "}
+                      {readableSiteLabel(branchName.get(row.branch_id), "Godown")}
                       {typeof row.total_cases === "number"
                         ? ` · ${row.total_cases} cases`
                         : null}

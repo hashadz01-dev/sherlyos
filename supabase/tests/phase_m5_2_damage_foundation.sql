@@ -713,10 +713,14 @@ select set_config(
 );
 select public.submit_damage_report(current_setting('sherlyos.dmg02')::uuid, 1, 'm52-sub-02');
 
--- Cross-branch inbound denied.
+-- Company-wide Godown Manager may work at this active godown. Receipt 2
+-- remaining damaged_cases is 0 after dmg02, so quantity still fail-closes.
 select pg_temp.as_user('other');
 do $$
 begin
+  if not app_private.can_work_at_branch(current_setting('sherlyos.branch')::uuid) then
+    raise exception 'company-wide Godown Manager cannot work at the home godown';
+  end if;
   perform public.create_damage_report(
     'unloading', current_setting('sherlyos.branch')::uuid,
     jsonb_build_array(jsonb_build_object(
@@ -726,7 +730,27 @@ begin
     )),
     'm52-cross-in', null, current_setting('sherlyos.receipt2')::uuid
   );
-  raise exception 'cross-branch inbound must fail';
+  raise exception 'zero remaining receipt qty must fail';
+exception
+  when sqlstate '23514' then
+    if sqlerrm not like '%exceeds the receipt line%' then
+      raise;
+    end if;
+end $$;
+
+select pg_temp.as_user('sales');
+do $$
+begin
+  perform public.create_damage_report(
+    'unloading', current_setting('sherlyos.branch')::uuid,
+    jsonb_build_array(jsonb_build_object(
+      'product_id', current_setting('sherlyos.product')::uuid,
+      'quantity_cases', 1, 'damage_reason', 'dropped',
+      'receipt_line_id', current_setting('sherlyos.receipt_line2')::uuid
+    )),
+    'm52-sales-in', null, current_setting('sherlyos.receipt2')::uuid
+  );
+  raise exception 'salesperson inbound must fail';
 exception
   when insufficient_privilege then null;
 end $$;
@@ -759,21 +783,54 @@ exception
     end if;
 end $$;
 
+-- Store Keeper may draft DMG-03 storage at an authorized godown. Submit stays
+-- isolation-gated while damage.stock_hold_ready is false.
 select pg_temp.as_user('keeper');
+select set_config(
+  'sherlyos.dmg03sk',
+  (
+    public.create_damage_report(
+      'storage', current_setting('sherlyos.branch')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'product_id', current_setting('sherlyos.product')::uuid,
+        'crate_id', current_setting('sherlyos.crate')::uuid,
+        'quantity_cases', 1, 'damage_reason', 'rodent'
+      )),
+      'm52-sk-storage'
+    ) ->> 'id'
+  ),
+  true
+);
 do $$
+declare
+  on_hand integer;
 begin
-  perform public.create_damage_report(
-    'storage', current_setting('sherlyos.branch')::uuid,
-    jsonb_build_array(jsonb_build_object(
-      'product_id', current_setting('sherlyos.product')::uuid,
-      'crate_id', current_setting('sherlyos.crate')::uuid,
-      'quantity_cases', 1, 'damage_reason', 'rodent'
-    )),
-    'm52-sk-storage'
-  );
-  raise exception 'store keeper storage create must fail';
-exception
-  when insufficient_privilege then null;
+  if (
+    select status from public.damage_reports
+    where id = current_setting('sherlyos.dmg03sk')::uuid
+  ) is distinct from 'draft' then
+    raise exception 'store keeper storage draft was not created';
+  end if;
+
+  begin
+    perform public.submit_damage_report(
+      current_setting('sherlyos.dmg03sk')::uuid, 1, 'm52-sk-storage-sub'
+    );
+    raise exception 'store keeper storage submit must stay gated';
+  exception
+    when sqlstate '23514' then
+      if sqlerrm not like '%stock isolation is not ready%' then
+        raise;
+      end if;
+  end;
+
+  select coalesce(sum(quantity), 0) into on_hand
+  from public.stock_balances
+  where product_id = current_setting('sherlyos.product')::uuid;
+  if on_hand::text is distinct from current_setting('sherlyos.bal_before') then
+    raise exception 'storage draft must not change on-hand stock: % vs %',
+      on_hand, current_setting('sherlyos.bal_before');
+  end if;
 end $$;
 
 -- DMG-04 loading: source required, consumed dispatch rejected, submit gated.

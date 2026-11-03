@@ -55,8 +55,26 @@ export function receiptActions(input: {
   }
 }
 
+/**
+ * Dual-write lot save fail-closes until the SKU is expiry_controlled or
+ * non_expiring. Zero-accepted lines do not need a policy.
+ */
+export function receiptLineNeedsExpiryClassification(
+  expiryPolicy: string | null | undefined,
+  acceptedCases: number,
+) {
+  return (
+    acceptedCases > 0 &&
+    expiryPolicy !== "expiry_controlled" &&
+    expiryPolicy !== "non_expiring"
+  )
+}
+
 export function receivingErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
+    if (error.message.includes("product expiry policy is unclassified")) {
+      return "Classify this product as expiry-controlled or non-expiring before saving lots."
+    }
     return error.message
   }
   return "The receipt could not be saved."

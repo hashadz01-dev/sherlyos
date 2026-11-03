@@ -38,7 +38,7 @@ test("isolated stack is not owner or m81c and dual-write is isolated-only", asyn
     "flags",
   )
   expect(flags).toContain("stock.lots.dual_write_enabled=true")
-  expect(flags).toContain("stock.lots.aggregate_only_blocked=false")
+  expect(flags).toContain("stock.lots.aggregate_only_blocked=true")
   expect(flags).toContain("damage.stock_hold_ready=false")
 })
 
@@ -82,6 +82,24 @@ test("scenario E accounts reaches orders and is denied packing", async ({ page }
   await expect(page.getByRole("heading", { name: "Packing", exact: true })).toHaveCount(0)
   await page.goto("/inventory/opening")
   await expect(page.getByRole("heading", { name: /Opening stock/i })).toHaveCount(0)
+})
+
+test("scenario E godown manager reaches packing dispatch and invoice notes", async ({ page }) => {
+  await signIn(page, M82C_USERS.godownManager)
+  await page.goto("/picking")
+  await expect(page.getByRole("heading", { name: "Packing", exact: true })).toBeVisible({
+    timeout: 20_000,
+  })
+  await page.goto("/dispatch")
+  await expect(page.getByRole("heading", { name: "Dispatch", exact: true })).toBeVisible({
+    timeout: 20_000,
+  })
+  await page.goto("/invoices")
+  await expect(page.getByRole("heading", { name: "Invoice notes" })).toBeVisible({
+    timeout: 20_000,
+  })
+  await page.goto("/orders/new")
+  await expect(page.getByRole("heading", { name: "New order" })).toHaveCount(0)
 })
 
 test("admin supervisory navigation includes users and opening stock", async ({ page }) => {

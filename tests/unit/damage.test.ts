@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest"
 import { navigationItems } from "@/app/navigation"
 import {
   activityNote,
+  clientDamageClassifications,
+  clientWorkflowStatus,
   formatCases,
+  formatClientDamageCategory,
   formatDamageScenario,
   formatDamageStatus,
   readinessMessage,
@@ -82,6 +85,24 @@ describe("damage display helpers", () => {
     expect(formatDamageScenario("shop_return")).toBe("Shop return")
     expect(formatDamageStatus("submitted")).toBe("Submitted")
     expect(formatDamageStatus("verified")).toBe("Verified")
+  })
+
+  it("maps client Excel categories and Open/Verified without inventing Closed", () => {
+    expect(formatClientDamageCategory("refill_supply")).toBe(
+      "Receiving / Stock-In Damage",
+    )
+    expect(formatClientDamageCategory("unloading")).toBe(
+      "Receiving / Stock-In Damage",
+    )
+    expect(formatClientDamageCategory("storage")).toBe("Warehouse Damage")
+    expect(formatClientDamageCategory("loading")).toBe("Loading Damage")
+    expect(formatClientDamageCategory("transit")).toBe("Transit Damage")
+    expect(clientWorkflowStatus("draft")).toBe("Open")
+    expect(clientWorkflowStatus("submitted")).toBe("Open")
+    expect(clientWorkflowStatus("verified")).toBe("Verified")
+    expect(clientWorkflowStatus("cancelled")).toBeNull()
+    expect(clientDamageClassifications).toContain("Leakage")
+    expect(clientDamageClassifications).toContain("Other")
   })
 
   it("formats carton quantities without inventing stock", () => {

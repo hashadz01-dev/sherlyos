@@ -352,7 +352,7 @@ test("quarantine list respects godown scope and hold labels", async ({
   await page.goto("/damage/quarantine")
   await expect(
     page.getByRole("heading", { name: /quarantine inventory/i }),
-  ).toBeVisible()
+  ).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText(fixture.rejectedNumber)).toBeVisible()
   await expect(
     page.locator("td", { hasText: /shop-return quarantine intake/i }).first(),
@@ -360,7 +360,15 @@ test("quarantine list respects godown scope and hold labels", async ({
   await expect(
     page.locator("td", { hasText: /logical on-hand isolation/i }).first(),
   ).toBeVisible()
+  // Company-wide Godown Manager may see another active godown unfiltered.
+  await expect(page.getByText(`${PREFIX}-OT`)).toBeVisible()
+  await page.getByLabel("Godown").selectOption({ label: fixture.godownName })
+  await expect(page.getByText(fixture.rejectedNumber)).toBeVisible()
   await expect(page.getByText(`${PREFIX}-OT`)).toHaveCount(0)
+  await page
+    .getByLabel("Godown")
+    .selectOption({ label: fixture.otherGodownName })
+  await expect(page.getByText(`${PREFIX}-OT`)).toBeVisible()
 })
 
 test("verified transfer works and inactive godown transfer is denied", async ({

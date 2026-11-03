@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { describeEmployeeGodownAccess } from "@/lib/access/godown-scope"
 import { useAccess } from "@/lib/access/use-access"
 import { fetchAllRows } from "@/lib/supabase/fetch-all"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -149,6 +150,12 @@ export function EmployeesPage() {
   const employees = directory.data?.employees ?? []
   const selected =
     employees.find((employee) => employee.id === selectedId) ?? null
+  const selectedGodownAccess = selected
+    ? describeEmployeeGodownAccess({
+        roleCodes: selected.roles.map((role) => role.code),
+        assignedBranchNames: selected.branches.map((branch) => branch.name),
+      })
+    : null
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
     return (directory.data?.employees ?? []).filter((employee) => {
@@ -160,6 +167,10 @@ export function EmployeesPage() {
         employee.employee_code ?? "",
         ...employee.roles.map((role) => role.name),
         ...employee.branches.map((branch) => branch.name),
+        describeEmployeeGodownAccess({
+          roleCodes: employee.roles.map((role) => role.code),
+          assignedBranchNames: employee.branches.map((branch) => branch.name),
+        }).accessLabel,
       ]
         .join(" ")
         .toLowerCase()
@@ -265,12 +276,22 @@ export function EmployeesPage() {
       >
         {selected ? (
           <div className="flex flex-col gap-4 text-sm">
-            <p>
-              Status: {selected.is_active ? "Active" : "Inactive"}. Godowns:{" "}
-              {selected.branches.map((branch) => branch.name).join(", ") ||
-                "None"}
-              .
-            </p>
+            {selectedGodownAccess ? (
+              <div className="grid gap-1">
+                <p>
+                  Role:{" "}
+                  {selected.roles.map((role) => role.name).join(", ") || "None"}
+                </p>
+                <p>Status: {selected.is_active ? "Active" : "Inactive"}</p>
+                <p>Godown access: {selectedGodownAccess.accessLabel}</p>
+                {selectedGodownAccess.companyWide ? (
+                  <p className="text-muted-foreground">
+                    Explicit assignments:{" "}
+                    {selectedGodownAccess.explicitAssignments.join(", ") || "None"}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {access.can("roles.assign") ? (
               <label className="flex flex-col gap-1">
                 Assign role

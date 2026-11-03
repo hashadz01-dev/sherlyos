@@ -643,15 +643,22 @@ exception
     end if;
 end $$;
 
--- Cross-godown list denial.
+-- Company-wide Godown Manager may see home exceptional requests.
 select pg_temp.as_user('other');
 do $$
 declare
   listed jsonb;
 begin
-  listed := public.list_exceptional_damage_requests(1, 50, null, null, null, null, null, null, null);
-  if listed -> 'items' @> jsonb_build_array(jsonb_build_object('report_number', 'm54e-sql-des')) then
-    raise exception 'other godown listed home request';
+  listed := public.list_exceptional_damage_requests(
+    1, 50,
+    (select id from public.branches where code = 'm54e_sql_gd'),
+    null, null, null, 'm54e-sql-des', null, null
+  );
+  if not exists (
+    select 1 from jsonb_array_elements(listed -> 'items') item
+    where item ->> 'report_number' = 'm54e-sql-des'
+  ) then
+    raise exception 'company-wide Godown Manager missed home request';
   end if;
 end $$;
 
@@ -705,8 +712,8 @@ begin
   end if;
 end $$;
 
--- Cross-godown completed post replay must not disclose or re-post.
-select pg_temp.as_user('other');
+-- Unauthorized role must not replay a completed exceptional post.
+select pg_temp.as_user('sales');
 set local role authenticated;
 do $$
 declare
@@ -714,7 +721,7 @@ declare
 begin
   select id into req from m54e_req where name = 'des';
   perform public.post_exceptional_damage_disposition(req, 2, 'stolen-post');
-  raise exception 'cross-godown post replay must fail';
+  raise exception 'salesperson post replay must fail';
 exception
   when insufficient_privilege then null;
 end $$;
@@ -768,7 +775,8 @@ select (select id from fixture where name = 'verifier'), roles.id,
 from public.roles where roles.code = 'godown_manager'
 on conflict do nothing;
 
--- Lost assignment blocks completed-operation replay.
+-- Lost assignment does not revoke company-wide Godown Manager access.
+-- Completed replay is identification-only and must not post a second row.
 delete from public.user_branch_assignments
 where user_id = (select id from fixture where name = 'verifier')
   and branch_id = (select id from public.branches where code = 'm54e_sql_gd');
@@ -777,14 +785,27 @@ set local role authenticated;
 do $$
 declare
   req uuid;
+  payload jsonb;
 begin
   select id into req from m54e_req where name = 'des';
-  perform public.post_exceptional_damage_disposition(req, 2, 'm54e-post-des');
-  raise exception 'unassigned replay must fail';
-exception
-  when insufficient_privilege then null;
+  payload := public.post_exceptional_damage_disposition(req, 2, 'm54e-post-des');
+  if payload is null then
+    raise exception 'company-wide GM completed replay returned null';
+  end if;
 end $$;
 reset role;
+do $$
+declare
+  tx_after integer;
+begin
+  select count(*) into tx_after
+  from public.stock_transactions
+  where damage_report_id = (select id from public.damage_reports where report_number = 'm54e-sql-des')
+    and damage_posting_kind = 'exceptional_writeoff';
+  if tx_after is distinct from (select n from m54e_tx where name = 'des') then
+    raise exception 'unassigned company-wide replay posted stock';
+  end if;
+end $$;
 insert into public.user_branch_assignments (user_id, branch_id, assigned_by)
 select (select id from fixture where name = 'verifier'), branches.id,
   (select id from fixture where name = 'admin')

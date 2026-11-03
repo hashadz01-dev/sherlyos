@@ -41,15 +41,22 @@ describe("M7.7 catalogue", () => {
     expect(CATEGORIES).toHaveLength(13)
   })
 
-  it("does not claim unverified invoicing suppliers or store fabricated contacts", () => {
-    expect(SUPPLIERS.every((row) => /pending/i.test(row.name))).toBe(true)
+  it("does not store fabricated supplier contacts", () => {
     expect(SUPPLIERS.every((row) => row.email == null && row.phone == null)).toBe(true)
+    expect(SUPPLIERS.map((row) => row.name)).toEqual([
+      "AVT",
+      "Kera",
+      "Sunpure",
+      "Parry's",
+      "Nandini",
+      "MattaNaad",
+    ])
   })
 
   it("records Nandini as the supplier of GoodLife products", () => {
     expect(SUPPLIERS.some((row) => row.ref === "GOODLIFE")).toBe(false)
     const nandini = SUPPLIERS.find((row) => row.ref === "NANDINI")
-    expect(nandini?.name).toBe("Nandini (pending invoicing confirmation)")
+    expect(nandini?.name).toBe("Nandini")
     expect(nandini?.formerNames).toContain("GoodLife (pending invoicing confirmation)")
     const goodlifeSkus = PRODUCTS.filter((row) => (row.sku ?? "").startsWith("GOODLIFE-"))
     expect(goodlifeSkus.length).toBeGreaterThan(0)

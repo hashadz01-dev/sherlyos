@@ -491,8 +491,15 @@ declare
   scoped jsonb;
   totals jsonb;
   page_cases integer;
+  home_id uuid;
+  other_id uuid;
 begin
-  listed := public.list_damage_quarantine_inventory();
+  select id into home_id from public.branches where code = 'm54c_sql_gd';
+  select id into other_id from public.branches where code = 'm54c_sql_other';
+
+  -- Exact class totals stay scoped to the fixture godown so owner holds
+  -- on other active godowns cannot inflate the numbers.
+  listed := public.list_damage_quarantine_inventory(1, 50, home_id);
   if (listed ->> 'total')::integer < 5 then
     raise exception 'godown quarantine list too small: %', listed;
   end if;
@@ -500,7 +507,7 @@ begin
     select 1 from jsonb_array_elements(listed -> 'items') item
     where item ->> 'report_number' in ('m54c-sql-other', 'm54c-sql-dead')
   ) then
-    raise exception 'godown list leaked other or inactive godown';
+    raise exception 'home godown list leaked other or inactive godown';
   end if;
 
   select string_agg(item ->> 'isolation_class', ',')
@@ -546,7 +553,7 @@ begin
     raise exception 'hold_rows must match total';
   end if;
 
-  paged := public.list_damage_quarantine_inventory(1, 1);
+  paged := public.list_damage_quarantine_inventory(1, 1, home_id);
   if jsonb_array_length(paged -> 'items') is distinct from 1 then
     raise exception 'page size 1 must return one row: %', paged;
   end if;
@@ -568,11 +575,19 @@ begin
     raise exception 'page quantity must not equal filter-wide unavailable when more holds exist';
   end if;
 
-  scoped := public.list_damage_quarantine_inventory(
-    1, 50, (select id from public.branches where code = 'm54c_sql_other')
-  );
-  if (scoped ->> 'total')::integer is distinct from 0 then
-    raise exception 'godown filter must not reveal unassigned branch';
+  -- Company-wide Godown Manager may inspect another active godown.
+  scoped := public.list_damage_quarantine_inventory(1, 50, other_id);
+  if not exists (
+    select 1 from jsonb_array_elements(scoped -> 'items') item
+    where item ->> 'report_number' = 'm54c-sql-other'
+  ) then
+    raise exception 'company-wide Godown Manager missed other active godown';
+  end if;
+  if exists (
+    select 1 from jsonb_array_elements(scoped -> 'items') item
+    where item ->> 'report_number' = 'm54c-sql-dead'
+  ) then
+    raise exception 'godown list leaked inactive godown';
   end if;
 end $$;
 

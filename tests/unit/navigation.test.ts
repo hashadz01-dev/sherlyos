@@ -10,6 +10,7 @@ const requiredPaths = [
   "/deliveries",
   "/damage",
   "/receiving",
+  "/receiving/verification",
   "/stock-verification",
   "/stock-lot-reconciliation",
   "/refill",
@@ -44,5 +45,22 @@ describe("navigation", () => {
   it("matches the overview route only at the root", () => {
     expect(findNavigationItem("/")?.label).toBe("Overview")
     expect(findNavigationItem("/orders")?.title).toBe("Orders")
+    expect(findNavigationItem("/orders/verification")?.label).toBe("Order verification")
+    expect(findNavigationItem("/orders/verification/abc")?.label).toBe("Order verification")
+    expect(findNavigationItem("/receiving/verification")?.label).toBe(
+      "Receipt verification",
+    )
+    expect(findNavigationItem("/receiving/verification/abc")?.label).toBe(
+      "Receipt verification",
+    )
+  })
+
+  it("gates the Accounts verification queue on orders.verify", () => {
+    expect(
+      navigationItems.find((item) => item.to === "/orders/verification")?.permission,
+    ).toBe("orders.verify")
+    expect(
+      navigationItems.find((item) => item.to === "/orders/verification")?.label,
+    ).toBe("Order verification")
   })
 })

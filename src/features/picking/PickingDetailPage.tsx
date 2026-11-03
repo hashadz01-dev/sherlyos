@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { useAuth } from "@/hooks/use-auth"
+import { notify } from "@/lib/utilities/notify"
 import {
   assignPickingRequest,
   cancelPickingRequest,
@@ -25,11 +26,13 @@ import {
   cutoverBlocksPicking,
   isStalePickingVersion,
   nextOrderPickingAction,
+  parsePickedQuantity,
   pickingEventLabel,
   pickingHasShortage,
   pickingStatusLabel,
   pickingStatusTone,
   remainingCases,
+  shouldCompletePackingAfterQuantity,
 } from "@/lib/picking/rules"
 import {
   confirmShortShipmentQuantities,
@@ -94,7 +97,11 @@ export function PickingDetailPage() {
         idempotency_key: `pk-complete-${crypto.randomUUID()}`,
       })
     },
-    onSuccess: refresh,
+    onSuccess: () => {
+      notify.success("Packing completed")
+      return refresh()
+    },
+    onError: (error: Error) => notify.error(error.message),
   })
   const handoff = useMutation({
     mutationFn: () => {
@@ -435,16 +442,48 @@ function ReservationTable({
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const confirm = useMutation({
     mutationFn: async (row: PickingReservation) => {
-      const parsed = Number.parseInt(quantities[row.id] ?? String(row.reserved_cases), 10)
-      return confirmPickingQuantity({
-        target_request: requestId,
-        target_reservation: row.id,
-        picked_quantity: parsed,
-        expected_version: version,
-        idempotency_key: `pk-qty-${crypto.randomUUID()}`,
-      })
+      const parsed = parsePickedQuantity(quantities[row.id] ?? String(row.reserved_cases))
+      if (parsed == null) {
+        throw new Error("Enter a whole number of cases.")
+      }
+      // Re-confirming the same full quantity looked like a dead button because
+      // the Packing status never changed. Complete packing in the same click.
+      const alreadyFullyPicked =
+        parsed === row.picked_cases && remainingCases(row.reserved_cases, row.picked_cases) === 0
+      let latestVersion = version
+      let reservations = rows
+      if (!alreadyFullyPicked) {
+        const confirmed = await confirmPickingQuantity({
+          target_request: requestId,
+          target_reservation: row.id,
+          picked_quantity: parsed,
+          expected_version: version,
+          idempotency_key: `pk-qty-${crypto.randomUUID()}`,
+        })
+        latestVersion = confirmed.version
+        reservations = confirmed.reservations
+      }
+      if (shouldCompletePackingAfterQuantity(reservations)) {
+        return completePicking({
+          target_request: requestId,
+          expected_version: latestVersion,
+          idempotency_key: `pk-complete-${crypto.randomUUID()}`,
+        })
+      }
+      if (alreadyFullyPicked) {
+        throw new Error("This line is already fully picked. Complete packing to continue.")
+      }
+      return { status: "picking" as const }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: pickingKeys.detail(requestId) }),
+    onSuccess: (detail) => {
+      if (detail.status === "picked" || detail.status === "ready_for_dispatch") {
+        notify.success("Packing completed")
+      } else {
+        notify.success("Quantity confirmed")
+      }
+      return queryClient.invalidateQueries({ queryKey: pickingKeys.detail(requestId) })
+    },
+    onError: (error: Error) => notify.error(error.message),
   })
   const shortage = useMutation({
     mutationFn: async (row: PickingReservation) => {
@@ -459,6 +498,7 @@ function ReservationTable({
       })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: pickingKeys.detail(requestId) }),
+    onError: (error: Error) => notify.error(error.message),
   })
 
   return (
@@ -529,9 +569,9 @@ function ReservationTable({
       </table>
       {status === "picking" ? (
         <p className="px-4 py-3 text-sm text-slate-600">
-          Reporting a shortage releases unused reserved cartons. Confirm at least one picked carton
-          first if a short-shipment document is required. Zero-pick shortages stay on
-          cancel-and-reallocate. Stock deduction still waits for lot cutover.
+          {shouldCompletePackingAfterQuantity(rows)
+            ? "All reserved cartons are confirmed. Confirm pick completes packing so the task can move to dispatch."
+            : "Reporting a shortage releases unused reserved cartons. Confirm at least one picked carton first if a short-shipment document is required. Zero-pick shortages stay on cancel-and-reallocate. Stock deduction still waits for lot cutover."}
         </p>
       ) : null}
       {confirm.error || shortage.error ? (

@@ -850,25 +850,34 @@ exception
   when insufficient_privilege then null;
 end $$;
 
--- Cross-godown denial.
-select pg_temp.as_user('other');
+-- Unauthorized role cannot verify. Company-wide Godown Manager may list
+-- home inbound reports; salesperson cannot.
+select pg_temp.as_user('sales');
 do $$
 begin
   perform public.verify_damage_report(
     (select id from public.damage_reports where report_number = 'm54d-sql-in'), 3
   );
-  raise exception 'cross-godown verify must fail';
+  raise exception 'salesperson verify must fail';
 exception
   when insufficient_privilege then null;
 end $$;
 
+select pg_temp.as_user('other');
 do $$
 declare
   listed jsonb;
 begin
-  listed := public.list_damage_reports(1, 50, null, 'submitted', null, null, null, null);
-  if listed -> 'items' @> jsonb_build_array(jsonb_build_object('report_number', 'm54d-sql-in')) then
-    raise exception 'other godown listed home inbound';
+  listed := public.list_damage_reports(
+    1, 50,
+    (select id from public.branches where code = 'm54d_sql_gd'),
+    'verified', null, 'm54d-sql-in', null, null
+  );
+  if not exists (
+    select 1 from jsonb_array_elements(listed -> 'items') item
+    where item ->> 'report_number' = 'm54d-sql-in'
+  ) then
+    raise exception 'company-wide Godown Manager missed home inbound';
   end if;
 end $$;
 

@@ -256,9 +256,14 @@ begin
   if jsonb_array_length(listed -> 'items') < 1 then
     raise exception 'store keeper must see inbound sources';
   end if;
+  -- DMG-03 drafts: Store Keeper may list storage sources at an authorized godown.
+  listed := public.list_damage_report_sources('storage', branch, null, 1, 20);
+  if jsonb_array_length(listed -> 'items') < 1 then
+    raise exception 'store keeper must see storage sources: %', listed;
+  end if;
   begin
-    perform public.list_damage_report_sources('storage', branch, null, 1, 20);
-    raise exception 'store keeper must not list storage sources';
+    perform public.list_damage_report_sources('shop_return', branch, null, 1, 20);
+    raise exception 'store keeper must not list shop-return sources';
   exception
     when insufficient_privilege then null;
   end;

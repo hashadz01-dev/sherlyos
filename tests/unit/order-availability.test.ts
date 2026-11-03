@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   deliveryNoteHandoverLabel,
+  describeAtpLine,
   isAcknowledgedDeliveryNote,
   parseAvailabilitySnapshot,
   shortageLinesFromErrorDetails,
@@ -46,6 +47,33 @@ describe("order availability snapshot", () => {
     )
     expect(lines).toHaveLength(1)
     expect(lines[0]?.shortfall_cases).toBe(4)
+  })
+
+  it("treats eligible equal to requested as covering even when on-hand is larger", () => {
+    const covered = describeAtpLine({
+      product_id: "p1",
+      requested_cases: 2,
+      on_hand_cases: 20,
+      eligible_cases: 2,
+      shortfall_cases: 0,
+      eligible: true,
+      blockers: [],
+    })
+    expect(covered.covering).toBe(true)
+    expect(covered.onHandExceedsEligible).toBe(true)
+    expect(covered.summary).toMatch(/informational crate stock/i)
+
+    const failClosed = describeAtpLine({
+      product_id: "p1",
+      requested_cases: 2,
+      on_hand_cases: 20,
+      eligible_cases: 0,
+      shortfall_cases: 2,
+      eligible: false,
+      blockers: ["Lot-aware picking requires dual-write to be enabled."],
+    })
+    expect(failClosed.covering).toBe(false)
+    expect(failClosed.summary).toMatch(/Shortfall 2/)
   })
 
   it("labels acknowledged DN as the picking gate", () => {

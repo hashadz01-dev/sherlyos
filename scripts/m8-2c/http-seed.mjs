@@ -72,7 +72,7 @@ function guarded(sql) {
 async function ensureUser(email, fullName) {
   const existing = firstUuid(await psql(`select id from auth.users where email = '${email}'`))
   if (existing) return existing
-  return firstUuid(
+  const created = firstUuid(
     await psql(`
       insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -95,6 +95,19 @@ async function ensureUser(email, fullName) {
       returning id;
     `),
   )
+  await psql(`
+    insert into auth.identities (
+      id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+    )
+    select gen_random_uuid(), '${created}'::uuid,
+      jsonb_build_object('sub', '${created}', 'email', '${email}'),
+      'email', '${created}', now(), now(), now()
+    where not exists (
+      select 1 from auth.identities
+      where user_id = '${created}'::uuid and provider = 'email'
+    );
+  `)
+  return created
 }
 
 async function rpc(client, name, params = {}) {
@@ -286,8 +299,8 @@ async function seedMasters() {
     registration_number: "TEST-UAT-0001",
     vehicle_type: "other",
     display_name: "TEST ONLY Vehicle",
-    capacity_cases: null,
-    operational_notes: "TEST ONLY synthetic vehicle. Capacity is not a company figure.",
+    capacity_cases: 8,
+    operational_notes: "TEST ONLY synthetic vehicle. Capacity 8 is a UAT label, not a company figure.",
   })
   console.log("M8.2C TEST ONLY masters seeded")
   console.log(JSON.stringify({ branch, zone, crateA, crateB, expiry, stable, spare, alpha, beta }, null, 2))

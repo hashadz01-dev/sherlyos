@@ -36,6 +36,15 @@ export function DamageVerificationPanel({
   const evidenceCount = (report.evidence ?? []).filter(
     (row) => row.finalized,
   ).length
+  // Prefer header fields; fall back to the verified event for report-keeping.
+  const verifiedEvent = (report.events ?? []).find(
+    (row) => row.action === "verified",
+  )
+  const verifierName =
+    report.verifier_name?.trim() ||
+    verifiedEvent?.actor_name?.trim() ||
+    null
+  const verifiedAt = report.verified_at || verifiedEvent?.created_at || null
   const verifyInput = {
     status: report.status,
     scenario: report.scenario,
@@ -67,6 +76,10 @@ export function DamageVerificationPanel({
   const [error, setError] = useState<string | null>(null)
 
   if (!access.canVerify && !access.canMonitor) return null
+
+  // Terminal / non-submitted reports are read-only here. Re-showing verify
+  // blockers ("Only submitted…") and decision buttons after verify/reject is noise.
+  const decisionsOpen = report.status === "submitted"
 
   async function run(
     kind: "verify" | "return" | "reject",
@@ -107,23 +120,47 @@ export function DamageVerificationPanel({
           tone={
             report.status === "verified"
               ? "success"
-              : report.status === "submitted"
-                ? "info"
-                : "neutral"
+              : report.status === "rejected"
+                ? "danger"
+                : report.status === "submitted"
+                  ? "info"
+                  : "neutral"
           }
         >
-          {report.status === "verified" ? "Verified" : "Not verified"}
+          {report.status === "verified"
+            ? "Verified"
+            : report.status === "rejected"
+              ? "Rejected"
+              : report.status === "submitted"
+                ? "Awaiting verification"
+                : "Not verified"}
         </StatusBadge>
       </div>
 
       <dl className="mb-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <dt className="text-muted-foreground">Verifier</dt>
-          <dd>{report.verifier_name ?? "—"}</dd>
+          <dt className="text-muted-foreground">
+            {report.status === "rejected" ? "Rejected by" : "Verifier"}
+          </dt>
+          <dd>
+            {report.status === "verified"
+              ? (verifierName ?? "Verified (name unavailable)")
+              : report.status === "rejected"
+                ? (report.rejected_by_name ?? "Rejected (name unavailable)")
+                : "Pending verification"}
+          </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Verified at</dt>
-          <dd>{formatTimestamp(report.verified_at)}</dd>
+          <dt className="text-muted-foreground">
+            {report.status === "rejected" ? "Rejected at" : "Verified at"}
+          </dt>
+          <dd>
+            {report.status === "verified"
+              ? formatTimestamp(verifiedAt)
+              : report.status === "rejected"
+                ? formatTimestamp(report.rejected_at)
+                : "Pending verification"}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Finalized photos</dt>
@@ -144,108 +181,121 @@ export function DamageVerificationPanel({
         </p>
       ) : null}
 
-      <DamageVerificationEligibility
-        blockers={verifyBlockers}
-        emptyLabel="This report is eligible for Godown Manager verification."
-      />
+      {decisionsOpen ? (
+        <>
+          <DamageVerificationEligibility
+            blockers={verifyBlockers}
+            emptyLabel="This report is eligible for Godown Manager verification."
+          />
 
-      {access.canVerify ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            disabled={verifyBlockers.length > 0 || busy}
-            onClick={() => setVerifyOpen(true)}
-          >
-            Verify
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={returnBlockers.length > 0 || busy}
-            onClick={() => {
-              setReason("")
-              setReturnOpen(true)
-            }}
-          >
-            Return for correction
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={rejectBlockers.length > 0 || busy}
-            onClick={() => {
-              setReason("")
-              setRejectOpen(true)
-            }}
-          >
-            Reject
-          </Button>
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Oversight accounts can review history but cannot verify, return, or
-          reject.
+          {access.canVerify ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={verifyBlockers.length > 0 || busy}
+                onClick={() => setVerifyOpen(true)}
+              >
+                Verify
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={returnBlockers.length > 0 || busy}
+                onClick={() => {
+                  setReason("")
+                  setReturnOpen(true)
+                }}
+              >
+                Return for correction
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={rejectBlockers.length > 0 || busy}
+                onClick={() => {
+                  setReason("")
+                  setRejectOpen(true)
+                }}
+              >
+                Reject
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Oversight accounts can review history but cannot verify, return, or
+              reject.
+            </p>
+          )}
+
+          {error ? (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+
+          <DamageVerificationDialog
+            report={report}
+            open={verifyOpen}
+            busy={busy}
+            reportedCases={breakdown.reportedCases}
+            isolatedCases={breakdown.remainingHoldCases}
+            evidenceCount={evidenceCount}
+            onOpenChange={setVerifyOpen}
+            onConfirm={() =>
+              void run(
+                "verify",
+                () => verifyDamageReport(report.id, report.version),
+                "Damage report verified",
+              )
+            }
+          />
+          <DamageDecisionReasonDialog
+            title="Return for correction"
+            description="The reporter can edit the returned report. Logical on-hand holds are released. Shop-return quarantine intake is not returned this way."
+            confirmLabel="Return report"
+            ariaLabel="Confirm return for correction"
+            open={returnOpen}
+            busy={busy}
+            reason={reason}
+            onReasonChange={setReason}
+            onOpenChange={setReturnOpen}
+            onConfirm={() =>
+              void run(
+                "return",
+                () => returnDamageReport(report.id, report.version, reason),
+                "Damage report returned",
+              )
+            }
+          />
+          <DamageDecisionReasonDialog
+            title="Reject damage report"
+            description="Rejection is a terminal report status. Shop-return quarantine intake stays unavailable until authorized disposition."
+            confirmLabel="Reject report"
+            ariaLabel="Confirm damage rejection"
+            open={rejectOpen}
+            busy={busy}
+            reason={reason}
+            onReasonChange={setReason}
+            onOpenChange={setRejectOpen}
+            onConfirm={() =>
+              void run(
+                "reject",
+                () => rejectDamageReport(report.id, report.version, reason),
+                "Damage report rejected",
+              )
+            }
+          />
+        </>
+      ) : report.status === "verified" ? (
+        <p className="text-sm text-muted-foreground">
+          Verification is complete. No further Godown decision is available on
+          this report.
         </p>
-      )}
-
-      {error ? (
-        <p role="alert" className="mt-3 text-sm text-destructive">
-          {error}
+      ) : report.status === "rejected" ? (
+        <p className="text-sm text-muted-foreground">
+          This report was rejected. Verify, return, and reject are closed.
         </p>
       ) : null}
-
-      <DamageVerificationDialog
-        report={report}
-        open={verifyOpen}
-        busy={busy}
-        reportedCases={breakdown.reportedCases}
-        isolatedCases={breakdown.remainingHoldCases}
-        evidenceCount={evidenceCount}
-        onOpenChange={setVerifyOpen}
-        onConfirm={() =>
-          void run(
-            "verify",
-            () => verifyDamageReport(report.id, report.version),
-            "Damage report verified",
-          )
-        }
-      />
-      <DamageDecisionReasonDialog
-        title="Return for correction"
-        description="The reporter can edit the returned report. Logical on-hand holds are released. Shop-return quarantine intake is not returned this way."
-        confirmLabel="Return report"
-        ariaLabel="Confirm return for correction"
-        open={returnOpen}
-        busy={busy}
-        reason={reason}
-        onReasonChange={setReason}
-        onOpenChange={setReturnOpen}
-        onConfirm={() =>
-          void run(
-            "return",
-            () => returnDamageReport(report.id, report.version, reason),
-            "Damage report returned",
-          )
-        }
-      />
-      <DamageDecisionReasonDialog
-        title="Reject damage report"
-        description="Rejection is a terminal report status. Shop-return quarantine intake stays unavailable until authorized disposition."
-        confirmLabel="Reject report"
-        ariaLabel="Confirm damage rejection"
-        open={rejectOpen}
-        busy={busy}
-        reason={reason}
-        onReasonChange={setReason}
-        onOpenChange={setRejectOpen}
-        onConfirm={() =>
-          void run(
-            "reject",
-            () => rejectDamageReport(report.id, report.version, reason),
-            "Damage report rejected",
-          )
-        }
-      />
     </section>
   )
 }

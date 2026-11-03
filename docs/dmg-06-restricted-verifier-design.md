@@ -1,10 +1,9 @@
 # DMG-06 — Restricted independent verifier design
 
-**Status: LOCALLY IMPLEMENTED (m82c only) — STOP for separate cloud migration + Auth user approval**
+**Status: CLOUD MIGRATION APPLIED (development only) — STOP for separate Auth verifier approval**
 
-Implemented on disposable `supabase_db_sherlyos_m82c` (sysid `7702447407569928229`) only.  
-**Not** applied to development cloud `ypkfondrkhkydkgovwup`, production, or owner local DB `supabase_db_sherlyos` (sysid `7699785797738577957`).  
-No Auth verifier account created. No operational flag flips. No DMG-06 reports created/submitted/verified/disposed. No commit/push/deploy.
+Implemented on disposable m82c earlier; **development cloud** `ypkfondrkhkydkgovwup` now has `damage_verifier_role_and_disposition_split` applied (MCP apply of approved SQL only; unrelated pending local files not applied).  
+**Not** applied to production. No Auth verifier account created. No operational flag flips. No commit/push/deploy.
 
 Environment context: `5173` → development cloud. Fixture `TEST-DMG06-ONLY` already exists. Reporter remains `testgodownmanager@gmail.com`.
 

@@ -202,12 +202,13 @@ test.beforeAll(() => {
       insert into public.stock_balances (crate_id, product_id, quantity)
       values (crate_id, product_id, 6), (dead_crate, product_id, 2);
 
+      -- Custody confirm is submitted-only (salesperson/GM submit first).
       insert into public.damage_reports (
         report_number, scenario, godown_id, status, version, reporter_user_id,
-        idempotency_key, request_fingerprint, notes, shop_id
+        idempotency_key, request_fingerprint, notes, shop_id, submitted_at, submitted_by
       ) values (
-        '${PREFIX}-SR', 'shop_return', branch_id, 'draft', 1, godown_id,
-        '${PREFIX}-sr-key', '${PREFIX}-sr-fp', 'custody e2e', shop_id
+        '${PREFIX}-SR', 'shop_return', branch_id, 'submitted', 1, godown_id,
+        '${PREFIX}-sr-key', '${PREFIX}-sr-fp', 'custody e2e', shop_id, now(), godown_id
       ) returning id into sr_id;
       insert into public.damage_report_lines (
         damage_report_id, product_id, crate_id, quantity_cases, damage_reason

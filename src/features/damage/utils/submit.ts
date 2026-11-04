@@ -83,9 +83,12 @@ export function collectSubmitBlockers(input: {
         "Attach finalized photographic evidence before submitting. Godown verification also requires it.",
     })
   }
+  // Shop-return submit is a claim only (no stock). Isolation readiness still
+  // gates storage/loading submit; GM verify posts shop-return quarantine later.
   if (
     input.scenario &&
     scenarioRequiresStockHold(input.scenario) &&
+    input.scenario !== "shop_return" &&
     !input.stockHoldReady
   ) {
     blockers.push({
@@ -93,14 +96,7 @@ export function collectSubmitBlockers(input: {
       message:
         input.scenario === "storage"
           ? "Storage submit is blocked because submit isolates on-hand stock. Until isolation is enabled, save a draft only — damaged cases stay pickable and manager verification cannot complete without holds."
-          : "Stock isolation is not ready. Storage, loading, and shop-return reports cannot be submitted until operations enables isolation.",
-    })
-  }
-  if (input.scenario === "shop_return" && !input.custodyConfirmed) {
-    blockers.push({
-      code: "custody",
-      message:
-        "Confirm physical custody at the receiving godown before submitting this shop-return report. Use Confirm physical custody on this report (edit or detail), then refresh submit readiness.",
+          : "Stock isolation is not ready. Storage and loading reports cannot be submitted until operations enables isolation.",
     })
   }
   return blockers

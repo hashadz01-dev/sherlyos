@@ -72,7 +72,7 @@ describe("verification eligibility", () => {
     ).toBe(true)
   })
 
-  it("blocks inactive godown, mismatched holds, and unsubmitted custody", () => {
+  it("blocks inactive godown, mismatched holds, and missing shop-return custody", () => {
     expect(
       collectVerificationBlockers({
         ...eligibleVerify,
@@ -92,8 +92,27 @@ describe("verification eligibility", () => {
         ...eligibleVerify,
         status: "draft",
         scenario: "shop_return",
+        custodyConfirmed: false,
       }).some((row) => row.code === "status"),
     ).toBe(true)
+    expect(
+      collectVerificationBlockers({
+        ...eligibleVerify,
+        scenario: "shop_return",
+        isolatedCases: 0,
+        custodyConfirmed: false,
+      }).some((row) =>
+        /Confirm physical custody/i.test(row.message),
+      ),
+    ).toBe(true)
+    expect(
+      collectVerificationBlockers({
+        ...eligibleVerify,
+        scenario: "shop_return",
+        isolatedCases: 0,
+        custodyConfirmed: true,
+      }).some((row) => row.code === "isolation"),
+    ).toBe(false)
   })
 })
 

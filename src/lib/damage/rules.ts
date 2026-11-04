@@ -74,6 +74,7 @@ export const inboundDamageScenarios = ["refill_supply", "unloading"] as const
 export const damageNavPermissions = [
   "damage.read",
   "damage.record",
+  "damage.shop_return.record",
   "damage.verify",
   "operations.monitor",
   "deliveries.execute",
@@ -82,6 +83,7 @@ export const damageNavPermissions = [
 /** Create/edit routes. Admin monitor-only accounts are excluded. */
 export const damageCreatePermissions = [
   "damage.record",
+  "damage.shop_return.record",
   "deliveries.execute",
 ] as const
 
@@ -116,11 +118,11 @@ export function scenariosAvailableForPermissions(
   const available: DamageScenario[] = []
   const recorder = can("damage.record")
   const verifier = can("damage.verify")
+  const shopReturnRecorder = can("damage.shop_return.record")
   if (recorder && (can("receiving.execute") || verifier)) {
     available.push("refill_supply", "unloading")
   }
   // DMG-03 drafts: damage.record is enough. Submit stays isolation-gated.
-  // Shop-return still needs damage.verify (custody / GM workflow).
   if (recorder) {
     available.push("storage")
   }
@@ -130,14 +132,19 @@ export function scenariosAvailableForPermissions(
   if (recorder || can("deliveries.execute")) {
     available.push("transit")
   }
-  if (recorder && verifier) {
+  // DMG-06: GM/SK with record+verify, or salesperson shop-return-only grant.
+  if ((recorder && verifier) || shopReturnRecorder) {
     available.push("shop_return")
   }
   return available
 }
 
 export function canOpenDamageCreate(can: (permission: string) => boolean) {
-  return can("damage.record") || can("deliveries.execute")
+  return (
+    can("damage.record") ||
+    can("damage.shop_return.record") ||
+    can("deliveries.execute")
+  )
 }
 
 /**
@@ -151,7 +158,11 @@ export const damageQuarantinePermissions = [
   "operations.monitor",
 ] as const
 
-/** UX gate only. confirm_shop_return_custody uses assert_damage_create_auth. */
+/**
+ * UX gate only. Backend confirm_shop_return_custody requires
+ * damage.record + damage.verify on a submitted shop_return. Salesperson
+ * submit no longer requires prior custody; quarantine posts on verify.
+ */
 export function canConfirmShopReturnCustody(input: {
   scenario: string
   status: string
@@ -161,7 +172,7 @@ export function canConfirmShopReturnCustody(input: {
 }) {
   return (
     input.scenario === "shop_return" &&
-    isEditableDamageStatus(input.status as DamageStatus) &&
+    input.status === "submitted" &&
     !input.alreadyConfirmed &&
     input.canRecord &&
     input.canVerify
@@ -220,8 +231,9 @@ export type DamageDecisionBlocker = {
 
 /**
  * UX gate matching verify_damage_report. Backend remains authoritative.
- * Isolation scenarios require persisted holds; readiness=false prevents
- * submit of those scenarios, so they do not reach this gate in production.
+ * Storage/loading require holds from submit. Shop-return requires custody
+ * first; quarantine intake is posted during verify, so holds are not a
+ * pre-verify gate for that scenario.
  */
 export function collectVerificationBlockers(input: {
   status: string
@@ -232,6 +244,8 @@ export function collectVerificationBlockers(input: {
   reportedCases: number
   isolatedCases: number
   godownActive?: boolean | null
+  /** Shop-return only. When false, verify stays blocked until GM custody. */
+  custodyConfirmed?: boolean
 }): DamageDecisionBlocker[] {
   const blockers: DamageDecisionBlocker[] = []
   if (!input.canVerify) {
@@ -258,15 +272,27 @@ export function collectVerificationBlockers(input: {
       message: "Finalized photographic evidence is required.",
     })
   }
-  if (scenarioRequiresStockHold(input.scenario) && input.isolatedCases < 1) {
+  if (input.scenario === "shop_return" && !input.custodyConfirmed) {
     blockers.push({
-      code: "isolation",
+      code: "status",
       message:
-        "Matching isolated holds are required. Storage, loading, and shop-return verification need them.",
+        "Confirm physical custody at the receiving godown before verifying this shop-return report.",
     })
   }
   if (
     scenarioRequiresStockHold(input.scenario) &&
+    input.scenario !== "shop_return" &&
+    input.isolatedCases < 1
+  ) {
+    blockers.push({
+      code: "isolation",
+      message:
+        "Matching isolated holds are required. Storage and loading verification need them.",
+    })
+  }
+  if (
+    scenarioRequiresStockHold(input.scenario) &&
+    input.scenario !== "shop_return" &&
     input.isolatedCases > 0 &&
     input.isolatedCases !== input.reportedCases
   ) {

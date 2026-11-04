@@ -41,11 +41,19 @@ export function DamagePage() {
           <div className="flex flex-wrap gap-2">
             {access.canCreate ? (
               <Button asChild>
-                <Link to="/damage/new">New report</Link>
+                <Link to="/damage/new">
+                  {access.isShopReturnReporterOnly
+                    ? "New shop return damage"
+                    : "New report"}
+                </Link>
               </Button>
             ) : null}
             <Button asChild variant="outline">
-              <Link to="/damage/reports">All reports</Link>
+              <Link to="/damage/reports">
+                {access.isShopReturnReporterOnly
+                  ? "My damage reports"
+                  : "All reports"}
+              </Link>
             </Button>
             {access.canViewQuarantine ? (
               <Button asChild variant="outline">

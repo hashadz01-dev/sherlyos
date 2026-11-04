@@ -69,25 +69,7 @@ function report(partial: Partial<DamageReportDetail> = {}): DamageReportDetail {
 }
 
 describe("custody and transfer eligibility", () => {
-  it("allows Godown Manager custody on editable shop-return drafts only", () => {
-    expect(
-      canConfirmShopReturnCustody({
-        scenario: "shop_return",
-        status: "draft",
-        alreadyConfirmed: false,
-        canRecord: true,
-        canVerify: true,
-      }),
-    ).toBe(true)
-    expect(
-      canConfirmShopReturnCustody({
-        scenario: "shop_return",
-        status: "draft",
-        alreadyConfirmed: true,
-        canRecord: true,
-        canVerify: true,
-      }),
-    ).toBe(false)
+  it("allows Godown Manager custody on submitted shop-return only", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
@@ -96,14 +78,32 @@ describe("custody and transfer eligibility", () => {
         canRecord: true,
         canVerify: true,
       }),
+    ).toBe(true)
+    expect(
+      canConfirmShopReturnCustody({
+        scenario: "shop_return",
+        status: "submitted",
+        alreadyConfirmed: true,
+        canRecord: true,
+        canVerify: true,
+      }),
     ).toBe(false)
-  })
-
-  it("denies Store Keeper and Delivery Person custody confirmation", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
         status: "draft",
+        alreadyConfirmed: false,
+        canRecord: true,
+        canVerify: true,
+      }),
+    ).toBe(false)
+  })
+
+  it("denies Store Keeper, Delivery Person, and salesperson custody", () => {
+    expect(
+      canConfirmShopReturnCustody({
+        scenario: "shop_return",
+        status: "submitted",
         alreadyConfirmed: false,
         canRecord: true,
         canVerify: false,
@@ -112,7 +112,7 @@ describe("custody and transfer eligibility", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
-        status: "draft",
+        status: "submitted",
         alreadyConfirmed: false,
         canRecord: false,
         canVerify: false,

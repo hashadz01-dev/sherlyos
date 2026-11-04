@@ -81,6 +81,13 @@ describe("damage scenario availability", () => {
     expect(scenariosAvailableForPermissions(can)).not.toContain("shop_return")
   })
 
+  it("limits Salesperson to shop_return via damage.shop_return.record", () => {
+    const can = (permission: string) =>
+      permission === "damage.shop_return.record"
+    expect(scenariosAvailableForPermissions(can)).toEqual(["shop_return"])
+    expect(canOpenDamageCreate(can)).toBe(true)
+  })
+
   it("limits Delivery Person to transit and denies general create for admin monitors", () => {
     const driver = (permission: string) => permission === "deliveries.execute"
     expect(scenariosAvailableForPermissions(driver)).toEqual(["transit"])
@@ -266,29 +273,18 @@ describe("damage submission readiness", () => {
     expect(scenarioSubmitHint("transit", false)).toMatch(/may submit/i)
   })
 
-  it("blocks shop-return until physical custody is confirmed", () => {
+  it("allows shop-return submit without custody or isolation readiness", () => {
+    // Custody + quarantine intake move to GM after salesperson submit.
     const blockers = collectSubmitBlockers({
       scenario: "shop_return",
-      stockHoldReady: true,
+      stockHoldReady: false,
       linesValid: true,
       sourceSelected: true,
       finalizedEvidence: 1,
       custodyConfirmed: false,
     })
-    expect(blockers.some((row) => row.code === "custody")).toBe(true)
-    expect(blockers.find((row) => row.code === "custody")?.message).toMatch(
-      /Confirm physical custody/i,
-    )
-    expect(
-      collectSubmitBlockers({
-        scenario: "shop_return",
-        stockHoldReady: true,
-        linesValid: true,
-        sourceSelected: true,
-        finalizedEvidence: 1,
-        custodyConfirmed: true,
-      }).some((row) => row.code === "custody"),
-    ).toBe(false)
+    expect(blockers.some((row) => row.code === "custody")).toBe(false)
+    expect(blockers.some((row) => row.code === "isolation")).toBe(false)
   })
 
   it("blocks missing evidence and invalid lines", () => {

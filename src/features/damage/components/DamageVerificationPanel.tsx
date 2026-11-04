@@ -54,6 +54,7 @@ export function DamageVerificationPanel({
     reportedCases: breakdown.reportedCases,
     isolatedCases: breakdown.remainingHoldCases,
     godownActive: report.godown_active,
+    custodyConfirmed: Boolean(report.physical_custody_confirmed),
   }
   const verifyBlockers = collectVerificationBlockers(verifyInput)
   const returnBlockers = collectReturnBlockers({

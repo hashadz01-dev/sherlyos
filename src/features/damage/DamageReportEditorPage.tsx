@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { DamageCustodyPanel } from "@/features/damage/components/DamageCustodyPanel"
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import {
   DamageLineEditor,
@@ -52,6 +51,7 @@ import {
   getDamageReport,
   getDamageStockHoldReadyStatus,
   listDamageReports,
+  listShopReturnReceiveGodowns,
   submitDamageReport,
   updateDamageReport,
   type DamageSourceCatalogs,
@@ -83,8 +83,16 @@ function DamageReportEditor({
   const auth = useAuth()
   const locations = useStockLocations()
   const userId = auth.session?.user.id
+  // Salesperson shop-return uses a dedicated active-godown RPC (no branch RLS).
+  const receiveGodowns = useQuery({
+    queryKey: ["shop-return-receive-godowns"],
+    queryFn: listShopReturnReceiveGodowns,
+    enabled:
+      access.isShopReturnReporterOnly ||
+      access.availableScenarios.includes("shop_return"),
+  })
 
-  const [scenario, setScenario] = useState<DamageScenario | "">("")
+  const [scenarioChoice, setScenarioChoice] = useState<DamageScenario | "">("")
   const [godownId, setGodownId] = useState("")
   const [source, setSource] = useState<DamageSourceItem | null>(null)
   const [catalogs, setCatalogs] = useState<DamageSourceCatalogs>({})
@@ -115,7 +123,20 @@ function DamageReportEditor({
   })
 
   const report = existing.data ?? null
+  // Salesperson create: only shop_return is permitted — treat as selected.
+  const scenario: DamageScenario | "" =
+    scenarioChoice ||
+    (mode === "create" &&
+    access.availableScenarios.length === 1 &&
+    access.availableScenarios[0]
+      ? access.availableScenarios[0]
+      : "")
+  const setScenario = setScenarioChoice
   const stockHoldReady = readiness.data?.stock_hold_ready === true
+  const godownOptions =
+    access.isShopReturnReporterOnly || scenario === "shop_return"
+      ? (receiveGodowns.data ?? [])
+      : (locations.branches.data ?? [])
   const editable =
     !report ||
     (isEditableDamageStatus(report.status) &&
@@ -496,8 +517,8 @@ function DamageReportEditor({
             markDirty()
           }}
         >
-          <option value="">Select godown</option>
-          {(locations.branches.data ?? []).map((branch) => (
+          <option value="">Select receiving godown</option>
+          {godownOptions.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
             </option>
@@ -582,15 +603,9 @@ function DamageReportEditor({
       />
 
       {/*
-        Shop-return custody must be confirmable on the edit screen where submit
-        blockers appear. Detail page keeps the same panel; this is not a bypass.
+        GM custody confirmation lives on the detail page after submit.
+        Salesperson editors never confirm custody.
       */}
-      {report?.scenario === "shop_return" ? (
-        <DamageCustodyPanel
-          report={report}
-          onConfirmed={() => void refreshReport(report.id)}
-        />
-      ) : null}
 
       <DamageSubmitReview
         scenario={scenario}

@@ -405,6 +405,13 @@ export function getDamageDashboard(targetGodown?: string | null) {
   })
 }
 
+/** Active receiving godowns for shop-return create (salesperson-safe). */
+export function listShopReturnReceiveGodowns() {
+  return callRpc<
+    { id: string; code: string; name: string; is_active: boolean }[]
+  >("list_shop_return_receive_godowns", {})
+}
+
 export function listExceptionalDamageRequests(input: {
   page?: number
   pageSize?: number

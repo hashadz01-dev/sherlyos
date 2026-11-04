@@ -15,8 +15,12 @@ export function useDamageAccess() {
   const canOpenDamage = damageNavPermissions.some((permission) =>
     can(permission),
   )
-  const canRead = can("damage.read") || can("operations.monitor")
+  const canRead =
+    can("damage.read") ||
+    can("damage.shop_return.record") ||
+    can("operations.monitor")
   const canRecord = can("damage.record")
+  const canShopReturnRecord = can("damage.shop_return.record")
   const canVerify = can("damage.verify")
   // Stock-changing disposition is separate from inspection verify.
   const canDisposition = can("damage.disposition")
@@ -25,7 +29,11 @@ export function useDamageAccess() {
   const canCreate = canOpenDamageCreate(can)
   const availableScenarios = scenariosAvailableForPermissions(can)
   const canTransitOnly =
-    can("deliveries.execute") && !canRead && !canRecord && !canVerify
+    can("deliveries.execute") &&
+    !canRead &&
+    !canRecord &&
+    !canShopReturnRecord &&
+    !canVerify
   const isAdminMonitor = canMonitor && !canVerify
   const showVerificationQueues = canVerify || canMonitor
   const showDispositionQueues = canDisposition || canMonitor
@@ -39,11 +47,15 @@ export function useDamageAccess() {
   const canViewQuarantine = damageQuarantinePermissions.some((permission) =>
     can(permission),
   )
+  // GM custody only — salesperson shop-return grant must not confirm custody.
   const canConfirmCustody = canRecord && canVerify
   const canTransferQuarantine = canDisposition
   const canViewVerification = damageVerificationPermissions.some((permission) =>
     can(permission),
   )
+  /** Salesperson DMG-06 surface: shop-return only, no warehouse queues. */
+  const isShopReturnReporterOnly =
+    canShopReturnRecord && !canRecord && !canVerify
 
   return {
     loading: access.loading,
@@ -54,12 +66,14 @@ export function useDamageAccess() {
     availableScenarios,
     canRead,
     canRecord,
+    canShopReturnRecord,
     canVerify,
     canDisposition,
     canDispose,
     canMonitor,
     canTransitOnly,
     isAdminMonitor,
+    isShopReturnReporterOnly,
     showVerificationQueues,
     showDispositionQueues,
     showExceptionalQueues,

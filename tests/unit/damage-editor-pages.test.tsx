@@ -18,6 +18,7 @@ const {
   getDamageStockHoldReadyStatus,
   uploadDamagePhoto,
   confirmShopReturnCustody,
+  listShopReturnReceiveGodowns,
   notify,
   accessState,
 } = vi.hoisted(() => ({
@@ -30,6 +31,7 @@ const {
   getDamageStockHoldReadyStatus: vi.fn(),
   uploadDamagePhoto: vi.fn(),
   confirmShopReturnCustody: vi.fn(),
+  listShopReturnReceiveGodowns: vi.fn(),
   notify: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   accessState: {
     loading: false,
@@ -71,6 +73,8 @@ vi.mock("@/lib/damage/api", () => ({
   uploadDamagePhoto: (...args: unknown[]) => uploadDamagePhoto(...args),
   confirmShopReturnCustody: (...args: unknown[]) =>
     confirmShopReturnCustody(...args),
+  listShopReturnReceiveGodowns: (...args: unknown[]) =>
+    listShopReturnReceiveGodowns(...args),
   discardDamagePhoto: vi.fn(),
   damagePhotoPreview: vi.fn(),
 }))
@@ -181,7 +185,10 @@ describe("damage create form", () => {
     expect(screen.getByText(/DMG-01/i)).toBeInTheDocument()
     expect(screen.getByText(/DMG-05/i)).toBeInTheDocument()
     expect(screen.getByLabelText("Select photo")).toBeInTheDocument()
-    expect(screen.getByText("Add damaged photo")).toBeInTheDocument()
+    expect(screen.getByLabelText("Photo note")).toBeInTheDocument()
+    expect(
+      screen.getByText(/at least one verified photo is required/i),
+    ).toBeInTheDocument()
   })
 
   it("saves a draft then uploads when a photo is chosen on an unsaved report", async () => {
@@ -728,7 +735,7 @@ describe("shop-return edit custody gate", () => {
     })
   })
 
-  it("shows custody panel and keeps submit blocked until custody is confirmed", async () => {
+  it("lets the reporter submit a shop return before custody", async () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
@@ -749,149 +756,12 @@ describe("shop-return edit custody gate", () => {
         name: "Edit DMG-20261103-000018",
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText("Shop-return custody")).toBeInTheDocument()
-    expect(screen.getByText("Custody outstanding")).toBeInTheDocument()
+    expect(screen.queryByText("Shop-return custody")).not.toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: /confirm physical custody/i }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(/Confirm physical custody at the receiving godown/i),
-    ).toBeInTheDocument()
+      screen.queryByRole("button", { name: /confirm physical custody/i }),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: "Review and submit" }),
-    ).toBeDisabled()
-  })
-
-  it("refreshes readiness after a successful custody confirmation on edit", async () => {
-    const user = userEvent.setup()
-    confirmShopReturnCustody.mockResolvedValue({
-      id: "r-sr",
-      report_number: "DMG-20261103-000018",
-      scenario: "shop_return",
-      godown_id: "g1",
-      godown_name: "Godown-1",
-      shop_id: "s1",
-      shop_name: "SHOPPE FRESH",
-      status: "draft",
-      version: 3,
-      reporter_user_id: "u1",
-      notes: null,
-      physical_custody_confirmed: true,
-      physical_custody_confirmed_at: "2026-11-03T13:00:00Z",
-      evidence: [{ id: "e1", finalized: true }],
-      lines: [
-        {
-          id: "dl1",
-          product_id: "p1",
-          product_sku: "TEST-DMG06-ONLY",
-          product_name: "DMG06 Fixture",
-          quantity_cases: 1,
-          damage_reason: "Leakage",
-          crate_id: null,
-          crate_code: null,
-          lot_id: null,
-          notes: null,
-          receipt_line_id: null,
-        },
-      ],
-    })
-    getDamageReport
-      .mockResolvedValueOnce({
-        id: "r-sr",
-        report_number: "DMG-20261103-000018",
-        scenario: "shop_return",
-        godown_id: "g1",
-        godown_name: "Godown-1",
-        shop_id: "s1",
-        shop_name: "SHOPPE FRESH",
-        status: "draft",
-        version: 2,
-        reporter_user_id: "u1",
-        notes: null,
-        physical_custody_confirmed: false,
-        evidence: [{ id: "e1", finalized: true }],
-        lines: [
-          {
-            id: "dl1",
-            product_id: "p1",
-            product_sku: "TEST-DMG06-ONLY",
-            product_name: "DMG06 Fixture",
-            quantity_cases: 1,
-            damage_reason: "Leakage",
-            crate_id: null,
-            crate_code: null,
-            lot_id: null,
-            notes: null,
-            receipt_line_id: null,
-          },
-        ],
-      })
-      .mockResolvedValue({
-        id: "r-sr",
-        report_number: "DMG-20261103-000018",
-        scenario: "shop_return",
-        godown_id: "g1",
-        godown_name: "Godown-1",
-        shop_id: "s1",
-        shop_name: "SHOPPE FRESH",
-        status: "draft",
-        version: 3,
-        reporter_user_id: "u1",
-        notes: null,
-        physical_custody_confirmed: true,
-        physical_custody_confirmed_at: "2026-11-03T13:00:00Z",
-        evidence: [{ id: "e1", finalized: true }],
-        lines: [
-          {
-            id: "dl1",
-            product_id: "p1",
-            product_sku: "TEST-DMG06-ONLY",
-            product_name: "DMG06 Fixture",
-            quantity_cases: 1,
-            damage_reason: "Leakage",
-            crate_id: null,
-            crate_code: null,
-            lot_id: null,
-            notes: null,
-            receipt_line_id: null,
-          },
-        ],
-      })
-
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    render(
-      <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={["/damage/r-sr/edit"]}>
-          <Routes>
-            <Route
-              path="/damage/:reportId/edit"
-              element={<EditDamageReportPage />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    )
-    await screen.findByText("Custody outstanding")
-    await user.click(
-      screen.getByRole("button", { name: /confirm physical custody/i }),
-    )
-    expect(screen.getAllByText("SHOPPE FRESH").length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/TEST-DMG06-ONLY/).length).toBeGreaterThan(0)
-    await user.click(
-      screen.getByRole("button", { name: /confirm physical custody now/i }),
-    )
-    await waitFor(() => {
-      expect(confirmShopReturnCustody).toHaveBeenCalledWith("r-sr", 2)
-    })
-    await waitFor(() => {
-      expect(screen.getByText("Custody confirmed")).toBeInTheDocument()
-    })
-    await waitFor(() => {
-      expect(
-        screen.queryByText(/Confirm physical custody at the receiving godown/i),
-      ).not.toBeInTheDocument()
-    })
+    ).toBeEnabled()
   })
 })

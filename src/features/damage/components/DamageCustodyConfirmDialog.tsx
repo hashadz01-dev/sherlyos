@@ -26,7 +26,7 @@ export function DamageCustodyConfirmDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Confirm physical custody"
-      description="This records that the returned goods are physically present at the receiving godown. It does not submit the report and does not post stock."
+      description="This records that the returned goods are physically present at the receiving godown. It does not submit the report and does not post stock. Verification posts the quarantine intake."
       footer={
         <>
           <Button

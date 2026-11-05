@@ -63,8 +63,9 @@ export function DamageCustodyPanel({
         <div>
           <h2 className="text-sm font-semibold">Shop-return custody</h2>
           <p className="text-xs text-muted-foreground">
-            Confirmation is an authorized RPC. A checkbox is never proof of
-            physical presence.
+            After the report is submitted, the Godown Manager confirms the
+            goods are at the receiving godown. Confirmation does not post
+            stock.
           </p>
         </div>
         <StatusBadge

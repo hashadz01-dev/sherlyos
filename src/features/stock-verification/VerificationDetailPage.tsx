@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppModal } from "@/components/shared/AppModal"
+import { PhotoAttachFields } from "@/components/shared/PhotoAttachFields"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
@@ -483,17 +484,14 @@ function Evidence({
       <h2 className="font-medium">Photo evidence</h2>
       <p>{ready ? "A verified photo is attached." : "At least one verified photo is required before closure."}</p>
       {actions.canUpload ? (
-        <div className="grid gap-2">
-          <label className="grid gap-1">
-            Note
-            <Input aria-label="Photo note" value={note} onChange={(event) => setNote(event.target.value)} />
-          </label>
-          <input
-            aria-label="Verification photo"
-            type="file"
+        <div className="grid min-w-0 gap-2">
+          <PhotoAttachFields
+            note={note}
+            onNoteChange={setNote}
+            fileAriaLabel="Verification photo"
             accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
+            disabled={upload.isPending}
+            onFile={(file) => {
               if (!file) return
               if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10_485_760) {
                 setPhoto(
@@ -516,10 +514,10 @@ function Evidence({
           ) : null}
         </div>
       ) : null}
-      <ul className="grid gap-2">
+      <ul className="grid min-w-0 gap-2">
         {detail.evidence.map((item) => (
-          <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-            <span>
+          <li key={item.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 break-words">
               {item.verified_at ? "Verified" : "Not finalized"} · {item.uploaded_by_name ?? "Unknown"} ·{" "}
               {item.uploaded_at}
               {item.note ? ` · ${item.note}` : ""}

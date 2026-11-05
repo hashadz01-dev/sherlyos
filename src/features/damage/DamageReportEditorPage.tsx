@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { DamageCustodyPanel } from "@/features/damage/components/DamageCustodyPanel"
 import { DamageEvidenceUploader } from "@/features/damage/components/DamageEvidenceUploader"
 import {
   DamageLineEditor,
@@ -52,6 +51,7 @@ import {
   getDamageReport,
   getDamageStockHoldReadyStatus,
   listDamageReports,
+  listShopReturnReceiveGodowns,
   submitDamageReport,
   updateDamageReport,
   type DamageSourceCatalogs,
@@ -83,6 +83,18 @@ function DamageReportEditor({
   const auth = useAuth()
   const locations = useStockLocations()
   const userId = auth.session?.user.id
+  // Salesperson shop returns use the deployed godown catalog. A Godown
+  // Manager still picks from godowns they can work at.
+  const salespersonShopReturn =
+    access.can("damage.shop_return.record") && !access.canVerify
+  const receiveGodowns = useQuery({
+    queryKey: ["shop-return-receive-godowns"],
+    queryFn: listShopReturnReceiveGodowns,
+    enabled: salespersonShopReturn,
+  })
+  const godownChoices = salespersonShopReturn
+    ? (receiveGodowns.data ?? [])
+    : (locations.branches.data ?? [])
 
   const [scenario, setScenario] = useState<DamageScenario | "">("")
   const [godownId, setGodownId] = useState("")
@@ -497,7 +509,7 @@ function DamageReportEditor({
           }}
         >
           <option value="">Select godown</option>
-          {(locations.branches.data ?? []).map((branch) => (
+          {godownChoices.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
             </option>
@@ -523,8 +535,10 @@ function DamageReportEditor({
         <DamageSourcePicker
           scenario={scenario}
           godownId={godownId}
-          selectedId={source?.id || refs.receiptId || ""}
-          hydrateOnMatch={Boolean(refs.receiptId && !source)}
+          selectedId={source?.id || refs.shopId || refs.receiptId || ""}
+          hydrateOnMatch={Boolean(
+            (refs.shopId || refs.receiptId) && !source,
+          )}
           disabled={busy !== null}
           onSelect={onSelectSource}
           onCatalogs={setCatalogs}
@@ -580,17 +594,6 @@ function DamageReportEditor({
           }
         }}
       />
-
-      {/*
-        Shop-return custody must be confirmable on the edit screen where submit
-        blockers appear. Detail page keeps the same panel; this is not a bypass.
-      */}
-      {report?.scenario === "shop_return" ? (
-        <DamageCustodyPanel
-          report={report}
-          onConfirmed={() => void refreshReport(report.id)}
-        />
-      ) : null}
 
       <DamageSubmitReview
         scenario={scenario}

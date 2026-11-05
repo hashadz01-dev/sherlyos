@@ -74,6 +74,7 @@ export const inboundDamageScenarios = ["refill_supply", "unloading"] as const
 export const damageNavPermissions = [
   "damage.read",
   "damage.record",
+  "damage.shop_return.record",
   "damage.verify",
   "operations.monitor",
   "deliveries.execute",
@@ -82,6 +83,7 @@ export const damageNavPermissions = [
 /** Create/edit routes. Admin monitor-only accounts are excluded. */
 export const damageCreatePermissions = [
   "damage.record",
+  "damage.shop_return.record",
   "deliveries.execute",
 ] as const
 
@@ -120,7 +122,6 @@ export function scenariosAvailableForPermissions(
     available.push("refill_supply", "unloading")
   }
   // DMG-03 drafts: damage.record is enough. Submit stays isolation-gated.
-  // Shop-return still needs damage.verify (custody / GM workflow).
   if (recorder) {
     available.push("storage")
   }
@@ -130,14 +131,24 @@ export function scenariosAvailableForPermissions(
   if (recorder || can("deliveries.execute")) {
     available.push("transit")
   }
-  if (recorder && verifier) {
+  // Shop return is filed with damage.shop_return.record, or by a godown
+  // manager who already has both record and verify. Store Keeper record
+  // alone does not open it.
+  if (
+    can("damage.shop_return.record") ||
+    (recorder && verifier)
+  ) {
     available.push("shop_return")
   }
   return available
 }
 
 export function canOpenDamageCreate(can: (permission: string) => boolean) {
-  return can("damage.record") || can("deliveries.execute")
+  return (
+    can("damage.record") ||
+    can("damage.shop_return.record") ||
+    can("deliveries.execute")
+  )
 }
 
 /**
@@ -151,7 +162,10 @@ export const damageQuarantinePermissions = [
   "operations.monitor",
 ] as const
 
-/** UX gate only. confirm_shop_return_custody uses assert_damage_create_auth. */
+/**
+ * UX gate only. The deployed RPC confirms custody on a submitted report
+ * and requires damage.record plus damage.verify. It posts no stock.
+ */
 export function canConfirmShopReturnCustody(input: {
   scenario: string
   status: string
@@ -161,7 +175,7 @@ export function canConfirmShopReturnCustody(input: {
 }) {
   return (
     input.scenario === "shop_return" &&
-    isEditableDamageStatus(input.status as DamageStatus) &&
+    input.status === "submitted" &&
     !input.alreadyConfirmed &&
     input.canRecord &&
     input.canVerify
@@ -204,6 +218,7 @@ export type DamageDecisionBlocker = {
     | "status"
     | "self"
     | "evidence"
+    | "custody"
     | "isolation"
     | "quantity"
     | "godown"
@@ -231,6 +246,8 @@ export function collectVerificationBlockers(input: {
   hasFinalizedEvidence: boolean
   reportedCases: number
   isolatedCases: number
+  /** Shop return posts its hold during verify, so custody is the prerequisite. */
+  custodyConfirmed?: boolean
   godownActive?: boolean | null
 }): DamageDecisionBlocker[] {
   const blockers: DamageDecisionBlocker[] = []
@@ -258,11 +275,22 @@ export function collectVerificationBlockers(input: {
       message: "Finalized photographic evidence is required.",
     })
   }
-  if (scenarioRequiresStockHold(input.scenario) && input.isolatedCases < 1) {
+  if (input.scenario === "shop_return" && !input.custodyConfirmed) {
+    blockers.push({
+      code: "custody",
+      message:
+        "Physical custody must be confirmed before shop-return verification. Verification posts the quarantine intake.",
+    })
+  }
+  if (
+    input.scenario !== "shop_return" &&
+    scenarioRequiresStockHold(input.scenario) &&
+    input.isolatedCases < 1
+  ) {
     blockers.push({
       code: "isolation",
       message:
-        "Matching isolated holds are required. Storage, loading, and shop-return verification need them.",
+        "Matching isolated holds are required. Storage and loading verification need them.",
     })
   }
   if (
@@ -690,6 +718,7 @@ export type VerificationQueueState =
   | "awaiting"
   | "blocked_evidence"
   | "blocked_isolation"
+  | "blocked_custody"
   | "self"
   | "returned"
   | "rejected"
@@ -705,6 +734,7 @@ export function verificationQueueState(input: {
   hasFinalizedEvidence?: boolean
   isolatedCases?: number
   reportedCases?: number
+  custodyConfirmed?: boolean
 }): VerificationQueueState {
   if (input.status === "returned") return "returned"
   if (input.status === "rejected") return "rejected"
@@ -714,6 +744,11 @@ export function verificationQueueState(input: {
     return "self"
   }
   if (!input.hasFinalizedEvidence) return "blocked_evidence"
+  // Shop-return holds are created by verify, so a zero hold is expected here.
+  if (input.scenario === "shop_return") {
+    if (!input.custodyConfirmed) return "blocked_custody"
+    return "awaiting"
+  }
   if (
     scenarioRequiresStockHold(input.scenario) &&
     (input.isolatedCases ?? 0) < 1
@@ -731,6 +766,8 @@ export function formatVerificationQueueState(state: VerificationQueueState) {
       return "Blocked — missing evidence"
     case "blocked_isolation":
       return "Blocked — incomplete isolation"
+    case "blocked_custody":
+      return "Blocked — custody not confirmed"
     case "self":
       return "Blocked — reporter cannot self-verify"
     case "returned":

@@ -173,7 +173,7 @@ export function DamagePage() {
           {access.canConfirmCustody ? (
             <DamageQueueCard
               title="Awaiting custody"
-              description="Shop-return drafts waiting for physical custody confirmation."
+              description="Submitted shop returns waiting for the Godown Manager to confirm physical custody. Confirmation does not post stock."
               items={queues.awaiting_custody ?? []}
             />
           ) : null}

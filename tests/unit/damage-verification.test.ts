@@ -32,6 +32,26 @@ describe("verification eligibility", () => {
     expect(collectVerificationBlockers(eligibleVerify)).toHaveLength(0)
   })
 
+  it("lets a Godown Manager verify a salesperson shop return after custody", () => {
+    const shopReturn = {
+      ...eligibleVerify,
+      scenario: "shop_return",
+      isolatedCases: 0,
+      reportedCases: 1,
+      custodyConfirmed: true,
+    }
+    expect(canVerifyDamageReport(shopReturn)).toBe(true)
+    expect(
+      canVerifyDamageReport({ ...shopReturn, custodyConfirmed: false }),
+    ).toBe(false)
+    expect(
+      canVerifyDamageReport({ ...shopReturn, canVerify: false }),
+    ).toBe(false)
+    expect(canVerifyDamageReport({ ...shopReturn, isReporter: true })).toBe(
+      false,
+    )
+  })
+
   it("blocks Store Keeper verification without damage.verify", () => {
     expect(
       canVerifyDamageReport({ ...eligibleVerify, canVerify: false }),
@@ -166,6 +186,23 @@ describe("ordinary write-off eligibility", () => {
     ).toBe(true)
   })
 
+  it("blocks a Store Keeper from disposing a verified shop return", () => {
+    expect(
+      canPostOrdinaryDamageWriteoff({
+        ...ready,
+        scenario: "shop_return",
+        canDisposition: false,
+      }),
+    ).toBe(false)
+    expect(
+      collectOrdinaryWriteoffBlockers({
+        ...ready,
+        scenario: "shop_return",
+        canDisposition: false,
+      }).some((row) => row.code === "permission"),
+    ).toBe(true)
+  })
+
   it("blocks write-off when damage.verify is present without damage.disposition", () => {
     expect(
       canPostOrdinaryDamageWriteoff({
@@ -199,6 +236,30 @@ describe("verification queue labels and error mapping", () => {
           status: "submitted",
           scenario: "refill_supply",
           hasFinalizedEvidence: true,
+        }),
+      ),
+    ).toMatch(/eligible/i)
+    expect(
+      formatVerificationQueueState(
+        verificationQueueState({
+          status: "submitted",
+          scenario: "shop_return",
+          hasFinalizedEvidence: true,
+          isolatedCases: 0,
+          custodyConfirmed: false,
+        }),
+      ),
+    ).toMatch(/custody not confirmed/i)
+    expect(
+      formatVerificationQueueState(
+        verificationQueueState({
+          status: "submitted",
+          scenario: "shop_return",
+          hasFinalizedEvidence: true,
+          isolatedCases: 0,
+          custodyConfirmed: true,
+          reporterUserId: "sales",
+          currentUserId: "gm",
         }),
       ),
     ).toMatch(/eligible/i)

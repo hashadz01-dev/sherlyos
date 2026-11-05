@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { ImagePlus } from "lucide-react"
+import { PhotoAttachFields } from "@/components/shared/PhotoAttachFields"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   DamageEvidencePanel,
   type SessionDamagePhoto,
@@ -33,19 +31,22 @@ export function DamageEvidenceUploader({
   /** Persist an unsaved form so create_damage_photo_upload has a report id. */
   ensureDraft?: () => Promise<DamageReportDetail | null>
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [note, setNote] = useState("")
   const [pending, setPending] = useState<
     "saving" | "uploading" | "finalizing" | null
   >(null)
   const [error, setError] = useState<string | null>(null)
-  const [selectedName, setSelectedName] = useState<string | null>(null)
   const [sessionPhotos, setSessionPhotos] = useState<SessionDamagePhoto[]>([])
   const sessionPhotosRef = useRef<SessionDamagePhoto[]>([])
-  sessionPhotosRef.current = sessionPhotos
   const [removingId, setRemovingId] = useState<string | null>(null)
   const unfinalized = (report?.evidence ?? []).filter((row) => !row.finalized)
+  const finalized = (report?.evidence ?? []).filter((row) => row.finalized)
+  const verifiedCount = Math.max(finalized.length, sessionPhotos.length)
   const busy = disabled || pending !== null || removingId !== null
+
+  useEffect(() => {
+    sessionPhotosRef.current = sessionPhotos
+  }, [sessionPhotos])
 
   useEffect(() => {
     return () => {
@@ -58,7 +59,6 @@ export function DamageEvidenceUploader({
   async function onFile(file: File | undefined) {
     if (!file) return
     setError(null)
-    setSelectedName(file.name)
     if (!isSupportedDamagePhotoMime(file.type)) {
       setError("Use a JPEG, PNG, or WebP photo.")
       return
@@ -98,13 +98,10 @@ export function DamageEvidenceUploader({
           evidenceId,
           url: localUrl,
           name: file.name,
+          note: note.trim() || null,
         },
       ])
       setNote("")
-      setSelectedName(null)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
       await onUploaded(target.id)
     } catch (caught) {
       setError(mapDamageMutationError(caught, "upload"))
@@ -154,78 +151,41 @@ export function DamageEvidenceUploader({
           : null
 
   return (
-    <section className="grid gap-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-      <h2 className="text-sm font-semibold">Photo evidence</h2>
-      <p className="text-sm text-muted-foreground">
-        Attach a JPEG, PNG, or WebP photo of the damaged cartons (up to 10 MB).
-        The file is stored privately and must verify on the server before this
-        report can be submitted. If an earlier attempt did not finalize, choose
-        the photo again.
+    <section className="grid min-w-0 gap-3 rounded-2xl bg-card p-4 text-sm ring-1 ring-border">
+      <h2 className="font-medium">Photo evidence</h2>
+      <p>
+        {verifiedCount > 0
+          ? "A verified photo is attached."
+          : "At least one verified photo is required before this report can be submitted."}
       </p>
-      <Label className="grid gap-2 text-sm font-medium">
-        Photo note
-        <Input
-          value={note}
-          disabled={busy}
-          onChange={(event) => setNote(event.target.value)}
-        />
-      </Label>
-      {/*
-        Keep the native file control out of layout. Windows Chrome ignores
-        sr-only clipping on input[type=file] and stretches this card.
-      */}
-      <div className="grid gap-1.5">
-        <span className="text-sm font-medium">Select photo</span>
-        <div
-          className={`relative overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 ${
-            busy ? "opacity-60" : ""
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            aria-label="Select photo"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            disabled={busy}
-            className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              event.target.value = ""
-              void onFile(file)
-            }}
-          />
-          <div className="pointer-events-none flex items-center gap-3 px-3 py-3">
-            <ImagePlus
-              className="size-5 shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Add damaged photo</p>
-              <p className="text-xs text-muted-foreground">
-                {selectedName && pending
-                  ? selectedName
-                  : "Take a photo or choose a JPEG, PNG, or WebP file"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PhotoAttachFields
+        note={note}
+        onNoteChange={setNote}
+        fileAriaLabel="Select photo"
+        accept="image/jpeg,image/png,image/webp"
+        disabled={busy}
+        onFile={(file) => void onFile(file)}
+      />
+      <p className="text-muted-foreground">
+        JPEG, PNG, or WebP up to 10 MB. The file is stored privately and must
+        verify on the server before submit.
+      </p>
       {pendingLabel ? (
-        <p className="text-sm text-muted-foreground">{pendingLabel}</p>
+        <p className="text-muted-foreground">{pendingLabel}</p>
       ) : null}
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-destructive">
           {error}
         </p>
       ) : null}
       {!report ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           Choosing a photo saves this report as a draft first, then uploads the
           evidence.
         </p>
       ) : null}
       {unfinalized.length > 0 ? (
-        <div className="rounded-xl bg-muted/40 px-3 py-2 text-sm">
+        <div className="rounded-xl bg-muted/40 px-3 py-2">
           <p>
             {unfinalized.length} earlier photo
             {unfinalized.length === 1 ? "" : "s"} did not finish verification

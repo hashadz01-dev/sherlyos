@@ -119,9 +119,11 @@ export function AdjustmentDetailPage() {
               <article key={line.id} className="rounded-2xl bg-card p-4 ring-1 ring-border">
                 <h2 className="font-medium">{line.sku} · {line.product_name}</h2>
                 <p className="text-sm text-muted-foreground">Crate {line.crate_code}</p>
-                <p className="mt-2 text-sm">Approved correction: {line.requested_cases} cases</p>
-                <p className="text-sm">Current book quantity: {line.current_cases ?? 0} cases</p>
-                <p className="text-sm">Posting impact: book quantity becomes {(line.current_cases ?? 0) + line.requested_cases} if no later movement has made this request stale.</p>
+                <AdjustmentLineQuantities
+                  status={request.status}
+                  requestedCases={line.requested_cases}
+                  currentCases={line.current_cases}
+                />
                 {dualWriteEnabled ? (
                   <AdjustmentLotAllocator
                     request={request}
@@ -196,6 +198,40 @@ export function AdjustmentDetailPage() {
         </div>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * Posted book quantity already includes the correction. Showing current plus
+ * requested again would describe a second movement that has not happened.
+ * Other statuses still show the prospective result of a future post.
+ */
+function AdjustmentLineQuantities({
+  status,
+  requestedCases,
+  currentCases,
+}: {
+  status: AdjustmentStatus
+  requestedCases: number
+  currentCases: number | null
+}) {
+  const book = currentCases ?? 0
+  if (status === "posted") {
+    return (
+      <>
+        <p className="mt-2 text-sm">Posted correction: {requestedCases} cases</p>
+        <p className="text-sm">Current book quantity: {book} cases</p>
+      </>
+    )
+  }
+  return (
+    <>
+      <p className="mt-2 text-sm">Approved correction: {requestedCases} cases</p>
+      <p className="text-sm">Current book quantity: {book} cases</p>
+      <p className="text-sm">
+        Posting impact: book quantity becomes {book + requestedCases} if no later movement has made this request stale.
+      </p>
+    </>
   )
 }
 

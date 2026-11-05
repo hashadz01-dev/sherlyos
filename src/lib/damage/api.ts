@@ -482,6 +482,21 @@ export async function damagePhotoPreview(evidenceId: string) {
   return signed.data.signedUrl
 }
 
+export type ShopReturnReceiveGodown = {
+  id: string
+  code: string
+  name: string
+  is_active: boolean
+}
+
+/** Active receiving godowns from list_shop_return_receive_godowns. */
+export function listShopReturnReceiveGodowns() {
+  return callRpc<ShopReturnReceiveGodown[]>(
+    "list_shop_return_receive_godowns",
+    {},
+  )
+}
+
 export function listDamageReportSources(input: {
   scenario: DamageScenario
   targetGodown: string

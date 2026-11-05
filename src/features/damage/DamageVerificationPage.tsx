@@ -49,6 +49,7 @@ function queueLabel(row: DamageReportSummary, currentUserId?: string) {
       hasFinalizedEvidence: row.has_finalized_evidence,
       isolatedCases: row.active_hold_cases,
       reportedCases: row.total_cases,
+      custodyConfirmed: row.physical_custody_confirmed === true,
     }),
   )
 }

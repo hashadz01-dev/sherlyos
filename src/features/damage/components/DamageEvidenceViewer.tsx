@@ -1,20 +1,15 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Eye, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { formatTimestamp } from "@/features/damage/utils/labels"
 import { damagePhotoPreview } from "@/lib/damage/api"
 
 export type DamageViewablePhoto = {
   id: string
   label: string
   caption?: string | null
+  uploadedAt?: string | null
+  finalized?: boolean
   /** Local object URL. When set, the signed Storage preview is not fetched. */
   src?: string
   /** Finalized evidence id used to mint a short-lived signed URL. */
@@ -31,25 +26,26 @@ function useSignedPhoto(evidenceId: string | undefined, enabled: boolean) {
   })
 }
 
-function PhotoFrame({
+function PhotoImage({
   photo,
   alt,
   className,
-  onActivate,
+  active,
 }: {
   photo: DamageViewablePhoto
   alt: string
   className?: string
-  onActivate?: () => void
+  /** Signed URLs are minted only after Preview, not for every row. */
+  active: boolean
 }) {
   const [expired, setExpired] = useState(false)
-  const signed = useSignedPhoto(photo.evidenceId, !photo.src)
+  const signed = useSignedPhoto(photo.evidenceId, active && !photo.src)
   const src = photo.src ?? (!expired ? signed.data : undefined)
 
-  if (!photo.src && signed.isLoading) {
+  if (active && !photo.src && signed.isLoading) {
     return (
       <div
-        className="min-h-12 w-full rounded-xl bg-muted"
+        className="min-h-16 w-full rounded-lg bg-muted"
         aria-busy="true"
         aria-label="Loading photo"
       />
@@ -59,7 +55,9 @@ function PhotoFrame({
     return (
       <div className="grid gap-2">
         <p role="alert" className="text-sm text-destructive">
-          {expired ? "Signed preview expired." : signed.error?.message}
+          {expired
+            ? "Signed preview expired."
+            : (signed.error?.message ?? "Preview is not available.")}
         </p>
         <Button
           type="button"
@@ -76,7 +74,7 @@ function PhotoFrame({
     )
   }
 
-  const image = (
+  return (
     <img
       src={src}
       alt={alt}
@@ -86,21 +84,11 @@ function PhotoFrame({
       }}
     />
   )
-  if (!onActivate) return image
-  return (
-    <button
-      type="button"
-      className="block w-full rounded-xl text-left"
-      onClick={onActivate}
-    >
-      {image}
-    </button>
-  )
 }
 
 /**
- * Compact thumbnail + View (N) gallery, matching the receipt photo viewer.
- * Signed URLs stay in img src only and are not logged.
+ * Same attach result as stock verification: a wrapping status line, Preview,
+ * and the image under the list. Signed URLs stay in img src only.
  */
 export function DamageEvidenceViewer({
   photos,
@@ -112,144 +100,61 @@ export function DamageEvidenceViewer({
   onRemove?: (photo: DamageViewablePhoto) => void | Promise<void>
   removingId?: string | null
 }) {
-  const [open, setOpen] = useState(false)
-  const [focused, setFocused] = useState<number | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
   if (photos.length === 0) return null
 
-  const extra = photos.length - 1
-  const focusedPhoto = focused !== null ? photos[focused] : null
-  const canRemove = Boolean(onRemove)
-
-  async function removePhoto(photo: DamageViewablePhoto) {
-    if (!onRemove) return
-    await onRemove(photo)
-    setFocused(null)
-    if (photos.length <= 1) setOpen(false)
-  }
+  const preview = photos.find((photo) => photo.id === previewId) ?? null
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative size-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-border">
-        <PhotoFrame
-          photo={photos[0]}
-          alt={photos[0].label}
-          className="size-full object-cover"
+    <div className="grid min-w-0 gap-3">
+      <ul className="grid min-w-0 gap-2">
+        {photos.map((photo) => {
+          const status = photo.finalized === false ? "Not finalized" : "Verified"
+          const when = photo.uploadedAt ? formatTimestamp(photo.uploadedAt) : null
+          const detail = [status, when, photo.caption || photo.label]
+            .filter(Boolean)
+            .join(" · ")
+          return (
+            <li
+              key={photo.id}
+              className="flex min-w-0 flex-wrap items-center justify-between gap-2"
+            >
+              <span className="min-w-0 break-words">{detail}</span>
+              <span className="flex shrink-0 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setPreviewId((current) =>
+                      current === photo.id ? null : photo.id,
+                    )
+                  }
+                >
+                  Preview
+                </Button>
+                {onRemove ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={removingId === photo.id}
+                    onClick={() => void onRemove(photo)}
+                  >
+                    {removingId === photo.id ? "Deleting…" : "Delete image"}
+                  </Button>
+                ) : null}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      {preview ? (
+        <PhotoImage
+          photo={preview}
+          alt={preview.label}
+          active
+          className="max-h-64 w-full rounded-lg object-contain"
         />
-        {extra > 0 ? (
-          <span className="absolute top-1 right-1 rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-white">
-            +{extra}
-          </span>
-        ) : null}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          setFocused(null)
-          setOpen(true)
-        }}
-      >
-        <Eye />
-        View ({photos.length})
-      </Button>
-      {canRemove && photos.length === 1 ? (
-        <Button
-          type="button"
-          variant="outline"
-          disabled={removingId === photos[0].id}
-          onClick={() => void removePhoto(photos[0])}
-        >
-          <Trash2 />
-          {removingId === photos[0].id ? "Deleting…" : "Delete image"}
-        </Button>
       ) : null}
-
-      <Dialog
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next)
-          if (!next) setFocused(null)
-        }}
-      >
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {focusedPhoto
-                ? "Photo view"
-                : `Photos (${photos.length})`}
-            </DialogTitle>
-            <DialogDescription>
-              {focusedPhoto
-                ? focusedPhoto.caption || focusedPhoto.label
-                : "Open a photo to view it larger."}
-            </DialogDescription>
-          </DialogHeader>
-          {focusedPhoto ? (
-            <div className="grid gap-3">
-              <PhotoFrame
-                photo={focusedPhoto}
-                alt={focusedPhoto.label}
-                className="max-h-[70vh] w-full rounded-xl object-contain"
-              />
-              <div className="flex flex-wrap gap-2">
-                {photos.length > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setFocused(null)}
-                  >
-                    Back to photos
-                  </Button>
-                ) : null}
-                {canRemove ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={removingId === focusedPhoto.id}
-                    onClick={() => void removePhoto(focusedPhoto)}
-                  >
-                    <Trash2 />
-                    {removingId === focusedPhoto.id
-                      ? "Deleting…"
-                      : "Delete image"}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {photos.map((photo, index) => (
-                <li key={photo.id} className="grid gap-2">
-                  <PhotoFrame
-                    photo={photo}
-                    alt={photo.label}
-                    className="max-h-80 w-full rounded-xl object-contain ring-1 ring-border"
-                    onActivate={() => setFocused(index)}
-                  />
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <p className="text-center text-sm text-muted-foreground">
-                      {photo.label}
-                      {photo.caption ? ` · ${photo.caption}` : ""}
-                    </p>
-                    {canRemove ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={removingId === photo.id}
-                        onClick={() => void removePhoto(photo)}
-                      >
-                        <Trash2 />
-                        {removingId === photo.id ? "Deleting…" : "Delete"}
-                      </Button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

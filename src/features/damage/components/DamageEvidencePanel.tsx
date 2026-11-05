@@ -5,6 +5,7 @@ export type SessionDamagePhoto = {
   id: string
   url: string
   name: string
+  note?: string | null
   /** Server evidence id after a successful finalize. */
   evidenceId?: string
 }
@@ -35,6 +36,8 @@ export function DamageEvidencePanel({
       ? finalized.map((row, index) => ({
           id: row.id,
           evidenceId: row.id,
+          finalized: true,
+          uploadedAt: row.uploaded_at,
           // Stable alt for browser UAT and screen readers after trusted finalize.
           label:
             index === 0
@@ -46,8 +49,9 @@ export function DamageEvidencePanel({
           id: row.id,
           evidenceId: row.evidenceId,
           src: row.url,
+          finalized: true,
           label: `Photo ${index + 1}`,
-          caption: row.name,
+          caption: row.note || row.name,
         }))
 
   if (photos.length === 0) {

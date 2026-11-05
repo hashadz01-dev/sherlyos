@@ -246,6 +246,46 @@ describe("New delivery note selection", () => {
     expect(screen.getByRole("button", { name: "Create draft delivery note" })).toBeDisabled()
   })
 
+  it("shows acknowledged delivery notes in the godown inbox", async () => {
+    access.roles = ["godown_manager"]
+    access.permissions = ["delivery_notes.acknowledge", "godown_manager.godowns.all"]
+    dnApi.listDeliveryNotes.mockResolvedValue([
+      {
+        id: "dn-16",
+        delivery_note_number: "DN-20261105-000016",
+        order_id: "ord-1",
+        shop_id: "shop-1",
+        branch_id: "g1",
+        status: "acknowledged",
+        version: 4,
+        idempotency_key: "key-1",
+        created_by: "user-1",
+        generated_at: "2026-11-05T10:30:00+00:00",
+        generated_by: "user-1",
+        sent_at: "2026-11-05T10:35:33+00:00",
+        sent_by: "user-1",
+        acknowledged_at: "2026-11-05T10:37:49+00:00",
+        acknowledged_by: "gm-1",
+        voided_at: null,
+        voided_by: null,
+        void_reason: null,
+        created_at: "2026-11-05T10:20:00+00:00",
+        updated_at: "2026-11-05T10:37:49+00:00",
+        order_number: "SO-20261105-000028",
+        total_cases: 1,
+      },
+    ])
+    renderPath("/deliveries")
+
+    expect(await screen.findByText("DN-20261105-000016")).toBeInTheDocument()
+    expect(screen.getByText("acknowledged")).toBeInTheDocument()
+    expect(screen.getByText(/Acknowledged 2026-11-05 10:37:49/)).toBeInTheDocument()
+    expect(screen.queryByText("No sent delivery notes")).not.toBeInTheDocument()
+    expect(dnApi.listDeliveryNotes).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "all" }),
+    )
+  })
+
   it("offers create when Accounts has company-wide godown access without an assignment", async () => {
     godownScope.loadOwnAssignedBranchIds.mockResolvedValue([])
     ordersApi.getOrder.mockResolvedValue(orderDetail(verifiedOrder))

@@ -45,7 +45,9 @@ export function DeliveriesPage() {
   const canAcknowledge = can("delivery_notes.acknowledge")
   const isGodownInbox = canAcknowledge && !canIssue
   const [search, setSearch] = useState("")
-  const [status, setStatus] = useState(isGodownInbox ? "sent" : "all")
+  // Sent is only the acknowledgement queue. Acknowledged notes are the history,
+  // so the inbox starts on every status the godown can already view.
+  const [status, setStatus] = useState("all")
   const [shopId, setShopId] = useState("all")
   const [branchId, setBranchId] = useState("all")
 
@@ -113,7 +115,7 @@ export function DeliveriesPage() {
         title={isGodownInbox ? "Delivery note inbox" : "Delivery notes"}
         description={
           isGodownInbox
-            ? "Review sent delivery notes for your assigned godowns and acknowledge receipt. Stock does not change here."
+            ? "Review delivery notes for your assigned godowns, including notes already acknowledged. Stock does not change here."
             : "Create draft delivery notes from verified orders, generate, send to godown, and void when required."
         }
         action={
@@ -233,11 +235,17 @@ export function DeliveriesPage() {
 
           {rows.length === 0 ? (
             <EmptyState
-              title={isGodownInbox ? "No sent delivery notes" : "No delivery notes"}
+              title={
+                status === "sent" ? "No sent delivery notes" : "No delivery notes"
+              }
               description={
-                isGodownInbox
+                status === "sent"
                   ? "Sent notes for your assigned godowns will appear here for acknowledgement."
-                  : "Draft and generated delivery notes for authorized godowns will appear here."
+                  : status === "all"
+                    ? isGodownInbox
+                      ? "Sent and acknowledged notes for your assigned godowns appear here."
+                      : "Draft and generated delivery notes for authorized godowns will appear here."
+                    : "No delivery notes match this filter."
               }
             />
           ) : (
@@ -263,6 +271,11 @@ export function DeliveriesPage() {
                     {row.sent_at ? (
                       <p className="mt-1 text-sm text-muted-foreground">
                         Sent {formatStamp(row.sent_at)}
+                      </p>
+                    ) : null}
+                    {row.acknowledged_at ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Acknowledged {formatStamp(row.acknowledged_at)}
                       </p>
                     ) : null}
                   </Link>

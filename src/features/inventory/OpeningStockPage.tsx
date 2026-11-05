@@ -146,8 +146,11 @@ export function OpeningStockPage() {
           value={productId}
           error={form.formState.errors.productId?.message}
           onChange={(nextId, product) => {
-            form.setValue("productId", nextId, { shouldValidate: true })
+            // The schema reads product and policy together. Validating the
+            // product first captures a null policy and leaves that error
+            // after the policy is written.
             form.setValue("expiryPolicy", product?.expiry_policy ?? null)
+            form.setValue("productId", nextId, { shouldValidate: true })
           }}
         />
         <TextField

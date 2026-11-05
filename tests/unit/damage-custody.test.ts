@@ -69,7 +69,16 @@ function report(partial: Partial<DamageReportDetail> = {}): DamageReportDetail {
 }
 
 describe("custody and transfer eligibility", () => {
-  it("allows Godown Manager custody on editable shop-return drafts only", () => {
+  it("allows Godown Manager custody on submitted shop returns only", () => {
+    expect(
+      canConfirmShopReturnCustody({
+        scenario: "shop_return",
+        status: "submitted",
+        alreadyConfirmed: false,
+        canRecord: true,
+        canVerify: true,
+      }),
+    ).toBe(true)
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
@@ -78,7 +87,7 @@ describe("custody and transfer eligibility", () => {
         canRecord: true,
         canVerify: true,
       }),
-    ).toBe(true)
+    ).toBe(false)
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
@@ -92,7 +101,7 @@ describe("custody and transfer eligibility", () => {
       canConfirmShopReturnCustody({
         scenario: "shop_return",
         status: "submitted",
-        alreadyConfirmed: false,
+        alreadyConfirmed: true,
         canRecord: true,
         canVerify: true,
       }),
@@ -103,7 +112,7 @@ describe("custody and transfer eligibility", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
-        status: "draft",
+        status: "submitted",
         alreadyConfirmed: false,
         canRecord: true,
         canVerify: false,

@@ -114,7 +114,7 @@ export function DamageSourcePicker({
     if (scenario === "transit") {
       return "Consumed dispatches you are authorized to report."
     }
-    return "Active shops. Custody confirmation is a later workflow."
+    return "Shops this account is allowed to report. The server omits shops that are not assigned to a salesperson."
   }, [scenario])
 
   function applyItem(item: DamageSourceItem) {

@@ -43,16 +43,17 @@ describe("damage evidence viewer", () => {
       { id: "b", url: "blob:photo-b", name: "carton-b.jpg" },
     ])
 
-    expect(screen.getByRole("button", { name: "View (2)" })).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "View (2)" }))
-    expect(screen.getByText("Photos (2)")).toBeInTheDocument()
-    expect(screen.getByText(/Photo 1/)).toBeInTheDocument()
-    expect(screen.getByText(/Photo 2/)).toBeInTheDocument()
-
-    await user.click(screen.getByRole("button", { name: "Photo 1" }))
-    expect(screen.getByText("Photo view")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Back to photos" }))
-    expect(screen.getByText("Photos (2)")).toBeInTheDocument()
+    const previews = screen.getAllByRole("button", { name: "Preview" })
+    expect(previews).toHaveLength(2)
+    expect(screen.getByText(/carton-a.jpg/)).toBeInTheDocument()
+    expect(screen.getByText(/carton-b.jpg/)).toBeInTheDocument()
+    await user.click(previews[0])
+    expect(screen.getByRole("img", { name: "Photo 1" })).toHaveAttribute(
+      "src",
+      "blob:photo-a",
+    )
+    await user.click(previews[0])
+    expect(screen.queryByRole("img", { name: "Photo 1" })).not.toBeInTheDocument()
   })
 
   it("exposes a delete control next to a single attached image", async () => {

@@ -178,6 +178,26 @@ begin
   if payload ->> 'physical_custody_confirmed' = 'true' then
     raise exception 'new shop-return must start unconfirmed';
   end if;
+
+  -- DMG-06 lifecycle: submit first (no stock), then GM confirms custody.
+  payload := public.submit_damage_report(
+    report_id,
+    (payload ->> 'version')::integer,
+    'm54c-sql-sr-submit'
+  );
+  report_id := (payload ->> 'id')::uuid;
+  perform set_config('sherlyos.sr_id', report_id::text, true);
+  perform set_config('sherlyos.sr_version', (payload ->> 'version'), true);
+
+  if payload ->> 'status' is distinct from 'submitted' then
+    raise exception 'shop-return submit failed, status=%', payload ->> 'status';
+  end if;
+  if exists (
+    select 1 from public.damage_stock_holds
+    where damage_report_id = report_id
+  ) then
+    raise exception 'shop-return submit must not create stock holds';
+  end if;
 end $$;
 
 -- Store keeper cannot confirm shop-return custody (needs damage.verify).
@@ -205,6 +225,7 @@ exception
   when insufficient_privilege then null;
 end $$;
 
+-- Draft/returned custody is rejected (submitted-only).
 select pg_temp.as_user('godown');
 do $$
 declare
@@ -229,9 +250,10 @@ begin
   if payload ->> 'shop_name' is distinct from 'M54C SQL Shop' then
     raise exception 'shop name missing from payload: %', payload ->> 'shop_name';
   end if;
-  if payload ->> 'status' is distinct from 'draft' then
-    raise exception 'custody must not submit the report, status=%', payload ->> 'status';
+  if payload ->> 'status' is distinct from 'submitted' then
+    raise exception 'custody must keep submitted, status=%', payload ->> 'status';
   end if;
+  perform set_config('sherlyos.sr_version', (payload ->> 'version'), true);
 
   again := public.confirm_shop_return_custody(
     current_setting('sherlyos.sr_id')::uuid,

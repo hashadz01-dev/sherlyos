@@ -49,11 +49,14 @@ const {
     ],
     canRead: true,
     canRecord: true,
+    canShopReturnRecord: false,
     canVerify: true,
     canDisposition: true,
+    canConfirmCustody: true,
     canMonitor: false,
     canTransitOnly: false,
     isAdminMonitor: false,
+    isShopReturnReporterOnly: false,
     showVerificationQueues: true,
     showDispositionQueues: true,
     showExceptionalQueues: true,
@@ -661,18 +664,25 @@ describe("damage edit form inbound remaining", () => {
   })
 })
 
-describe("shop-return edit custody gate", () => {
+describe("shop-return salesperson submit without custody", () => {
   beforeEach(() => {
     listDamageReportSources.mockReset()
     listDamageReports.mockReset()
     getDamageReport.mockReset()
     getDamageStockHoldReadyStatus.mockReset()
     confirmShopReturnCustody.mockReset()
-    accessState.canRecord = true
-    accessState.canVerify = true
+    listShopReturnReceiveGodowns.mockReset()
+    accessState.canRecord = false
+    accessState.canVerify = false
+    accessState.canConfirmCustody = false
+    accessState.canShopReturnRecord = true
+    accessState.isShopReturnReporterOnly = true
     accessState.canCreate = true
     accessState.availableScenarios = ["shop_return"]
-    getDamageStockHoldReadyStatus.mockResolvedValue({ stock_hold_ready: true })
+    getDamageStockHoldReadyStatus.mockResolvedValue({ stock_hold_ready: false })
+    listShopReturnReceiveGodowns.mockResolvedValue([
+      { id: "g1", code: "gd_1", name: "Godown-1", is_active: true },
+    ])
     listDamageReports.mockResolvedValue({
       total: 0,
       page: 1,
@@ -696,9 +706,9 @@ describe("shop-return edit custody gate", () => {
       catalogs: {
         products: [
           {
-            product_id: "p1",
-            product_sku: "TEST-DMG06-ONLY",
-            product_name: "DMG06 Fixture",
+            id: "p1",
+            sku: "TEST-DMG06-ONLY",
+            name: "DMG06 Fixture",
           },
         ],
       },

@@ -149,7 +149,7 @@ export const navigationItems: AppNavItem[] = [
   },
   {
     to: "/damage",
-    label: "Damage",
+    label: "Damage Management",
     title: "Damage Management",
     description:
       "Authorized damage reports, verification queues, and stock isolation status.",

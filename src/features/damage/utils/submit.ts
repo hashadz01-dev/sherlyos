@@ -83,7 +83,8 @@ export function collectSubmitBlockers(input: {
         "Attach finalized photographic evidence before submitting. Godown verification also requires it.",
     })
   }
-  // Shop return posts quarantine only when a non-reporter verifies.
+  // Shop-return submit does not post stock. Isolation still gates storage
+  // and loading; verification later posts the shop-return quarantine intake.
   if (
     input.scenario &&
     input.scenario !== "shop_return" &&

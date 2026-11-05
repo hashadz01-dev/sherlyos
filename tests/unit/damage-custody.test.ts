@@ -82,33 +82,24 @@ describe("custody and transfer eligibility", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
-        status: "draft",
-        alreadyConfirmed: false,
-        canRecord: true,
-        canVerify: true,
-      }),
-    ).toBe(false)
-    expect(
-      canConfirmShopReturnCustody({
-        scenario: "shop_return",
-        status: "draft",
-        alreadyConfirmed: true,
-        canRecord: true,
-        canVerify: true,
-      }),
-    ).toBe(false)
-    expect(
-      canConfirmShopReturnCustody({
-        scenario: "shop_return",
         status: "submitted",
         alreadyConfirmed: true,
         canRecord: true,
         canVerify: true,
       }),
     ).toBe(false)
+    expect(
+      canConfirmShopReturnCustody({
+        scenario: "shop_return",
+        status: "draft",
+        alreadyConfirmed: false,
+        canRecord: true,
+        canVerify: true,
+      }),
+    ).toBe(false)
   })
 
-  it("denies Store Keeper and Delivery Person custody confirmation", () => {
+  it("denies Store Keeper, Delivery Person, and salesperson custody", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
@@ -121,7 +112,7 @@ describe("custody and transfer eligibility", () => {
     expect(
       canConfirmShopReturnCustody({
         scenario: "shop_return",
-        status: "draft",
+        status: "submitted",
         alreadyConfirmed: false,
         canRecord: false,
         canVerify: false,

@@ -83,20 +83,17 @@ function DamageReportEditor({
   const auth = useAuth()
   const locations = useStockLocations()
   const userId = auth.session?.user.id
-  // Salesperson shop returns use the deployed godown catalog. A Godown
-  // Manager still picks from godowns they can work at.
-  const salespersonShopReturn =
-    access.can("damage.shop_return.record") && !access.canVerify
+  // Salesperson shop-return uses the deployed receiving-godown RPC because
+  // branch reads can be hidden from that role. Godown Managers may use it too.
   const receiveGodowns = useQuery({
     queryKey: ["shop-return-receive-godowns"],
     queryFn: listShopReturnReceiveGodowns,
-    enabled: salespersonShopReturn,
+    enabled:
+      access.isShopReturnReporterOnly ||
+      access.availableScenarios.includes("shop_return"),
   })
-  const godownChoices = salespersonShopReturn
-    ? (receiveGodowns.data ?? [])
-    : (locations.branches.data ?? [])
 
-  const [scenario, setScenario] = useState<DamageScenario | "">("")
+  const [scenarioChoice, setScenarioChoice] = useState<DamageScenario | "">("")
   const [godownId, setGodownId] = useState("")
   const [source, setSource] = useState<DamageSourceItem | null>(null)
   const [catalogs, setCatalogs] = useState<DamageSourceCatalogs>({})
@@ -127,7 +124,20 @@ function DamageReportEditor({
   })
 
   const report = existing.data ?? null
+  // Salesperson create: only shop_return is permitted — treat as selected.
+  const scenario: DamageScenario | "" =
+    scenarioChoice ||
+    (mode === "create" &&
+    access.availableScenarios.length === 1 &&
+    access.availableScenarios[0]
+      ? access.availableScenarios[0]
+      : "")
+  const setScenario = setScenarioChoice
   const stockHoldReady = readiness.data?.stock_hold_ready === true
+  const godownOptions =
+    access.isShopReturnReporterOnly || scenario === "shop_return"
+      ? (receiveGodowns.data ?? [])
+      : (locations.branches.data ?? [])
   const editable =
     !report ||
     (isEditableDamageStatus(report.status) &&
@@ -509,7 +519,7 @@ function DamageReportEditor({
           }}
         >
           <option value="">Select godown</option>
-          {godownChoices.map((branch) => (
+          {godownOptions.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
             </option>
@@ -594,6 +604,11 @@ function DamageReportEditor({
           }
         }}
       />
+
+      {/*
+        Custody confirmation lives on the detail page after submit.
+        The draft editor never confirms custody.
+      */}
 
       <DamageSubmitReview
         scenario={scenario}

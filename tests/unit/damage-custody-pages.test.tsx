@@ -85,6 +85,7 @@ const shopReturn: DamageReportDetail = {
   scenario: "shop_return",
   godown_id: "g1",
   godown_name: "Main Godown",
+  // Custody confirmation is submitted-only, after the report is submitted.
   status: "submitted",
   version: 2,
   reporter_name: "GM",

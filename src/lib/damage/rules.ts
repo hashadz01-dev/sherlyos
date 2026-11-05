@@ -118,6 +118,7 @@ export function scenariosAvailableForPermissions(
   const available: DamageScenario[] = []
   const recorder = can("damage.record")
   const verifier = can("damage.verify")
+  const shopReturnRecorder = can("damage.shop_return.record")
   if (recorder && (can("receiving.execute") || verifier)) {
     available.push("refill_supply", "unloading")
   }
@@ -134,10 +135,7 @@ export function scenariosAvailableForPermissions(
   // Shop return is filed with damage.shop_return.record, or by a godown
   // manager who already has both record and verify. Store Keeper record
   // alone does not open it.
-  if (
-    can("damage.shop_return.record") ||
-    (recorder && verifier)
-  ) {
+  if (shopReturnRecorder || (recorder && verifier)) {
     available.push("shop_return")
   }
   return available
@@ -163,8 +161,9 @@ export const damageQuarantinePermissions = [
 ] as const
 
 /**
- * UX gate only. The deployed RPC confirms custody on a submitted report
- * and requires damage.record plus damage.verify. It posts no stock.
+ * UX gate only. confirm_shop_return_custody requires damage.record and
+ * damage.verify on a submitted shop return. It posts no stock. Salesperson
+ * submit does not require custody; verification posts the quarantine intake.
  */
 export function canConfirmShopReturnCustody(input: {
   scenario: string
@@ -235,8 +234,9 @@ export type DamageDecisionBlocker = {
 
 /**
  * UX gate matching verify_damage_report. Backend remains authoritative.
- * Isolation scenarios require persisted holds; readiness=false prevents
- * submit of those scenarios, so they do not reach this gate in production.
+ * Storage/loading require holds from submit. Shop-return requires custody
+ * first; quarantine intake is posted during verify, so holds are not a
+ * pre-verify gate for that scenario.
  */
 export function collectVerificationBlockers(input: {
   status: string
@@ -295,6 +295,7 @@ export function collectVerificationBlockers(input: {
   }
   if (
     scenarioRequiresStockHold(input.scenario) &&
+    input.scenario !== "shop_return" &&
     input.isolatedCases > 0 &&
     input.isolatedCases !== input.reportedCases
   ) {

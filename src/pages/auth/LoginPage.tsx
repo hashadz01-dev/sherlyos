@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Component, lazy, Suspense, type ReactNode } from "react"
 import { useForm } from "react-hook-form"
 import { Navigate } from "react-router"
 import { BrandMark } from "@/components/layout/BrandMark"
@@ -9,6 +10,32 @@ import { LoadingScreen } from "@/components/shared/LoadingState"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { loginSchema, type LoginValues } from "@/lib/validations/login"
+
+const LoginFlowStage = lazy(() =>
+  import("@/pages/auth/LoginFlowStage").then((module) => ({
+    default: module.LoginFlowStage,
+  })),
+)
+
+/**
+ * The film is decorative. If a figure fails to mount, keep the wash and
+ * leave the sign-in form in place.
+ */
+class LoginStageBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  render() {
+    if (this.state.failed) return null
+    return this.props.children
+  }
+}
 
 export function LoginPage() {
   const { configured, loading, session, signIn } = useAuth()
@@ -40,32 +67,49 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white lg:flex">
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+    <div className="grid min-h-svh bg-background min-[900px]:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white min-[900px]:flex">
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+        >
           <div className="absolute -top-24 left-1/4 size-[28rem] rounded-full bg-cyan-400/40 blur-3xl" />
           <div className="absolute -bottom-32 -left-16 size-[26rem] rounded-full bg-blue-500/40 blur-3xl" />
         </div>
         <div className="relative">
           <BrandMark />
         </div>
-        <div className="relative max-w-md">
-          <h1 className="text-4xl font-semibold tracking-tight">
-            Operations, kept in one workspace.
-          </h1>
-          <p className="mt-4 text-base leading-7 text-white/70">
-            Orders, deliveries, receiving, verification, and refill will be
-            added in later phases. Sign-in uses your Supabase account.
-          </p>
+        <p className="sr-only">
+          A carton travels from a shop order through verification, packing, and
+          dispatch, and is delivered to the shop.
+        </p>
+        <div className="relative mt-6 flex min-h-0 flex-1 flex-col">
+          {/* Chunk load shows the wash already painted on this panel. */}
+          <LoginStageBoundary>
+            <Suspense fallback={null}>
+              <LoginFlowStage />
+            </Suspense>
+          </LoginStageBoundary>
         </div>
-        <p className="relative text-sm text-white/50">Sherlys distribution operations</p>
+        <p className="relative mt-6 text-sm text-white/50">
+          Sherlys distribution operations
+        </p>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden">
+          <div className="mb-8 min-[900px]:hidden">
             <BrandMark tone="dark" />
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Operations, kept in one workspace.
+          </h1>
+          <p className="mt-4 text-base leading-7 text-muted-foreground">
+            Orders, deliveries, receiving, verification, and refill will be
+            added in later phases. Sign-in uses your Supabase account.
+          </p>
+          <h2 className="mt-8 text-2xl font-semibold tracking-tight">
+            Sign in
+          </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             Use the email and password issued for your SherlysOS account.
           </p>

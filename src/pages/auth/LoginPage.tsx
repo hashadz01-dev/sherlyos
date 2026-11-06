@@ -43,8 +43,8 @@ export function LoginPage() {
     <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
       <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute -top-16 -left-10 size-72 rounded-full bg-cyan-300/25 blur-3xl" />
-          <div className="absolute right-0 bottom-0 size-80 rounded-full bg-blue-400/30 blur-3xl" />
+          <div className="absolute -top-24 left-1/4 size-[28rem] rounded-full bg-cyan-400/40 blur-3xl" />
+          <div className="absolute -bottom-32 -left-16 size-[26rem] rounded-full bg-blue-500/40 blur-3xl" />
         </div>
         <div className="relative">
           <BrandMark />

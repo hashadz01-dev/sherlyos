@@ -174,12 +174,24 @@ function DashboardBody({
                       <span className="ml-2 text-muted-foreground">Inactive (historical)</span>
                     ) : null}
                   </span>
-                  <span className="font-medium">{row.cartons}</span>
+                  <span className="font-medium tabular-nums">{row.cartons}</span>
                 </li>
               )
             })}
           </ul>
         </section>
+      ) : null}
+
+      {data.orders.visible ? (
+        <OrderPipeline
+          steps={[
+            ["Draft", data.orders.draft],
+            [SUBMITTED_SCOPE_LABEL, data.orders.submitted],
+            ["Held", data.orders.held],
+            ["Verified", data.orders.verified],
+            ["Awaiting packing", data.orders.awaiting_picking],
+          ]}
+        />
       ) : null}
 
       {data.orders.visible ? (
@@ -321,9 +333,29 @@ function DashboardBody({
 
 function DashboardGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-6">
-      <h2 className="mb-3 text-base font-semibold">{title}</h2>
+    <section className="mb-8">
+      <h2 className="mb-3 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{title}</h2>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
     </section>
+  )
+}
+
+/** Same order counts as the cards below. Presentation only. */
+function OrderPipeline({ steps }: { steps: [string, number][] }) {
+  return (
+    <ol className="mb-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+      {steps.map(([label, value], index) => (
+        <li
+          key={label}
+          className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/80"
+        >
+          <span className="text-xs font-medium text-slate-500">
+            <span className="mr-2 text-slate-400 tabular-nums">{index + 1}</span>
+            {label}
+          </span>
+          <span className="text-lg font-semibold tabular-nums">{value}</span>
+        </li>
+      ))}
+    </ol>
   )
 }

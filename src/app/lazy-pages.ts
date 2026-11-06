@@ -9,7 +9,9 @@ import {
  * If Netlify still has a previous hashed file cached, reload once instead of
  * leaving the React Router overlay on a missing chunk.
  */
-function lazy<T extends ComponentType<unknown>>(
+// Match React.lazy: pages may declare their own props. ComponentType<unknown>
+// rejects an optional prop such as NotFoundPage's signedOut.
+function lazy<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ) {
   return reactLazy(() =>
@@ -406,6 +408,31 @@ export const EmployeesPage = lazy(() =>
 export const GodownsPage = lazy(() =>
   import("@/features/administration/godowns/GodownsPage").then((m) => ({
     default: m.GodownsPage,
+  })),
+)
+export const GodownZonesPage = lazy(() =>
+  import("@/features/administration/godowns/GodownZonesPage").then((m) => ({
+    default: m.GodownZonesPage,
+  })),
+)
+export const ZoneCratesPage = lazy(() =>
+  import("@/features/administration/godowns/ZoneCratesPage").then((m) => ({
+    default: m.ZoneCratesPage,
+  })),
+)
+export const CrateCapacityPage = lazy(() =>
+  import("@/features/administration/godowns/CrateCapacityPage").then((m) => ({
+    default: m.CrateCapacityPage,
+  })),
+)
+export const PlannedZonePreviewPage = lazy(() =>
+  import("@/features/administration/godowns/PlannedZonePreviewPage").then((m) => ({
+    default: m.PlannedZonePreviewPage,
+  })),
+)
+export const PlannedCratePreviewPage = lazy(() =>
+  import("@/features/administration/godowns/PlannedCratePreviewPage").then((m) => ({
+    default: m.PlannedCratePreviewPage,
   })),
 )
 export const UsersRolesPage = lazy(() =>

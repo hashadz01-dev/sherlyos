@@ -438,6 +438,29 @@ export const navigationGroups: NavGroup[] = [
   "Administration",
 ]
 
+/** Routes that exist but are not sidebar entries. */
+const EXTRA_APP_PREFIXES = ["/branches"]
+
+const knownAppPrefixes = [
+  ...new Set(
+    navigationItems
+      .map((item) => item.to)
+      .filter((path) => path !== "/")
+      .concat(EXTRA_APP_PREFIXES),
+  ),
+]
+
+/**
+ * True when the path is a real SherlysOS screen (including detail URLs under a nav prefix).
+ * Unknown paths should show the 404 page instead of the sign-in redirect.
+ */
+export function isKnownAppPath(pathname: string) {
+  if (pathname === "/") return true
+  return knownAppPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  )
+}
+
 export function findNavigationItem(pathname: string) {
   const matches = navigationItems.filter((item) => {
     if (item.to === "/") {

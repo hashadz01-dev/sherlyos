@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { assignableRoleOptions } from "@/lib/access/assignable-roles"
 import { describeEmployeeGodownAccess } from "@/lib/access/godown-scope"
 import { useAccess } from "@/lib/access/use-access"
 import { fetchAllRows } from "@/lib/supabase/fetch-all"
@@ -314,11 +315,13 @@ export function EmployeesPage() {
                   }}
                 >
                   <option value="">Choose a role</option>
-                  {(directory.data?.roles ?? []).map((role) => (
-                    <option key={role.id} value={role.code}>
-                      {role.name}
-                    </option>
-                  ))}
+                  {assignableRoleOptions(directory.data?.roles ?? []).map(
+                    (role) => (
+                      <option key={role.id} value={role.code}>
+                        {role.name}
+                      </option>
+                    ),
+                  )}
                 </select>
               </label>
             ) : null}

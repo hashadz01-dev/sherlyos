@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router"
 import { useQuery } from "@tanstack/react-query"
+import { PhoneLink } from "@/components/shared/ContactLinks"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -100,7 +101,9 @@ export function DeliveryNotePrintPage() {
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Shop phone</dt>
-              <dd>{print.data.shop.phone ?? "—"}</dd>
+              <dd>
+                <PhoneLink value={print.data.shop.phone} empty="—" />
+              </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-sm text-muted-foreground">Shop address</dt>

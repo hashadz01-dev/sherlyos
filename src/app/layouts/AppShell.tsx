@@ -1,17 +1,23 @@
 import { Suspense } from "react"
 import { Outlet, useLocation } from "react-router"
+import { findNavigationItem } from "@/app/navigation"
+import { AppFooter } from "@/components/layout/AppFooter"
 import { BrandMark } from "@/components/layout/BrandMark"
 import { MobileNav } from "@/components/layout/MobileNav"
 import { SidebarNav } from "@/components/layout/SidebarNav"
 import { TopBar } from "@/components/layout/TopBar"
 import { LoadingBlock } from "@/components/shared/LoadingState"
+import { useDocumentTitle } from "@/hooks/use-document-title"
 
 export function AppShell() {
   const { pathname } = useLocation()
 
   return (
-    <div className="flex h-svh overflow-hidden bg-background text-foreground print:h-auto print:overflow-visible">
-      <aside className="hidden h-svh w-64 shrink-0 flex-col border-r border-white/10 bg-navy text-white shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)] print:hidden md:flex md:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent_22%),#0e1c33]">
+    // Fixed to the viewport so the document cannot grow under the workspace.
+    // A viewport-height shell left in normal flow still let the page scroll
+    // past the sidebar into empty space.
+    <div className="app-shell fixed inset-0 flex overflow-hidden bg-background text-foreground">
+      <aside className="hidden h-full min-h-0 w-64 shrink-0 flex-col border-r border-white/10 bg-navy text-white print:hidden md:flex">
         <div className="px-5 pt-6 pb-5">
           <BrandMark />
         </div>
@@ -25,10 +31,12 @@ export function AppShell() {
         <div className="shrink-0 print:hidden">
           <TopBar pathname={pathname} />
         </div>
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top_left,rgba(47,111,224,0.07),transparent_42%),radial-gradient(ellipse_at_top_right,rgba(34,211,238,0.05),transparent_34%)] px-4 pt-6 pb-24 md:px-8 md:pb-10 print:overflow-visible print:bg-white print:px-0 print:pt-0 print:pb-0">
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-background px-4 pt-6 pb-24 md:px-8 md:pb-10 print:overflow-visible print:bg-white print:px-0 print:pt-0 print:pb-0">
+          <RouteDocumentMeta pathname={pathname} />
           <Suspense fallback={<LoadingBlock label="Loading page" />}>
-            <div key={pathname} className="page-enter print:animate-none">
+            <div key={pathname} className="page-enter min-w-0 print:animate-none">
               <Outlet />
+              <AppFooter />
             </div>
           </Suspense>
         </main>
@@ -38,4 +46,15 @@ export function AppShell() {
       </div>
     </div>
   )
+}
+
+/** Default title and description for the matched section. A page hook can replace both. */
+function RouteDocumentMeta({ pathname }: { pathname: string }) {
+  const item = findNavigationItem(pathname)
+  useDocumentTitle(
+    item?.title ?? "SherlysOS",
+    item?.description ??
+      "SherlysOS operations workspace for orders, stock, and delivery.",
+  )
+  return null
 }

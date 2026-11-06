@@ -33,8 +33,8 @@ Most screens rebuild the same white card (`rounded-2xl bg-white ring-1`) instead
 
 ## This pass
 
-- Navy sidebar with a light top wash and a highlighted active item.
-- Glass top bar and a faint aurora wash on the content canvas.
+- Navy sidebar, solid, with a highlighted active item.
+- Solid top bar and a flat content canvas. No glass blur, glow orbs, or aurora wash.
 - Page titles slightly larger. Metric numbers use tabular figures. Values are still the real ones; they do not count up yet.
 - Overview shows the same order counts again as a five-step strip (draft through awaiting packing). Hidden when orders are not authorized.
 - Status palette tokens: green, blue, amber, red, and an orange quarantine tone.
@@ -42,7 +42,7 @@ Most screens rebuild the same white card (`rounded-2xl bg-white ring-1`) instead
 
 ## Login flow film
 
-The left panel of `/login` plays one carton through five Hairline plates. The sign-in form, its copy, and auth are unchanged. The stage is a lazy chunk (`LoginFlowStage`); the panel wash is the fallback while that chunk loads.
+The left panel of `/login` plays one carton through five Hairline plates. The sign-in form, its copy, and auth are unchanged. The stage is a lazy chunk (`LoginFlowStage`); the solid navy panel is the fallback while that chunk loads.
 
 Figures were picked from a temporary grid of stack, basket, drawer, cabinet, lockers, rail, relay, elevator, hub, laptop, terminal, and vault, drawn on the login navy (`theme="dark"`, `--hairline-plate: #0e1c33`). The grid route was removed after the look.
 

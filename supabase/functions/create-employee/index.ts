@@ -71,6 +71,10 @@ Deno.serve(async (request) => {
   if (!/^[a-z0-9_]+$/.test(roleCode)) {
     return json(400, { error: "Select a user role." })
   }
+  // Kept in the catalog, but not offered when adding a user.
+  if (roleCode === "damage_verifier" || roleCode === "statutory_verifier") {
+    return json(400, { error: "Select a user role." })
+  }
   if (password.length < 8 || password.length > 72) {
     return json(400, { error: "Password must be 8 to 72 characters." })
   }

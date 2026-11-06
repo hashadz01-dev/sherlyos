@@ -12,7 +12,7 @@ export function RecordTable({
   caption?: string
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200/80">
+    <div className="max-w-full overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200/80">
       <table className={cn("w-full text-left text-sm", className)}>
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         {children}

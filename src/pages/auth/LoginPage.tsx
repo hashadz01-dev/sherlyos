@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Component, lazy, Suspense, type ReactNode } from "react"
 import { useForm } from "react-hook-form"
-import { Navigate } from "react-router"
+import { Link, Navigate } from "react-router"
 import { BrandMark } from "@/components/layout/BrandMark"
 import { PasswordField } from "@/components/forms/PasswordField"
 import { TextField } from "@/components/forms/TextField"
@@ -18,8 +18,8 @@ const LoginFlowStage = lazy(() =>
 )
 
 /**
- * The film is decorative. If a figure fails to mount, keep the wash and
- * leave the sign-in form in place.
+ * The film is decorative. If a figure fails to mount, keep the navy panel
+ * and leave the sign-in form in place.
  */
 class LoginStageBoundary extends Component<
   { children: ReactNode },
@@ -49,7 +49,7 @@ export function LoginPage() {
     defaultValues: { email: "", password: "" },
   })
 
-  useDocumentTitle("Sign in")
+  useDocumentTitle("Sign in", "Sign in to the SherlysOS operations workspace.")
 
   if (loading) {
     return <LoadingScreen />
@@ -69,13 +69,6 @@ export function LoginPage() {
   return (
     <div className="grid min-h-svh bg-background min-[900px]:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
       <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white min-[900px]:flex">
-        <div
-          className="pointer-events-none absolute inset-0"
-          aria-hidden="true"
-        >
-          <div className="absolute -top-24 left-1/4 size-[28rem] rounded-full bg-cyan-400/40 blur-3xl" />
-          <div className="absolute -bottom-32 -left-16 size-[26rem] rounded-full bg-blue-500/40 blur-3xl" />
-        </div>
         <div className="relative">
           <BrandMark />
         </div>
@@ -84,7 +77,7 @@ export function LoginPage() {
           dispatch, and a draft invoice note, and is delivered to the shop.
         </p>
         <div className="relative mt-6 flex min-h-0 flex-1 flex-col">
-          {/* Chunk load shows the wash already painted on this panel. */}
+          {/* Chunk load keeps this navy panel in place until the film mounts. */}
           <LoginStageBoundary>
             <Suspense fallback={null}>
               <LoginFlowStage />
@@ -100,12 +93,12 @@ export function LoginPage() {
           <div className="mb-8 min-[900px]:hidden">
             <BrandMark tone="dark" />
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
             Operations, kept in one workspace.
           </h1>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Orders, deliveries, receiving, verification, and refill will be
-            added in later phases. Sign-in uses your Supabase account.
+            Orders, stock, deliveries, and verification for Sherlys
+            distribution. Sign-in uses your Supabase account.
           </p>
           <h2 className="mt-8 text-2xl font-semibold tracking-tight">
             Sign in
@@ -156,7 +149,17 @@ export function LoginPage() {
             </Button>
           </form>
           <p className="mt-6 text-sm text-muted-foreground">
-            Accounts are issued by an administrator.
+            © {new Date().getFullYear()} Sherlys distributors & agents.{" "}
+            <Link to="/terms" className="font-medium text-foreground underline">
+              Terms
+            </Link>
+            {" · "}
+            <Link
+              to="/privacy"
+              className="font-medium text-foreground underline"
+            >
+              Privacy
+            </Link>
           </p>
         </div>
       </section>

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AppModal } from "@/components/shared/AppModal"
+import { PhoneLink } from "@/components/shared/ContactLinks"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
@@ -199,7 +200,9 @@ export function DeliveryNoteDetailPage() {
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Phone</dt>
-              <dd>{detail.data.shop.phone ?? "—"}</dd>
+              <dd>
+                <PhoneLink value={detail.data.shop.phone} empty="—" />
+              </dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Address</dt>

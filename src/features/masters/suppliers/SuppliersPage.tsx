@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { AppModal } from "@/components/shared/AppModal"
+import { EmailLink, PhoneLink } from "@/components/shared/ContactLinks"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { TextField } from "@/components/forms/TextField"
@@ -119,12 +120,22 @@ export function SuppliersPage() {
         <ul className="divide-y divide-slate-200/80">
           {visible.map((supplier) => (
             <li key={supplier.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <button type="button" className="text-left" onClick={() => setEditing(supplier)}>
-                <span className="block text-sm font-medium">{supplier.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {[supplier.phone, supplier.email].filter(Boolean).join(" · ") || "No contact details"}
-                </span>
-              </button>
+              <div className="min-w-0 text-left">
+                <button type="button" className="text-left" onClick={() => setEditing(supplier)}>
+                  <span className="block text-sm font-medium">{supplier.name}</span>
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  {supplier.phone || supplier.email ? (
+                    <>
+                      {supplier.phone ? <PhoneLink value={supplier.phone} /> : null}
+                      {supplier.phone && supplier.email ? " · " : null}
+                      {supplier.email ? <EmailLink value={supplier.email} /> : null}
+                    </>
+                  ) : (
+                    "No contact details"
+                  )}
+                </p>
+              </div>
               <span className="flex items-center gap-2">
                 <StatusBadge tone={supplier.is_active ? "success" : "neutral"}>
                   {supplier.is_active ? "Active" : "Inactive"}

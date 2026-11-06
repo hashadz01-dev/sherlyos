@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCcw, UserRound, type LucideIcon } from "lucide-react"
+import { EmailLink } from "@/components/shared/ContactLinks"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { notify } from "@/lib/utilities/notify"
 import { useAccess } from "@/lib/access/use-access"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import {
@@ -26,7 +28,7 @@ function SettingsCard({
   action?: ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
+    <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
           <Icon className="size-4" aria-hidden />
@@ -72,6 +74,7 @@ export function SettingsPage() {
 
   function handleCheckUpdates() {
     setCheckedAt(recordAppUpdatesCheckedAt())
+    notify.success("App updates checked. This workspace is up to date.")
   }
 
   return (
@@ -94,9 +97,24 @@ export function SettingsPage() {
           <p>{formatAppUpdateStamp(checkedAt)}</p>
         </SettingsCard>
         <SettingsCard icon={UserRound} title="Profile">
-          <p>Name: {displayName}</p>
-          <p>Operations workspace</p>
-          <p>Role: {roleLabel}</p>
+          {profile.isError ? (
+            <p role="alert">
+              {profile.error instanceof Error
+                ? profile.error.message
+                : "Account details could not be loaded."}
+            </p>
+          ) : (
+            <>
+              <p>Name: {displayName}</p>
+              {email ? (
+                <p>
+                  Email: <EmailLink value={email} />
+                </p>
+              ) : null}
+              <p>Operations workspace</p>
+              <p>Role: {roleLabel}</p>
+            </>
+          )}
         </SettingsCard>
       </div>
     </section>

@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query"
 import { ShieldOff } from "lucide-react"
-import { Navigate, Outlet } from "react-router"
+import { Navigate, Outlet, useLocation } from "react-router"
+import { isKnownAppPath } from "@/app/navigation"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingScreen } from "@/components/shared/LoadingState"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { NotFoundPage } from "@/pages/errors/NotFoundPage"
 
 export function RequireAuth() {
+  const { pathname } = useLocation()
   const { loading, session, signOut } = useAuth()
   const userId = session?.user.id
   const profile = useQuery({
@@ -33,6 +36,9 @@ export function RequireAuth() {
   }
 
   if (!session) {
+    if (!isKnownAppPath(pathname)) {
+      return <NotFoundPage signedOut />
+    }
     return <Navigate to="/login" replace />
   }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router"
 import { cn } from "cn"
 
 const logoSrc = "/branding/sherlys-logo.png"
@@ -6,9 +7,12 @@ const logoSrc = "/branding/sherlys-logo.png"
 export function BrandMark({
   compact = false,
   tone = "light",
+  onNavigate,
 }: {
   compact?: boolean
   tone?: "light" | "dark"
+  /** Closes the mobile sheet after the logo is used as a home link. */
+  onNavigate?: () => void
 }) {
   const [logoReady, setLogoReady] = useState(false)
 
@@ -20,7 +24,15 @@ export function BrandMark({
   }, [])
 
   return (
-    <div className={cn("flex items-center gap-3", compact && "gap-2.5")}>
+    <Link
+      to="/"
+      onClick={onNavigate}
+      className={cn(
+        "flex min-w-0 items-center rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        compact ? "gap-2.5" : "gap-3",
+        tone === "light" && "focus-visible:outline-white",
+      )}
+    >
       {logoReady ? (
         <img
           src={logoSrc}
@@ -52,6 +64,6 @@ export function BrandMark({
           </p>
         )}
       </div>
-    </div>
+    </Link>
   )
 }

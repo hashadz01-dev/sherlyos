@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { PhoneLink } from "@/components/shared/ContactLinks"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
@@ -255,16 +256,26 @@ export function ShopsPage() {
                   return (
                     <li key={`${group.routeId}-${shop.id}`} className="grid gap-3 py-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <Link to={`/masters/shops/${shop.id}`} className="text-left">
-                          <span className="block text-sm font-medium">
+                        <div className="min-w-0 text-left">
+                          <Link
+                            to={`/masters/shops/${shop.id}`}
+                            className="block text-sm font-medium"
+                          >
                             {shop.visitSequence != null ? `${shop.visitSequence}. ` : ""}
                             {shop.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {[shop.phone, shop.address].filter(Boolean).join(" · ") ||
-                              "No contact details"}
-                          </span>
-                        </Link>
+                          </Link>
+                          <p className="text-xs text-muted-foreground">
+                            {shop.phone || shop.address ? (
+                              <>
+                                {shop.phone ? <PhoneLink value={shop.phone} /> : null}
+                                {shop.phone && shop.address ? " · " : null}
+                                {shop.address}
+                              </>
+                            ) : (
+                              "No contact details"
+                            )}
+                          </p>
+                        </div>
                         <span className="flex items-center gap-2">
                           <StatusBadge tone={shop.is_active ? "success" : "neutral"}>
                             {shop.is_active ? "Active" : "Inactive"}

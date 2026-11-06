@@ -2,6 +2,7 @@ import { Link } from "react-router"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { LoadingScreen } from "@/components/shared/LoadingState"
 import { navigationItems } from "@/app/navigation"
+import { canSeeNavigationItem } from "@/lib/access/navigation-visibility"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
 import { AccessDeniedPage } from "@/pages/errors/AccessDeniedPage"
@@ -10,10 +11,7 @@ export function MastersPage() {
   useDocumentTitle("Master data")
   const { loading, can } = useAccess()
   const links = navigationItems.filter(
-    (item) =>
-      item.to.startsWith("/masters/") &&
-      item.permission &&
-      can(item.permission),
+    (item) => item.to.startsWith("/masters/") && canSeeNavigationItem(item, can),
   )
 
   if (loading) return <LoadingScreen />
@@ -23,7 +21,7 @@ export function MastersPage() {
     <section>
       <PageHeader
         title="Master data"
-        description="Maintain the catalogs that later stock and order work will use. Nothing on these screens changes a stock balance."
+        description="Catalogs used by stock and order work. Nothing on these screens changes a stock balance."
       />
       <ul className="grid gap-3 sm:grid-cols-2">
         {links.map((item) => {

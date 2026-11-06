@@ -5,6 +5,11 @@ import {
   AdjustmentsPage,
   AuditPage,
   GodownsPage,
+  GodownZonesPage,
+  ZoneCratesPage,
+  CrateCapacityPage,
+  PlannedZonePreviewPage,
+  PlannedCratePreviewPage,
   CategoriesPage,
   DamagePage,
   DamageQuarantinePage,
@@ -110,11 +115,23 @@ import {
 import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
 import { RouteErrorPage } from "@/pages/errors/RouteErrorPage"
+import { PrivacyPage } from "@/pages/legal/PrivacyPage"
+import { TermsPage } from "@/pages/legal/TermsPage"
 
 export const appRouteObjects: RouteObject[] = [
   {
     path: "/login",
     element: <LoginPage />,
+    errorElement: <RouteErrorPage />,
+  },
+  {
+    path: "/terms",
+    element: <TermsPage />,
+    errorElement: <RouteErrorPage />,
+  },
+  {
+    path: "/privacy",
+    element: <PrivacyPage />,
     errorElement: <RouteErrorPage />,
   },
   {
@@ -326,7 +343,9 @@ export const appRouteObjects: RouteObject[] = [
           {
             path: "credit-adjustments",
             element: (
-              <RequireAnyPermission permissions={[...creditAdjustmentNavPermissions]}>
+              <RequireAnyPermission
+                permissions={[...creditAdjustmentNavPermissions]}
+              >
                 <CreditAdjustmentsPage />
               </RequireAnyPermission>
             ),
@@ -334,7 +353,9 @@ export const appRouteObjects: RouteObject[] = [
           {
             path: "credit-adjustments/:adjustmentId",
             element: (
-              <RequireAnyPermission permissions={[...creditAdjustmentNavPermissions]}>
+              <RequireAnyPermission
+                permissions={[...creditAdjustmentNavPermissions]}
+              >
                 <CreditAdjustmentPreviewPage />
               </RequireAnyPermission>
             ),
@@ -780,7 +801,10 @@ export const appRouteObjects: RouteObject[] = [
             path: "reports",
             element: (
               <RequireAnyPermission
-                permissions={[...operationsReportPermissions, ...refillReportPermissions]}
+                permissions={[
+                  ...operationsReportPermissions,
+                  ...refillReportPermissions,
+                ]}
               >
                 <ReportsPage />
               </RequireAnyPermission>
@@ -864,6 +888,54 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequirePermission permission="employees.read">
                 <GodownsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones",
+            element: (
+              <RequirePermission permission="employees.read">
+                <GodownZonesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/planned/:zoneKey",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedZonePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/planned/:zoneKey/crates/:slot",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedCratePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates/preview/:slot",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedCratePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates",
+            element: (
+              <RequirePermission permission="employees.read">
+                <ZoneCratesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates/:crateId",
+            element: (
+              <RequirePermission permission="employees.read">
+                <CrateCapacityPage />
               </RequirePermission>
             ),
           },

@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, UserRound } from "lucide-react"
 import { AppModal } from "@/components/shared/AppModal"
+import { EmailLink, PhoneLink } from "@/components/shared/ContactLinks"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDocumentTitle } from "@/hooks/use-document-title"
+import { assignableRoleOptions } from "@/lib/access/assignable-roles"
 import { useAccess } from "@/lib/access/use-access"
 import { useAuth } from "@/hooks/use-auth"
 import { fetchAllRows } from "@/lib/supabase/fetch-all"
@@ -388,11 +390,13 @@ export function UsersRolesPage() {
               onChange={(event) => updateDraft("roleCode", event.target.value)}
             >
               <option value="">Select a role</option>
-              {(directory.data?.roles ?? []).map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.name}
-                </option>
-              ))}
+              {assignableRoleOptions(directory.data?.roles ?? []).map(
+                (option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.name}
+                  </option>
+                ),
+              )}
             </select>
           </Label>
           <Label className="flex flex-col items-stretch gap-1.5">
@@ -442,13 +446,13 @@ export function UsersRolesPage() {
             <div>
               <dt className="text-muted-foreground">Email</dt>
               <dd className="mt-0.5 font-medium">
-                {pinned.email || "Not recorded"}
+                <EmailLink value={pinned.email} />
               </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Phone number</dt>
               <dd className="mt-0.5 font-medium">
-                {pinned.phone_number || "Not recorded"}
+                <PhoneLink value={pinned.phone_number} empty="Not recorded" />
               </dd>
             </div>
             <div>

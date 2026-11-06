@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useAuth } from "@/hooks/use-auth"
+import { EmailLink } from "@/components/shared/ContactLinks"
 import { emailInitial } from "@/lib/utilities/email-initial"
 import { useUiStore } from "@/stores/ui-store"
 
@@ -37,7 +38,7 @@ export function TopBar({ pathname }: { pathname: string }) {
   }
 
   return (
-    <header className="z-20 flex h-16 items-center gap-3 border-b border-white/70 bg-white/80 px-4 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-xl md:px-6">
+    <header className="z-20 flex h-16 items-center gap-3 border-b border-border bg-card px-4 md:px-6">
       <Button
         type="button"
         variant="outline"
@@ -71,10 +72,7 @@ export function TopBar({ pathname }: { pathname: string }) {
           <PopoverContent align="end" className="w-80">
             <PopoverHeader>
               <PopoverTitle>Notifications</PopoverTitle>
-              <PopoverDescription>
-                No notifications. Workflow alerts will appear here after the
-                modules are connected.
-              </PopoverDescription>
+              <PopoverDescription>No notifications right now.</PopoverDescription>
             </PopoverHeader>
           </PopoverContent>
         </Popover>
@@ -102,7 +100,7 @@ export function TopBar({ pathname }: { pathname: string }) {
                 Signed in as
               </span>
               <span className="mt-1 block truncate text-sm font-medium">
-                {email ?? "Signed in"}
+                {email ? <EmailLink value={email} /> : "Signed in"}
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

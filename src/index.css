@@ -89,7 +89,6 @@
   --status-danger-bg: #fef2f2;
   --status-quarantine: #c2410c;
   --status-quarantine-bg: #fff7ed;
-  --glass-blur: 16px;
   --motion-micro: 150ms;
   --motion-panel: 280ms;
   --motion-page: 420ms;
@@ -148,6 +147,43 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    max-width: 100%;
+  }
+}
+
+/* The workspace is position:fixed. Print must return it to normal flow. */
+@media print {
+  .app-shell {
+    position: static;
+    inset: auto;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* Keep wide tables inside the column instead of stretching the viewport. */
+main .overflow-x-auto {
+  max-width: 100%;
+}
+
+/* Scroll anchoring inside the workspace was extending the page as the wheel moved. */
+.app-shell main {
+  overflow-anchor: none;
+}
+
+@media (max-width: 767px) {
+  /* 16px stops iOS from zooming the page when a field is focused. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  [data-slot="button"]:not([data-size="icon"]):not([data-size^="icon-"]) {
+    height: auto;
+    max-width: 100%;
+    min-height: 2rem;
+    white-space: normal;
   }
 }
 
@@ -165,6 +201,8 @@
 
 .page-enter {
   animation: page-enter var(--motion-page) var(--ease-out);
+  /* A transformed child can stretch the scrollport. Anchoring then keeps adding height as you scroll. */
+  overflow-anchor: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

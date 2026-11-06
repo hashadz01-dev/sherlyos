@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "cn"
+import { PhoneLink } from "@/components/shared/ContactLinks"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { LoadingBlock } from "@/components/shared/LoadingState"
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -343,7 +344,9 @@ function OverviewPanel({
         </div>
         <div>
           <dt className="text-xs font-medium text-muted-foreground">Phone</dt>
-          <dd className="text-sm">{shop.phone || "No contact details"}</dd>
+          <dd className="text-sm">
+            <PhoneLink value={shop.phone} />
+          </dd>
         </div>
         <div className="sm:col-span-2">
           <dt className="text-xs font-medium text-muted-foreground">Address</dt>

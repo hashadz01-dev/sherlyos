@@ -21,7 +21,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav
       aria-label="Primary"
-      className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 pb-6"
+      className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 pb-6"
     >
       {navigationGroups.map((group) => {
         const items = visible.filter((item) => item.group === group)

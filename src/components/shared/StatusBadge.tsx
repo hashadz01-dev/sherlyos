@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import { cn } from "cn"
 
+/** Status colors come from the shared tokens in `src/index.css`. The label text is the caller's. */
+
 const toneClass = {
   neutral: "bg-slate-100 text-slate-700",
   info: "bg-[var(--status-info-bg)] text-[var(--status-info)]",

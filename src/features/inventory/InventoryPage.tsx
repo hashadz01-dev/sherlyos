@@ -1,8 +1,17 @@
 import { useMemo, useState } from "react"
 import { Package } from "lucide-react"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { FilterBar } from "@/components/shared/FilterBar"
 import { LoadingBlock } from "@/components/shared/LoadingState"
+import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
+import {
+  RecordCell,
+  RecordHeadCell,
+  RecordHeader,
+  RecordRow,
+  RecordTable,
+} from "@/components/shared/RecordTable"
 import { SearchField } from "@/features/masters/MasterControls"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -54,8 +63,18 @@ export function InventoryPage() {
       ) : null}
       {balances.data ? (
         <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="mb-4 max-w-sm">
+            <MetricCard
+              label="Loaded rows"
+              icon={Package}
+              hint="Balances returned for your godowns"
+              value={balances.data.length}
+            />
+          </div>
+          <FilterBar label="Inventory filters">
             <SearchField label="Search inventory" value={search} onChange={setSearch} />
+            <label className="grid w-full min-w-[12rem] gap-1.5 text-sm font-medium sm:w-56">
+              <span>Godown</span>
             <select
               aria-label="Godown"
               value={godownId}
@@ -69,7 +88,8 @@ export function InventoryPage() {
                 </option>
               ))}
             </select>
-          </div>
+            </label>
+          </FilterBar>
           {visible.length === 0 ? (
             <EmptyState
               icon={Package}
@@ -77,25 +97,23 @@ export function InventoryPage() {
               description="Opening stock and transfers posted for your godowns will appear here."
             />
           ) : (
-            <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200">
-              <table className="w-full min-w-[44rem] text-left text-sm">
-                <thead className="text-xs tracking-wide text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Godown</th>
-                    <th className="px-4 py-3 font-medium">Zone</th>
-                    <th className="px-4 py-3 font-medium">Crate</th>
-                    <th className="px-4 py-3 font-medium">Product</th>
-                    <th className="px-4 py-3 font-medium">SKU</th>
-                    <th className="px-4 py-3 text-right font-medium">On-hand cases</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((row) => (
-                    <BalanceRow key={`${row.crate_id}-${row.product_id}`} row={row} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RecordTable className="min-w-[44rem]" caption="Stock balances">
+              <RecordHeader>
+                <tr>
+                  <RecordHeadCell>Godown</RecordHeadCell>
+                  <RecordHeadCell>Zone</RecordHeadCell>
+                  <RecordHeadCell>Crate</RecordHeadCell>
+                  <RecordHeadCell>Product</RecordHeadCell>
+                  <RecordHeadCell>SKU</RecordHeadCell>
+                  <RecordHeadCell className="text-right">On-hand cases</RecordHeadCell>
+                </tr>
+              </RecordHeader>
+              <tbody>
+                {visible.map((row) => (
+                  <BalanceRow key={`${row.crate_id}-${row.product_id}`} row={row} />
+                ))}
+              </tbody>
+            </RecordTable>
           )}
         </>
       ) : null}
@@ -105,16 +123,16 @@ export function InventoryPage() {
 
 function BalanceRow({ row }: { row: StockBalance }) {
   return (
-    <tr className="border-t border-slate-100">
-      <td className="px-4 py-3">{row.godown_name}</td>
-      <td className="px-4 py-3">
+    <RecordRow>
+      <RecordCell>{row.godown_name}</RecordCell>
+      <RecordCell>
         {row.zone_code}
         <span className="ml-2 text-muted-foreground">{row.zone_name}</span>
-      </td>
-      <td className="px-4 py-3">{row.crate_code}</td>
-      <td className="px-4 py-3">{row.product_name}</td>
-      <td className="px-4 py-3">{row.product_sku}</td>
-      <td className="px-4 py-3 text-right font-medium">{row.quantity}</td>
-    </tr>
+      </RecordCell>
+      <RecordCell>{row.crate_code}</RecordCell>
+      <RecordCell>{row.product_name}</RecordCell>
+      <RecordCell>{row.product_sku}</RecordCell>
+      <RecordCell className="text-right font-medium tabular-nums">{row.quantity}</RecordCell>
+    </RecordRow>
   )
 }

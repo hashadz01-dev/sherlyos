@@ -1,5 +1,4 @@
-import { NavLink } from "react-router"
-import { cn } from "cn"
+import { SegmentedTabs } from "@/components/shared/SegmentedTabs"
 import { useAccess } from "@/lib/access/use-access"
 
 /** Stock workspace tabs. Lot stock stays under /inventory so it does not open Reports. */
@@ -15,23 +14,16 @@ export function InventoryLinks() {
   const { can, loading } = useAccess()
   const visible = inventoryWorkspaceLinks.filter((link) => !loading && can(link.permission))
 
+  if (visible.length === 0) return null
+
   return (
-    <nav aria-label="Inventory" className="mb-6 flex flex-wrap gap-2">
-      {visible.map((link) => (
-        <NavLink
-          key={link.to}
-          to={link.to}
-          end={link.end}
-          className={({ isActive }) =>
-            cn(
-              "rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-slate-200",
-              isActive ? "bg-slate-900 text-white" : "bg-white text-slate-700",
-            )
-          }
-        >
-          {link.label}
-        </NavLink>
-      ))}
-    </nav>
+    <SegmentedTabs
+      label="Inventory"
+      items={visible.map((link) => ({
+        to: link.to,
+        label: link.label,
+        end: link.end,
+      }))}
+    />
   )
 }

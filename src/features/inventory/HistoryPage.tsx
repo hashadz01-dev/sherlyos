@@ -2,8 +2,18 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { ScrollText } from "lucide-react"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { FilterBar } from "@/components/shared/FilterBar"
 import { LoadingBlock } from "@/components/shared/LoadingState"
+import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
+import {
+  RecordCell,
+  RecordHeadCell,
+  RecordHeader,
+  RecordRow,
+  RecordTable,
+} from "@/components/shared/RecordTable"
+import { StatusBadge } from "@/components/shared/StatusBadge"
 import { SearchField } from "@/features/masters/MasterControls"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -45,9 +55,17 @@ export function HistoryPage() {
       ) : null}
       {history.data ? (
         <>
-          <div className="mb-4">
-            <SearchField label="Search history" value={search} onChange={setSearch} />
+          <div className="mb-4 max-w-sm">
+            <MetricCard
+              label="Loaded rows"
+              icon={ScrollText}
+              hint="Posted transactions for your godowns"
+              value={history.data.length}
+            />
           </div>
+          <FilterBar label="History filters">
+            <SearchField label="Search history" value={search} onChange={setSearch} />
+          </FilterBar>
           {visible.length === 0 ? (
             <EmptyState
               icon={ScrollText}
@@ -55,26 +73,24 @@ export function HistoryPage() {
               description="Posted stock transactions for your godowns will appear here."
             />
           ) : (
-            <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200">
-              <table className="w-full min-w-[52rem] text-left text-sm">
-                <thead className="text-xs tracking-wide text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Reference</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium">Product</th>
-                    <th className="px-4 py-3 font-medium">Movement</th>
-                    <th className="px-4 py-3 text-right font-medium">Cases</th>
-                    <th className="px-4 py-3 font-medium">Actor</th>
-                    <th className="px-4 py-3 font-medium">Posted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((row) => (
-                    <HistoryRow key={row.transaction_id} row={row} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RecordTable className="min-w-[52rem]" caption="Stock history">
+              <RecordHeader>
+                <tr>
+                  <RecordHeadCell>Reference</RecordHeadCell>
+                  <RecordHeadCell>Type</RecordHeadCell>
+                  <RecordHeadCell>Product</RecordHeadCell>
+                  <RecordHeadCell>Movement</RecordHeadCell>
+                  <RecordHeadCell className="text-right">Cases</RecordHeadCell>
+                  <RecordHeadCell>Actor</RecordHeadCell>
+                  <RecordHeadCell>Posted</RecordHeadCell>
+                </tr>
+              </RecordHeader>
+              <tbody>
+                {visible.map((row) => (
+                  <HistoryRow key={row.transaction_id} row={row} />
+                ))}
+              </tbody>
+            </RecordTable>
           )}
         </>
       ) : null}
@@ -94,19 +110,19 @@ function HistoryRow({ row }: { row: StockTransaction }) {
   }).format(new Date(row.posted_at))
 
   return (
-    <tr className="border-t border-slate-100">
-      <td className="px-4 py-3 font-medium">{row.reference_number}</td>
-      <td className="px-4 py-3">
-        {stockTransactionLabel(row.transaction_type)}
-      </td>
-      <td className="px-4 py-3">
+    <RecordRow>
+      <RecordCell className="font-medium">{row.reference_number}</RecordCell>
+      <RecordCell>
+        <StatusBadge tone="neutral">{stockTransactionLabel(row.transaction_type)}</StatusBadge>
+      </RecordCell>
+      <RecordCell>
         {row.product_name}
         <span className="ml-2 text-muted-foreground">{row.product_sku}</span>
-      </td>
-      <td className="px-4 py-3">{movement}</td>
-      <td className="px-4 py-3 text-right">{row.quantity}</td>
-      <td className="px-4 py-3">{row.actor_name ?? "Unknown"}</td>
-      <td className="px-4 py-3">{posted}</td>
-    </tr>
+      </RecordCell>
+      <RecordCell>{movement}</RecordCell>
+      <RecordCell className="text-right tabular-nums">{row.quantity}</RecordCell>
+      <RecordCell>{row.actor_name ?? "Unknown"}</RecordCell>
+      <RecordCell>{posted}</RecordCell>
+    </RecordRow>
   )
 }

@@ -25,15 +25,17 @@ export function AppModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-white text-slate-950">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? (
-            <DialogDescription>{description}</DialogDescription>
+            <DialogDescription className="text-slate-600">
+              {description}
+            </DialogDescription>
           ) : null}
         </DialogHeader>
         {children}
-        {footer ? <DialogFooter>{footer}</DialogFooter> : null}
+        {footer ? <DialogFooter className="bg-white">{footer}</DialogFooter> : null}
       </DialogContent>
     </Dialog>
   )

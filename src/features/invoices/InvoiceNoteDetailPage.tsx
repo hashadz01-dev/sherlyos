@@ -1,8 +1,17 @@
 import { useState } from "react"
+import { FileText } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { LoadingBlock } from "@/components/shared/LoadingState"
+import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
+import {
+  RecordCell,
+  RecordHeadCell,
+  RecordHeader,
+  RecordRow,
+  RecordTable,
+} from "@/components/shared/RecordTable"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -198,49 +207,54 @@ export function InvoiceNoteDetailPage() {
                 <dt className="text-xs text-muted-foreground">As of dispatch date</dt>
                 <dd className="text-sm">{note.as_of_date}</dd>
               </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Billed cases</dt>
-                <dd className="text-sm">{note.billed_cases}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Grand total</dt>
-                <dd className="text-sm">{formatInr(note.grand_total)}</dd>
-              </div>
             </dl>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <MetricCard
+                label="Billed cases"
+                icon={FileText}
+                hint="Cases on this draft"
+                value={note.billed_cases}
+                count={false}
+              />
+              <MetricCard
+                label="Grand total"
+                icon={FileText}
+                hint="Priced draft total"
+                value={formatInr(note.grand_total)}
+                count={false}
+              />
+            </div>
             <p className="mt-3 text-sm text-muted-foreground">{note.amount_in_words}</p>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200/80">
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">Invoice-note lines</caption>
-              <thead className="border-b border-slate-200 text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2">SKU</th>
-                  <th className="px-4 py-2">Product</th>
-                  <th className="px-4 py-2">Cases</th>
-                  <th className="px-4 py-2">Billed qty</th>
-                  <th className="px-4 py-2">Rate</th>
-                  <th className="px-4 py-2">Amount</th>
-                  <th className="px-4 py-2">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {note.lines.map((line) => (
-                  <tr key={line.id} className="border-b border-slate-100">
-                    <td className="px-4 py-2">{line.product_sku}</td>
-                    <td className="px-4 py-2">{line.product_name}</td>
-                    <td className="px-4 py-2">{line.shipped_cases}</td>
-                    <td className="px-4 py-2">
-                      {String(line.billed_quantity)} {line.billing_unit}
-                    </td>
-                    <td className="px-4 py-2">{formatInr(line.unit_amount)}</td>
-                    <td className="px-4 py-2">{formatInr(line.line_amount)}</td>
-                    <td className="px-4 py-2">{line.price_scope}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RecordTable caption="Invoice-note lines">
+            <RecordHeader>
+              <tr>
+                <RecordHeadCell>SKU</RecordHeadCell>
+                <RecordHeadCell>Product</RecordHeadCell>
+                <RecordHeadCell>Cases</RecordHeadCell>
+                <RecordHeadCell>Billed qty</RecordHeadCell>
+                <RecordHeadCell>Rate</RecordHeadCell>
+                <RecordHeadCell>Amount</RecordHeadCell>
+                <RecordHeadCell>Price</RecordHeadCell>
+              </tr>
+            </RecordHeader>
+            <tbody>
+              {note.lines.map((line) => (
+                <RecordRow key={line.id}>
+                  <RecordCell>{line.product_sku}</RecordCell>
+                  <RecordCell>{line.product_name}</RecordCell>
+                  <RecordCell className="tabular-nums">{line.shipped_cases}</RecordCell>
+                  <RecordCell>
+                    {String(line.billed_quantity)} {line.billing_unit}
+                  </RecordCell>
+                  <RecordCell>{formatInr(line.unit_amount)}</RecordCell>
+                  <RecordCell>{formatInr(line.line_amount)}</RecordCell>
+                  <RecordCell>{line.price_scope}</RecordCell>
+                </RecordRow>
+              ))}
+            </tbody>
+          </RecordTable>
 
           <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
             <h2 className="text-sm font-semibold">Statutory readiness</h2>

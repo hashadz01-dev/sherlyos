@@ -1,8 +1,18 @@
 import { useMemo, useState } from "react"
 import { Layers } from "lucide-react"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { FilterBar } from "@/components/shared/FilterBar"
 import { LoadingBlock } from "@/components/shared/LoadingState"
+import { MetricCard } from "@/components/shared/MetricCard"
 import { PageHeader } from "@/components/shared/PageHeader"
+import {
+  RecordCell,
+  RecordHeadCell,
+  RecordHeader,
+  RecordRow,
+  RecordTable,
+} from "@/components/shared/RecordTable"
+import { StatusBadge, type StatusTone } from "@/components/shared/StatusBadge"
 import { SearchField } from "@/features/masters/MasterControls"
 import { InventoryLinks } from "@/features/inventory/InventoryLinks"
 import { useDocumentTitle } from "@/hooks/use-document-title"
@@ -59,8 +69,18 @@ export function LotStockPage() {
       ) : null}
       {lots.data ? (
         <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="mb-4 max-w-sm">
+            <MetricCard
+              label="Loaded rows"
+              icon={Layers}
+              hint="Lot balances returned for your godowns"
+              value={lots.data.length}
+            />
+          </div>
+          <FilterBar label="Lot stock filters">
             <SearchField label="Search lot stock" value={search} onChange={setSearch} />
+            <label className="grid w-full min-w-[12rem] gap-1.5 text-sm font-medium sm:w-56">
+              <span>Godown</span>
             <select
               aria-label="Godown"
               value={godownId}
@@ -74,7 +94,8 @@ export function LotStockPage() {
                 </option>
               ))}
             </select>
-          </div>
+            </label>
+          </FilterBar>
           {visible.length === 0 ? (
             <EmptyState
               icon={Layers}
@@ -82,26 +103,24 @@ export function LotStockPage() {
               description="Lot rows appear when lot-attributed stock exists for your godowns."
             />
           ) : (
-            <div className="overflow-x-auto rounded-2xl bg-white ring-1 ring-slate-200">
-              <table className="w-full min-w-[52rem] text-left text-sm">
-                <thead className="text-xs tracking-wide text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Lot</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Expiry</th>
-                    <th className="px-4 py-3 font-medium">Product</th>
-                    <th className="px-4 py-3 font-medium">Godown</th>
-                    <th className="px-4 py-3 font-medium">Crate</th>
-                    <th className="px-4 py-3 text-right font-medium">On-hand cases</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((row) => (
-                    <LotBalanceRow key={`${row.lot_id}-${row.crate_id}`} row={row} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RecordTable className="min-w-[52rem]" caption="Lot stock">
+              <RecordHeader>
+                <tr>
+                  <RecordHeadCell>Lot</RecordHeadCell>
+                  <RecordHeadCell>Status</RecordHeadCell>
+                  <RecordHeadCell>Expiry</RecordHeadCell>
+                  <RecordHeadCell>Product</RecordHeadCell>
+                  <RecordHeadCell>Godown</RecordHeadCell>
+                  <RecordHeadCell>Crate</RecordHeadCell>
+                  <RecordHeadCell className="text-right">On-hand cases</RecordHeadCell>
+                </tr>
+              </RecordHeader>
+              <tbody>
+                {visible.map((row) => (
+                  <LotBalanceRow key={`${row.lot_id}-${row.crate_id}`} row={row} />
+                ))}
+              </tbody>
+            </RecordTable>
           )}
         </>
       ) : null}
@@ -109,19 +128,31 @@ export function LotStockPage() {
   )
 }
 
+/** Color only. The status word on the row is unchanged. */
+function lotStatusTone(status: string): StatusTone {
+  const value = status.toLowerCase()
+  if (value.includes("quarantine")) return "quarantine"
+  if (value.includes("block") || value.includes("cancel")) return "danger"
+  if (value.includes("hold") || value.includes("expir")) return "warning"
+  if (value.includes("active") || value.includes("available")) return "success"
+  return "neutral"
+}
+
 function LotBalanceRow({ row }: { row: StockLotBalance }) {
   return (
-    <tr className="border-t border-slate-100">
-      <td className="px-4 py-3">{row.manufacturer_lot_code ?? row.lot_id}</td>
-      <td className="px-4 py-3">{row.lot_status}</td>
-      <td className="px-4 py-3">{row.expiry_date ?? "Unknown"}</td>
-      <td className="px-4 py-3">
+    <RecordRow>
+      <RecordCell>{row.manufacturer_lot_code ?? row.lot_id}</RecordCell>
+      <RecordCell>
+        <StatusBadge tone={lotStatusTone(row.lot_status)}>{row.lot_status}</StatusBadge>
+      </RecordCell>
+      <RecordCell>{row.expiry_date ?? "Unknown"}</RecordCell>
+      <RecordCell>
         {row.product_name}
         <span className="ml-2 text-muted-foreground">{row.product_sku}</span>
-      </td>
-      <td className="px-4 py-3">{row.godown_code}</td>
-      <td className="px-4 py-3">{row.crate_code}</td>
-      <td className="px-4 py-3 text-right font-medium">{row.quantity}</td>
-    </tr>
+      </RecordCell>
+      <RecordCell>{row.godown_code}</RecordCell>
+      <RecordCell>{row.crate_code}</RecordCell>
+      <RecordCell className="text-right font-medium tabular-nums">{row.quantity}</RecordCell>
+    </RecordRow>
   )
 }

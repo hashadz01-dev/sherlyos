@@ -175,7 +175,7 @@ describe("dashboard", () => {
     })
     renderDashboard()
 
-    expect(await screen.findByText("Submitted")).toBeInTheDocument()
+    expect((await screen.findAllByText("Submitted")).length).toBeGreaterThan(0)
     expect(screen.queryByText(/You are not assigned to Godown-1/i)).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Open order verification" })).toHaveAttribute(
       "href",

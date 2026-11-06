@@ -35,8 +35,9 @@ import {
 } from "@/lib/reports/api"
 
 function kpiNumber(value: number | undefined, visible: boolean) {
-  if (!visible) return { value: null as number | null, unavailable: true }
-  return { value: value ?? 0, unavailable: false }
+  // A missing authorized field stays hidden. Do not paint it as zero.
+  if (!visible || value === undefined) return { value: null as number | null, unavailable: true }
+  return { value, unavailable: false }
 }
 
 function availablePickDisplay(metric: KpiValue | undefined, visible: boolean) {
@@ -183,7 +184,8 @@ function DashboardBody({
       ) : null}
 
       {data.orders.visible ? (
-        <OrderPipeline
+        <CountStrip
+          title="Orders"
           steps={[
             ["Draft", data.orders.draft],
             [SUBMITTED_SCOPE_LABEL, data.orders.submitted],
@@ -223,6 +225,19 @@ function DashboardBody({
       ) : null}
 
       {data.picking.visible ? (
+        <CountStrip
+          title="Packing"
+          steps={[
+            ["Allocated", data.picking.allocated],
+            ["Packing", data.picking.picking],
+            ["Picked", data.picking.picked],
+            ["Ready for dispatch", data.picking.ready_for_dispatch],
+            ["Blocked", data.picking.blocked],
+          ]}
+        />
+      ) : null}
+
+      {data.picking.visible ? (
         <DashboardGroup title="Packing">
           <MetricCard label="Allocated" icon={PackageCheck} hint="Reserved, not started" {...kpiNumber(data.picking.allocated, true)} />
           <MetricCard label="Packing" icon={PackageCheck} hint="In progress" {...kpiNumber(data.picking.picking, true)} />
@@ -235,6 +250,20 @@ function DashboardBody({
           />
           <MetricCard label="Blocked" icon={TriangleAlert} hint="Packing blockers" {...kpiNumber(data.picking.blocked, true)} />
         </DashboardGroup>
+      ) : null}
+
+      {data.dispatch.visible ? (
+        <CountStrip
+          title="Dispatch"
+          steps={[
+            ["Preparing", data.dispatch.preparing],
+            ["Dispatched", data.dispatch.dispatched],
+            ["In transit", data.dispatch.in_transit],
+            ["Delivered", data.dispatch.delivered],
+            ["Delivery exceptions", data.dispatch.exception],
+            ["Pending proof of delivery", data.dispatch.pending_proof_of_delivery],
+          ]}
+        />
       ) : null}
 
       {data.dispatch.visible ? (
@@ -271,6 +300,17 @@ function DashboardBody({
             {...kpiNumber(data.dispatch.pending_proof_of_delivery, true)}
           />
         </DashboardGroup>
+      ) : null}
+
+      {data.deliveries.visible ? (
+        <CountStrip
+          title="Assigned deliveries"
+          steps={[
+            ["Open runs", data.deliveries.assigned_open],
+            ["Delivered", data.deliveries.delivered],
+            ["Exceptions", data.deliveries.exception],
+          ]}
+        />
       ) : null}
 
       {data.deliveries.visible ? (
@@ -340,22 +380,40 @@ function DashboardGroup({ title, children }: { title: string; children: React.Re
   )
 }
 
-/** Same order counts as the cards below. Presentation only. */
-function OrderPipeline({ steps }: { steps: [string, number][] }) {
+/** Same counts as the cards under it. A missing count stays an em dash. */
+function CountStrip({
+  title,
+  steps,
+}: {
+  title: string
+  steps: [string, number | undefined][]
+}) {
   return (
-    <ol className="mb-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-      {steps.map(([label, value], index) => (
-        <li
-          key={label}
-          className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/80"
-        >
-          <span className="text-xs font-medium text-slate-500">
-            <span className="mr-2 text-slate-400 tabular-nums">{index + 1}</span>
-            {label}
-          </span>
-          <span className="text-lg font-semibold tabular-nums">{value}</span>
-        </li>
-      ))}
-    </ol>
+    <section className="mb-6" aria-label={title}>
+      <h2 className="mb-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{title}</h2>
+      <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {steps.map(([label, value], index) => (
+          <li
+            key={label}
+            className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/80"
+          >
+            <span className="text-xs font-medium text-slate-500">
+              <span className="mr-2 text-slate-400 tabular-nums">{index + 1}</span>
+              {label}
+            </span>
+            {value === undefined ? (
+              <>
+                <span aria-hidden="true" className="text-lg font-semibold">
+                  —
+                </span>
+                <span className="sr-only">Not available</span>
+              </>
+            ) : (
+              <span className="text-lg font-semibold tabular-nums">{value}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }

@@ -3,10 +3,12 @@ import { cn } from "cn"
 
 const toneClass = {
   neutral: "bg-slate-100 text-slate-700",
-  info: "bg-blue-50 text-blue-700",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-800",
-  danger: "bg-red-50 text-red-700",
+  info: "bg-[var(--status-info-bg)] text-[var(--status-info)]",
+  success: "bg-[var(--status-success-bg)] text-[var(--status-success)]",
+  warning: "bg-[var(--status-warning-bg)] text-[var(--status-warning)]",
+  danger: "bg-[var(--status-danger-bg)] text-[var(--status-danger)]",
+  quarantine:
+    "bg-[var(--status-quarantine-bg)] text-[var(--status-quarantine)]",
 } as const
 
 export type StatusTone = keyof typeof toneClass

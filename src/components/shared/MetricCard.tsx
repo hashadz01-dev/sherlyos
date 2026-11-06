@@ -16,12 +16,12 @@ export function MetricCard({
   const showUnavailable = unavailable || value === null || value === undefined
 
   return (
-    <article className="rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-200/80">
+    <article className="rounded-2xl bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_-24px_rgba(14,28,51,0.45)] ring-1 ring-slate-200/80">
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-sm font-medium text-slate-500">{label}</h2>
         <Icon className="size-4 text-slate-400" aria-hidden="true" />
       </div>
-      <p className="mt-5 text-4xl font-semibold tracking-tight text-slate-950">
+      <p className="mt-5 text-4xl font-semibold tracking-tight text-slate-950 tabular-nums">
         {showUnavailable ? (
           <>
             <span aria-hidden="true">—</span>

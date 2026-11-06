@@ -41,9 +41,15 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-      <section className="hidden flex-col justify-between bg-navy px-12 py-12 text-white lg:flex">
-        <BrandMark />
-        <div className="max-w-md">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white lg:flex">
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -top-16 -left-10 size-72 rounded-full bg-cyan-300/25 blur-3xl" />
+          <div className="absolute right-0 bottom-0 size-80 rounded-full bg-blue-400/30 blur-3xl" />
+        </div>
+        <div className="relative">
+          <BrandMark />
+        </div>
+        <div className="relative max-w-md">
           <h1 className="text-4xl font-semibold tracking-tight">
             Operations, kept in one workspace.
           </h1>
@@ -52,7 +58,7 @@ export function LoginPage() {
             added in later phases. Sign-in uses your Supabase account.
           </p>
         </div>
-        <p className="text-sm text-white/50">Sherlys distribution operations</p>
+        <p className="relative text-sm text-white/50">Sherlys distribution operations</p>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">

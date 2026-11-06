@@ -78,6 +78,22 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  /* Semantic status. Same names everywhere: verified, in progress, warning, blocked, quarantine. */
+  --status-success: #047857;
+  --status-success-bg: #ecfdf5;
+  --status-info: #1d4ed8;
+  --status-info-bg: #eff6ff;
+  --status-warning: #b45309;
+  --status-warning-bg: #fffbeb;
+  --status-danger: #b91c1c;
+  --status-danger-bg: #fef2f2;
+  --status-quarantine: #c2410c;
+  --status-quarantine-bg: #fff7ed;
+  --glass-blur: 16px;
+  --motion-micro: 150ms;
+  --motion-panel: 280ms;
+  --motion-page: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --sidebar: #0e1c33;
   --sidebar-foreground: oklch(0.96 0.01 255);
   --sidebar-primary: #2f6fe0;
@@ -132,6 +148,28 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Route enter only. Warning banners and form values are not wrapped in this class. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter var(--motion-page) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
   }
 }
 

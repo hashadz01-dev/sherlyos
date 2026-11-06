@@ -43,9 +43,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     onClick={onNavigate}
                     className={() =>
                       cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80",
                         isNavigationPathActive(item.to, pathname, item.end) &&
-                          "bg-brand text-white shadow-sm hover:bg-brand",
+                          "bg-brand text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] hover:bg-brand",
                       )
                     }
                   >

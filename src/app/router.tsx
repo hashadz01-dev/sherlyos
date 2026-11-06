@@ -5,6 +5,11 @@ import {
   AdjustmentsPage,
   AuditPage,
   GodownsPage,
+  GodownZonesPage,
+  ZoneCratesPage,
+  CrateCapacityPage,
+  PlannedZonePreviewPage,
+  PlannedCratePreviewPage,
   CategoriesPage,
   DamagePage,
   DamageQuarantinePage,
@@ -864,6 +869,54 @@ export const appRouteObjects: RouteObject[] = [
             element: (
               <RequirePermission permission="employees.read">
                 <GodownsPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones",
+            element: (
+              <RequirePermission permission="employees.read">
+                <GodownZonesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/planned/:zoneKey",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedZonePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/planned/:zoneKey/crates/:slot",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedCratePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates/preview/:slot",
+            element: (
+              <RequirePermission permission="employees.read">
+                <PlannedCratePreviewPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates",
+            element: (
+              <RequirePermission permission="employees.read">
+                <ZoneCratesPage />
+              </RequirePermission>
+            ),
+          },
+          {
+            path: "godowns/:godownId/zones/:zoneId/crates/:crateId",
+            element: (
+              <RequirePermission permission="employees.read">
+                <CrateCapacityPage />
               </RequirePermission>
             ),
           },

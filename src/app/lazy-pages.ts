@@ -408,6 +408,31 @@ export const GodownsPage = lazy(() =>
     default: m.GodownsPage,
   })),
 )
+export const GodownZonesPage = lazy(() =>
+  import("@/features/administration/godowns/GodownZonesPage").then((m) => ({
+    default: m.GodownZonesPage,
+  })),
+)
+export const ZoneCratesPage = lazy(() =>
+  import("@/features/administration/godowns/ZoneCratesPage").then((m) => ({
+    default: m.ZoneCratesPage,
+  })),
+)
+export const CrateCapacityPage = lazy(() =>
+  import("@/features/administration/godowns/CrateCapacityPage").then((m) => ({
+    default: m.CrateCapacityPage,
+  })),
+)
+export const PlannedZonePreviewPage = lazy(() =>
+  import("@/features/administration/godowns/PlannedZonePreviewPage").then((m) => ({
+    default: m.PlannedZonePreviewPage,
+  })),
+)
+export const PlannedCratePreviewPage = lazy(() =>
+  import("@/features/administration/godowns/PlannedCratePreviewPage").then((m) => ({
+    default: m.PlannedCratePreviewPage,
+  })),
+)
 export const UsersRolesPage = lazy(() =>
   import("@/features/administration/users/UsersRolesPage").then((m) => ({
     default: m.UsersRolesPage,

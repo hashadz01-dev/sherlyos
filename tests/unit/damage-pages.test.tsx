@@ -152,7 +152,10 @@ describe("damage pages", () => {
         screen.getByText("Damage stock isolation not ready"),
       ).toBeInTheDocument()
     })
-    expect(screen.getByText("2")).toBeInTheDocument()
+    const reportCount = screen.getByText("2", { selector: ".sr-only" })
+    expect(reportCount).toBeInTheDocument()
+    expect(reportCount.closest("[aria-live]")).toBeNull()
+    expect(reportCount.parentElement?.querySelector("[aria-hidden='true']")).toHaveTextContent("2")
     expect(screen.getByText("All reports")).toBeInTheDocument()
     expect(screen.getByText("Ordinary write-off cases")).toBeInTheDocument()
     expect(screen.getByText("Exceptional write-off cases")).toBeInTheDocument()

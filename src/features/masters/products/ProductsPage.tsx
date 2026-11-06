@@ -26,6 +26,16 @@ import {
   FilterSelect,
   SearchField,
 } from "@/features/masters/MasterControls"
+import {
+  ProductCard,
+  ProductCardGrid,
+  ProductCardSkeletons,
+  ProductLayoutToggle,
+  productRelationLabel,
+  readProductLayout,
+  writeProductLayout,
+  type ProductLayout,
+} from "@/features/masters/products/ProductCards"
 import { matchesStatus } from "@/lib/masters/filters"
 import { formatPackAmount } from "@/lib/masters/pack-amount"
 
@@ -58,6 +68,8 @@ export function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [supplierFilter, setSupplierFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  // Cards are the default. The stored choice only changes this screen's layout.
+  const [layout, setLayout] = useState<ProductLayout>(() => readProductLayout())
   const [editing, setEditing] = useState<Product | "new" | null>(null)
   const [statusTarget, setStatusTarget] = useState<Product | null>(null)
   const [expiryTarget, setExpiryTarget] = useState<Product | null>(null)
@@ -175,6 +187,11 @@ export function ProductsPage() {
 
   const categoryName = new Map((categories.data ?? []).map((row) => [row.id, row.name]))
   const supplierName = new Map((suppliers.data ?? []).map((row) => [row.id, row.name]))
+
+  function chooseLayout(next: ProductLayout) {
+    setLayout(next)
+    writeProductLayout(next)
+  }
   const visible = (products.data ?? []).filter((product) => {
     return (
       matchesStatus(statusFilter, product.is_active) &&
@@ -218,76 +235,127 @@ export function ProductsPage() {
           <option value="inactive">Inactive</option>
         </FilterSelect>
       </div>
-      <RecordCard
-        loading={products.isLoading}
-        error={products.error}
-        empty={visible.length === 0}
-        emptyTitle="No products"
-        emptyDescription="No products match this search. Type a SKU or name to search the full catalog."
-      >
-        <ul className="divide-y divide-slate-200/80">
+      <div className="mb-4 flex justify-end">
+        <ProductLayoutToggle value={layout} onChange={chooseLayout} />
+      </div>
+      {products.isLoading && layout === "cards" ? (
+        <ProductCardSkeletons />
+      ) : layout === "list" || products.isLoading || products.error || visible.length === 0 ? (
+        <RecordCard
+          loading={products.isLoading}
+          error={products.error}
+          empty={visible.length === 0}
+          emptyTitle="No products"
+          emptyDescription="No products match this search. Type a SKU or name to search the full catalog."
+        >
+          <ul className="divide-y divide-slate-200/80">
+            {visible.map((product) => {
+              const packAmount = formatPackAmount(
+                product.billed_units_per_case,
+                product.billing_unit,
+              )
+              return (
+              <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => setEditing(product)}
+                >
+                  <span className="block text-sm font-medium">{product.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {product.sku}
+                    {product.category_id ? ` · ${categoryName.get(product.category_id) ?? "Category"}` : ""}
+                    {product.supplier_id ? ` · ${supplierName.get(product.supplier_id) ?? "Supplier"}` : ""}
+                    {packAmount ? ` · ${packAmount}` : ""}
+                    {` · ${product.expiry_policy ?? "unclassified"}`}
+                  </span>
+                </button>
+                <span className="flex items-center gap-2">
+                  <StatusBadge tone={product.is_active ? "success" : "neutral"}>
+                    {product.is_active ? "Active" : "Inactive"}
+                  </StatusBadge>
+                  {canClassifyExpiry ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setExpiryTarget(product)
+                        setExpiryPolicy(product.expiry_policy ?? "expiry_controlled")
+                      }}
+                    >
+                      Classify expiry
+                    </Button>
+                  ) : null}
+                  {canSetBilling ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        void getProduct(product.id).then((full) => {
+                          const next = full ?? product
+                          setBillingTarget(next)
+                          setBillingUnit(next.billing_unit ?? "nos")
+                          setBilledUnitsPerCase(String(next.billed_units_per_case ?? "1"))
+                        })
+                      }}
+                    >
+                      Billing units
+                    </Button>
+                  ) : null}
+                  {can("products.manage") ? (
+                    <Button variant="outline" onClick={() => setStatusTarget(product)}>
+                      {product.is_active ? "Deactivate" : "Activate"}
+                    </Button>
+                  ) : null}
+                </span>
+              </li>
+              )
+            })}
+          </ul>
+        </RecordCard>
+      ) : (
+        <ProductCardGrid>
           {visible.map((product) => {
-            const packAmount = formatPackAmount(
-              product.billed_units_per_case,
-              product.billing_unit,
+            const category = productRelationLabel(
+              product.category_id,
+              categoryName,
+              "No category",
+              "Category",
+            )
+            const supplier = productRelationLabel(
+              product.supplier_id,
+              supplierName,
+              "No supplier",
+              "Supplier",
             )
             return (
-            <li key={product.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                className="text-left"
-                onClick={() => setEditing(product)}
-              >
-                <span className="block text-sm font-medium">{product.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {product.sku}
-                  {product.category_id ? ` · ${categoryName.get(product.category_id) ?? "Category"}` : ""}
-                  {product.supplier_id ? ` · ${supplierName.get(product.supplier_id) ?? "Supplier"}` : ""}
-                  {packAmount ? ` · ${packAmount}` : ""}
-                  {` · ${product.expiry_policy ?? "unclassified"}`}
-                </span>
-              </button>
-              <span className="flex items-center gap-2">
-                <StatusBadge tone={product.is_active ? "success" : "neutral"}>
-                  {product.is_active ? "Active" : "Inactive"}
-                </StatusBadge>
-                {canClassifyExpiry ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setExpiryTarget(product)
-                      setExpiryPolicy(product.expiry_policy ?? "expiry_controlled")
-                    }}
-                  >
-                    Classify expiry
-                  </Button>
-                ) : null}
-                {canSetBilling ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      void getProduct(product.id).then((full) => {
-                        const next = full ?? product
-                        setBillingTarget(next)
-                        setBillingUnit(next.billing_unit ?? "nos")
-                        setBilledUnitsPerCase(String(next.billed_units_per_case ?? "1"))
-                      })
-                    }}
-                  >
-                    Billing units
-                  </Button>
-                ) : null}
-                {can("products.manage") ? (
-                  <Button variant="outline" onClick={() => setStatusTarget(product)}>
-                    {product.is_active ? "Deactivate" : "Activate"}
-                  </Button>
-                ) : null}
-              </span>
-            </li>
+              <li key={product.id} className="min-w-0">
+                <ProductCard
+                  product={product}
+                  categoryLabel={category.label}
+                  supplierLabel={supplier.label}
+                  categoryTintName={category.tintName}
+                  canClassifyExpiry={canClassifyExpiry}
+                  canSetBilling={canSetBilling}
+                  canManage={can("products.manage")}
+                  onEdit={() => setEditing(product)}
+                  onClassify={() => {
+                    setExpiryTarget(product)
+                    setExpiryPolicy(product.expiry_policy ?? "expiry_controlled")
+                  }}
+                  onBilling={() => {
+                    void getProduct(product.id).then((full) => {
+                      const next = full ?? product
+                      setBillingTarget(next)
+                      setBillingUnit(next.billing_unit ?? "nos")
+                      setBilledUnitsPerCase(String(next.billed_units_per_case ?? "1"))
+                    })
+                  }}
+                  onToggleStatus={() => setStatusTarget(product)}
+                />
+              </li>
             )
           })}
-        </ul>
-      </RecordCard>
+        </ProductCardGrid>
+      )}
       {editing ? (
         <ProductDialog
           key={editing === "new" ? "new" : editing.id}

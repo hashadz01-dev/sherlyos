@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router"
 import { AppShell } from "@/app/layouts/AppShell"
 import {
@@ -111,7 +112,29 @@ import { RequireAuth } from "@/lib/auth/RequireAuth"
 import { LoginPage } from "@/pages/auth/LoginPage"
 import { RouteErrorPage } from "@/pages/errors/RouteErrorPage"
 
+/**
+ * Review route for the six custom login figures. The import sits inside the
+ * dev check so a production build does not ship the drawings with the app.
+ */
+const LoginFiguresPage = import.meta.env.DEV
+  ? lazy(() => import("@/pages/dev/LoginFiguresPage"))
+  : () => null
+
+const devRoutes: RouteObject[] = import.meta.env.DEV
+  ? [
+      {
+        path: "/dev/login-figures",
+        element: (
+          <Suspense fallback={null}>
+            <LoginFiguresPage />
+          </Suspense>
+        ),
+      },
+    ]
+  : []
+
 export const appRouteObjects: RouteObject[] = [
+  ...devRoutes,
   {
     path: "/login",
     element: <LoginPage />,

@@ -40,9 +40,9 @@ export const navigationItems: AppNavItem[] = [
   {
     to: "/",
     label: "Overview",
-    title: "Operations Overview",
+    title: "Operations Dashboard",
     description:
-      "Authoritative operational counts for inventory, orders, packing, dispatch, and exceptions.",
+      "Your warehouse operations at a glance. Authoritative snapshot counts for inventory, orders, packing, dispatch, and exceptions.",
     group: "Operations",
     icon: LayoutDashboard,
     end: true,

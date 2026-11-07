@@ -1,25 +1,23 @@
-import { Link } from "react-router"
 import { useQuery } from "@tanstack/react-query"
-import {
-  ClipboardCheck,
-  Package,
-  PackageCheck,
-  ShoppingCart,
-  TriangleAlert,
-  Truck,
-} from "lucide-react"
+import { Link } from "react-router"
 import { LoadingBlock } from "@/components/shared/LoadingState"
-import { MetricCard } from "@/components/shared/MetricCard"
-import { PageHeader } from "@/components/shared/PageHeader"
-import { BranchFilterNote, ReportBranchSelect } from "@/features/reports/BranchFilterNote"
+import { ActivityTrends } from "@/features/dashboard/ActivityTrends"
+import {
+  AttentionQueue,
+  buildAttentionItems,
+} from "@/features/dashboard/AttentionQueue"
+import { DashboardHeader } from "@/features/dashboard/DashboardHeader"
+import { DashboardKpiGrid } from "@/features/dashboard/DashboardKpiGrid"
+import { DashboardQuickActions } from "@/features/dashboard/DashboardQuickActions"
+import { InventoryAvailability } from "@/features/dashboard/InventoryAvailability"
+import { InventoryDistributionChart } from "@/features/dashboard/InventoryDistributionChart"
+import { OperationsModuleGrid } from "@/features/dashboard/OperationsModuleGrid"
+import { OrderPipeline } from "@/features/dashboard/OrderPipeline"
 import { useReportBranchFilter } from "@/features/reports/use-report-branch-filter"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocumentTitle } from "@/hooks/use-document-title"
 import { useAccess } from "@/lib/access/use-access"
-import {
-  SUBMITTED_SCOPE_HINT,
-  SUBMITTED_SCOPE_LABEL,
-} from "@/lib/orders/verification"
+import { getDamageDashboard } from "@/lib/damage/api"
 import {
   canAny,
   dispatchReportPermissions,
@@ -30,66 +28,122 @@ import {
 import {
   getOperationsDashboard,
   reportKeys,
-  type KpiValue,
   type OperationsDashboard,
 } from "@/lib/reports/api"
 
-function kpiNumber(value: number | undefined, visible: boolean) {
-  // A missing authorized field stays hidden. Do not paint it as zero.
-  if (!visible || value === undefined) return { value: null as number | null, unavailable: true }
-  return { value, unavailable: false }
-}
-
-function availablePickDisplay(metric: KpiValue | undefined, visible: boolean) {
-  if (!visible || !metric) {
-    return { value: null as number | string | null, unavailable: true, hint: "Not authorized" }
-  }
-  if (metric.state === "not_applicable") {
-    return {
-      value: null as number | string | null,
-      unavailable: true,
-      hint: "Lot-aware allocation is inactive. Aggregate on-hand is not available-to-pick.",
-    }
-  }
-  return { value: metric.value, unavailable: false, hint: "Lot-available carton cases" }
-}
-
+/**
+ * Compact operations command centre.
+ * Snapshot RPCs only — period reporting stays disabled until owner approval.
+ */
 export function DashboardPage() {
-  useDocumentTitle("Operations Overview")
+  useDocumentTitle(
+    "Operations Dashboard",
+    "Your warehouse operations at a glance.",
+  )
   const access = useAccess()
   const { session } = useAuth()
   const { branchId, setBranchId, branches } = useReportBranchFilter()
+
+  const canReport = canAny(access, operationsReportPermissions)
+  const canDamage = access.can("damage.read")
+
   const dashboard = useQuery({
     queryKey: reportKeys.dashboard(session?.user.id, branchId),
     queryFn: () => getOperationsDashboard(branchId || null),
-    enabled: canAny(access, operationsReportPermissions),
+    enabled: canReport,
   })
-  const data = dashboard.data
+
+  const damage = useQuery({
+    queryKey: reportKeys.damageDashboard(session?.user.id, branchId),
+    queryFn: () => getDamageDashboard(branchId || null),
+    enabled: canDamage,
+  })
+
+  function refresh() {
+    void dashboard.refetch()
+    if (canDamage) void damage.refetch()
+  }
+
+  function clearFilters() {
+    setBranchId("")
+  }
 
   return (
-    <section>
-      <PageHeader
-        title="Operations Overview"
-        description="Authoritative operational counts from the database. Figures stay hidden when a metric is not authorized or not applicable."
+    <section className="pb-2">
+      <DashboardHeader
+        email={session?.user.email}
+        roles={access.roles}
+        dataUpdatedAt={dashboard.dataUpdatedAt}
+        refreshing={dashboard.isFetching || damage.isFetching}
+        onRefresh={refresh}
+        showFilters={canReport || canDamage}
+        branchId={branchId}
+        onBranch={setBranchId}
+        branches={branches}
+        onClear={clearFilters}
+        cutoverOff={Boolean(
+          dashboard.data && !dashboard.data.cutover.dual_write_enabled,
+        )}
       />
-      {canAny(access, operationsReportPermissions) ? null : (
+
+      {!canReport ? (
         <p className="mb-4 text-sm text-muted-foreground">
           Signed in, but this account has no operational reporting permission.
         </p>
-      )}
-      {dashboard.isLoading ? <LoadingBlock label="Loading operations overview" /> : null}
-      {dashboard.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {dashboard.error.message}
-        </p>
       ) : null}
-      {data ? (
+
+      {canReport || canDamage ? <ActivityTrends /> : null}
+
+      {canReport && dashboard.isLoading ? (
+        <LoadingBlock label="Loading operations dashboard" />
+      ) : null}
+
+      {dashboard.error ? (
+        <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-200">
+          <p role="alert">{dashboard.error.message}</p>
+          <button
+            type="button"
+            className="mt-2 font-medium underline"
+            onClick={() => void dashboard.refetch()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {dashboard.data ? (
         <DashboardBody
-          data={data}
-          branchId={branchId}
-          onBranch={setBranchId}
+          data={dashboard.data}
           branches={branches}
+          branchId={branchId}
+          onSelectBranch={setBranchId}
+          damage={damage.data ?? null}
+          damageError={damage.error?.message ?? null}
+          onRetryDamage={() => void damage.refetch()}
+          can={access.can}
         />
+      ) : null}
+
+      <DashboardQuickActions can={access.can} />
+
+      {canReport ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {canAny(access, inventoryReportPermissions) ? (
+            <Link className="mr-3 underline" to="/reports/inventory">
+              Inventory report
+            </Link>
+          ) : null}
+          {canAny(access, orderReportPermissions) ? (
+            <Link className="mr-3 underline" to="/reports/orders-picking">
+              Orders and packing
+            </Link>
+          ) : null}
+          {canAny(access, dispatchReportPermissions) ? (
+            <Link className="underline" to="/reports/dispatch">
+              Dispatch and delivery
+            </Link>
+          ) : null}
+        </p>
       ) : null}
     </section>
   )
@@ -97,323 +151,83 @@ export function DashboardPage() {
 
 function DashboardBody({
   data,
-  branchId,
-  onBranch,
   branches,
+  branchId,
+  onSelectBranch,
+  damage,
+  damageError,
+  onRetryDamage,
+  can,
 }: {
   data: OperationsDashboard
-  branchId: string
-  onBranch: (value: string) => void
   branches: { id: string; name: string; code?: string; is_active: boolean }[]
+  branchId: string
+  onSelectBranch: (branchId: string) => void
+  damage: import("@/lib/damage/api").DamageDashboard | null
+  damageError: string | null
+  onRetryDamage: () => void
+  can: (permission: string) => boolean
 }) {
-  const access = useAccess()
-  const pick = availablePickDisplay(data.inventory.available_to_pick, data.inventory.visible)
-  const cutoverOff = !data.cutover.dual_write_enabled
+  const attention = buildAttentionItems(data, damage)
+  const stockRows = data.inventory.visible
+    ? (data.inventory.stock_by_godown ?? [])
+    : []
 
   return (
     <>
-      <div className="mb-6 grid gap-3">
-        <div className="max-w-sm">
-          <ReportBranchSelect value={branchId} onChange={onBranch} branches={branches} />
+      <DashboardKpiGrid data={data} />
+
+      {damageError ? (
+        <div className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950 ring-1 ring-amber-200">
+          <p role="alert">Damage queues could not load: {damageError}</p>
+          <button
+            type="button"
+            className="mt-2 font-medium underline"
+            onClick={onRetryDamage}
+          >
+            Retry damage
+          </button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Timezone UTC.
-          {cutoverOff
-            ? " Operational lot cutover is inactive: lot-attributed stock and available-to-pick stay empty or not applicable."
-            : " Lot-aware dual-write is on."}
-        </p>
-      </div>
-      <div className="mb-6">
-        <BranchFilterNote />
-      </div>
+      ) : null}
 
       {data.inventory.visible ? (
-        <DashboardGroup title="Inventory">
-          <MetricCard
-            label="Cartons on hand"
-            icon={Package}
-            hint="Aggregate crate balances"
-            {...kpiNumber(data.inventory.total_cartons_on_hand, true)}
-          />
-          <MetricCard
-            label="Products with stock"
-            icon={Package}
-            hint="Positive aggregate balances"
-            {...kpiNumber(data.inventory.products_with_positive_stock, true)}
-          />
-          <MetricCard
-            label="Lot-attributed cartons"
-            icon={Package}
-            hint={cutoverOff ? "No operational lots while cutover is inactive" : "Sum of lot balances"}
-            {...kpiNumber(data.inventory.lot_attributed_cartons, true)}
-          />
-          <MetricCard
-            label="Active reserved cartons"
-            icon={PackageCheck}
-            hint="Reservations are not stock deductions"
-            {...kpiNumber(data.inventory.active_reserved_cartons, true)}
-          />
-          <MetricCard label="Available to pick" icon={PackageCheck} hint={pick.hint} value={pick.value} unavailable={pick.unavailable} />
-        </DashboardGroup>
-      ) : null}
-
-      {data.inventory.visible && (data.inventory.stock_by_godown?.length ?? 0) > 0 ? (
-        <section className="mb-6 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200/80">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold">Stock by godown</h2>
+        <div className="mb-4 grid gap-3 xl:grid-cols-12 xl:items-stretch">
+          <div className="xl:col-span-4">
+            <AttentionQueue items={attention} />
           </div>
-          <ul className="divide-y divide-slate-100">
-            {data.inventory.stock_by_godown?.map((row) => {
-              const listed = branches.find((branch) => branch.id === row.branch_id)
-              const inactive = listed ? !listed.is_active : !data.authorized_branches.some((branch) => branch.id === row.branch_id)
-              return (
-                <li key={row.branch_id} className="flex items-center justify-between px-5 py-3 text-sm">
-                  <span>
-                    {row.branch_name}
-                    <span className="ml-2 text-muted-foreground">{row.branch_code}</span>
-                    {inactive ? (
-                      <span className="ml-2 text-muted-foreground">Inactive (historical)</span>
-                    ) : null}
-                  </span>
-                  <span className="font-medium tabular-nums">{row.cartons}</span>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ) : null}
+          <div className="xl:col-span-5">
+            <InventoryDistributionChart
+              rows={stockRows}
+              branches={branches}
+              selectedBranchId={branchId}
+              onSelectBranch={onSelectBranch}
+            />
+          </div>
+          <div className="xl:col-span-3">
+            <InventoryAvailability
+              inventory={data.inventory}
+              cutoverOff={!data.cutover.dual_write_enabled}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <AttentionQueue items={attention} />
+        </div>
+      )}
 
-      {data.orders.visible ? (
-        <CountStrip
-          title="Orders"
-          steps={[
-            ["Draft", data.orders.draft],
-            [SUBMITTED_SCOPE_LABEL, data.orders.submitted],
-            ["Held", data.orders.held],
-            ["Verified", data.orders.verified],
-            ["Awaiting packing", data.orders.awaiting_picking],
-          ]}
-        />
-      ) : null}
+      <OrderPipeline data={data} />
 
-      {data.orders.visible ? (
-        <DashboardGroup title="Orders">
-          <MetricCard label="Draft" icon={ShoppingCart} hint="Capture drafts" {...kpiNumber(data.orders.draft, true)} />
-          <MetricCard
-            label={SUBMITTED_SCOPE_LABEL}
-            icon={ShoppingCart}
-            hint={SUBMITTED_SCOPE_HINT}
-            {...kpiNumber(data.orders.submitted, true)}
-          />
-          <MetricCard label="Held" icon={ShoppingCart} hint="Held orders" {...kpiNumber(data.orders.held, true)} />
-          <MetricCard label="Verified" icon={ShoppingCart} hint="Verified, not cancelled" {...kpiNumber(data.orders.verified, true)} />
-          <MetricCard
-            label="Awaiting packing"
-            icon={ShoppingCart}
-            hint="Verified with no active packing request"
-            {...kpiNumber(data.orders.awaiting_picking, true)}
-          />
-          <MetricCard label="Cancelled" icon={ShoppingCart} hint="Cancelled orders" {...kpiNumber(data.orders.cancelled, true)} />
-        </DashboardGroup>
-      ) : null}
-      {access.can("orders.verify") ? (
-        <p className="mb-6 text-sm">
-          <Link className="underline" to="/orders/verification">
-            Open order verification
-          </Link>
-        </p>
-      ) : null}
-
-      {data.picking.visible ? (
-        <CountStrip
-          title="Packing"
-          steps={[
-            ["Allocated", data.picking.allocated],
-            ["Packing", data.picking.picking],
-            ["Picked", data.picking.picked],
-            ["Ready for dispatch", data.picking.ready_for_dispatch],
-            ["Blocked", data.picking.blocked],
-          ]}
-        />
-      ) : null}
-
-      {data.picking.visible ? (
-        <DashboardGroup title="Packing">
-          <MetricCard label="Allocated" icon={PackageCheck} hint="Reserved, not started" {...kpiNumber(data.picking.allocated, true)} />
-          <MetricCard label="Packing" icon={PackageCheck} hint="In progress" {...kpiNumber(data.picking.picking, true)} />
-          <MetricCard label="Picked" icon={PackageCheck} hint="Warehouse picked" {...kpiNumber(data.picking.picked, true)} />
-          <MetricCard
-            label="Ready for dispatch"
-            icon={PackageCheck}
-            hint="Handoff complete. Not a stock deduction."
-            {...kpiNumber(data.picking.ready_for_dispatch, true)}
-          />
-          <MetricCard label="Blocked" icon={TriangleAlert} hint="Packing blockers" {...kpiNumber(data.picking.blocked, true)} />
-        </DashboardGroup>
-      ) : null}
-
-      {data.dispatch.visible ? (
-        <CountStrip
-          title="Dispatch"
-          steps={[
-            ["Preparing", data.dispatch.preparing],
-            ["Dispatched", data.dispatch.dispatched],
-            ["In transit", data.dispatch.in_transit],
-            ["Delivered", data.dispatch.delivered],
-            ["Delivery exceptions", data.dispatch.exception],
-            ["Pending proof of delivery", data.dispatch.pending_proof_of_delivery],
-          ]}
-        />
-      ) : null}
-
-      {data.dispatch.visible ? (
-        <DashboardGroup title="Dispatch">
-          <MetricCard
-            label="Preparing"
-            icon={Truck}
-            hint="Unconsumed paperwork. Stock has not left."
-            {...kpiNumber(data.dispatch.preparing, true)}
-          />
-          <MetricCard
-            label="Dispatched"
-            icon={Truck}
-            hint="Consumed DISPATCH ledger"
-            {...kpiNumber(data.dispatch.dispatched, true)}
-          />
-          <MetricCard label="In transit" icon={Truck} hint="Assigned run started" {...kpiNumber(data.dispatch.in_transit, true)} />
-          <MetricCard
-            label="Delivered"
-            icon={Truck}
-            hint="Customer proof of delivery. Not delivery-note acknowledgement."
-            {...kpiNumber(data.dispatch.delivered, true)}
-          />
-          <MetricCard
-            label="Delivery exceptions"
-            icon={TriangleAlert}
-            hint="Failed delivery. Stock stays deducted."
-            {...kpiNumber(data.dispatch.exception, true)}
-          />
-          <MetricCard
-            label="Pending proof of delivery"
-            icon={ClipboardCheck}
-            hint="Consumed, not yet delivered"
-            {...kpiNumber(data.dispatch.pending_proof_of_delivery, true)}
-          />
-        </DashboardGroup>
-      ) : null}
-
-      {data.deliveries.visible ? (
-        <CountStrip
-          title="Assigned deliveries"
-          steps={[
-            ["Open runs", data.deliveries.assigned_open],
-            ["Delivered", data.deliveries.delivered],
-            ["Exceptions", data.deliveries.exception],
-          ]}
-        />
-      ) : null}
-
-      {data.deliveries.visible ? (
-        <DashboardGroup title="Assigned deliveries">
-          <MetricCard label="Open runs" icon={Truck} hint="Assigned dispatched or in transit" {...kpiNumber(data.deliveries.assigned_open, true)} />
-          <MetricCard label="Delivered" icon={Truck} hint="Assigned proof of delivery" {...kpiNumber(data.deliveries.delivered, true)} />
-          <MetricCard label="Exceptions" icon={TriangleAlert} hint="Assigned failed deliveries" {...kpiNumber(data.deliveries.exception, true)} />
-        </DashboardGroup>
-      ) : null}
-
-      {data.operations.visible ? (
-        <DashboardGroup title="Operations">
-          <MetricCard
-            label="Pending receiving"
-            icon={ClipboardCheck}
-            hint="Draft, submitted, or held receipts"
-            {...kpiNumber(data.operations.pending_receiving, true)}
-          />
-          <MetricCard
-            label="Pending adjustments"
-            icon={ClipboardCheck}
-            hint="Open adjustment requests"
-            {...kpiNumber(data.operations.pending_adjustments, true)}
-          />
-          <MetricCard
-            label="Pending verification"
-            icon={ClipboardCheck}
-            hint="Open stock counts"
-            {...kpiNumber(data.operations.pending_verification, true)}
-          />
-          <MetricCard
-            label="Unclassified products"
-            icon={TriangleAlert}
-            hint="Expiry policy not set"
-            {...kpiNumber(data.operations.unclassified_products, true)}
-          />
-        </DashboardGroup>
-      ) : null}
-
-      <p className="mt-2 text-sm">
-        {canAny(access, inventoryReportPermissions) ? (
-          <Link className="mr-4 underline" to="/reports/inventory">
-            Inventory report
-          </Link>
-        ) : null}
-        {canAny(access, orderReportPermissions) ? (
-          <Link className="mr-4 underline" to="/reports/orders-picking">
-            Orders and packing
-          </Link>
-        ) : null}
-        {canAny(access, dispatchReportPermissions) ? (
-          <Link className="underline" to="/reports/dispatch">
-            Dispatch and delivery
-          </Link>
-        ) : null}
-      </p>
+      <OperationsModuleGrid
+        data={data}
+        damage={damage}
+        canAdjust={
+          can("stock.adjustment.request") ||
+          can("stock.adjustment.post") ||
+          can("operations.monitor")
+        }
+        canTransfer={can("stock.transfer.post")}
+      />
     </>
-  )
-}
-
-function DashboardGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{title}</h2>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
-    </section>
-  )
-}
-
-/** Same counts as the cards under it. A missing count stays an em dash. */
-function CountStrip({
-  title,
-  steps,
-}: {
-  title: string
-  steps: [string, number | undefined][]
-}) {
-  return (
-    <section className="mb-6" aria-label={title}>
-      <h2 className="mb-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{title}</h2>
-      <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {steps.map(([label, value], index) => (
-          <li
-            key={label}
-            className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/80"
-          >
-            <span className="text-xs font-medium text-slate-500">
-              <span className="mr-2 text-slate-400 tabular-nums">{index + 1}</span>
-              {label}
-            </span>
-            {value === undefined ? (
-              <>
-                <span aria-hidden="true" className="text-lg font-semibold">
-                  —
-                </span>
-                <span className="sr-only">Not available</span>
-              </>
-            ) : (
-              <span className="text-lg font-semibold tabular-nums">{value}</span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </section>
   )
 }

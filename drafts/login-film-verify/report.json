@@ -1,0 +1,525 @@
+{
+  "baseURL": "http://127.0.0.1:5173",
+  "at": "2026-11-07T11:05:58.372Z",
+  "screenshots": {
+    "stationSets": [
+      "1440x900",
+      "840x660"
+    ],
+    "perStation": [
+      "wide",
+      "mid",
+      "close"
+    ],
+    "figures": 10,
+    "dir": "C:\\Users\\Hash\\Desktop\\Hashdev\\sherlyos\\drafts\\login-film-verify"
+  },
+  "firstLoop": {
+    "pushIns": [
+      {
+        "label": "s1",
+        "t": 3.5
+      },
+      {
+        "label": "s2",
+        "t": 8.7
+      },
+      {
+        "label": "s3",
+        "t": 13.899999999999999
+      },
+      {
+        "label": "s4",
+        "t": 19.099999999999998
+      },
+      {
+        "label": "s5",
+        "t": 24.299999999999997
+      },
+      {
+        "label": "s6",
+        "t": 29.499999999999996
+      },
+      {
+        "label": "s7",
+        "t": 38.99999999999999
+      },
+      {
+        "label": "s8",
+        "t": 44.199999999999996
+      },
+      {
+        "label": "s9",
+        "t": 49.4
+      },
+      {
+        "label": "s10",
+        "t": 54.6
+      }
+    ],
+    "markersLoop1": [
+      "1 / 10",
+      "2 / 10",
+      "3 / 10",
+      "4 / 10",
+      "5 / 10",
+      "6 / 10",
+      "7 / 10",
+      "8 / 10",
+      "9 / 10",
+      "10 / 10"
+    ],
+    "restarts": 0,
+    "resizedAt": 18,
+    "postResizeTotalTime": 18,
+    "loopsSeen": 2,
+    "duration": 65.1,
+    "eventCount": 738,
+    "wallMs": 16326
+  },
+  "captionSync": {
+    "maxOffset": 0.09999999999999999,
+    "offsets": [
+      {
+        "label": "s1",
+        "labelT": 3.5,
+        "visibleAt": 3.6,
+        "offset": 0.09999999999999999
+      },
+      {
+        "label": "s2",
+        "labelT": 8.7,
+        "visibleAt": 8.7,
+        "offset": 0
+      },
+      {
+        "label": "s3",
+        "labelT": 13.899999999999999,
+        "visibleAt": 13.899999999999999,
+        "offset": 0
+      },
+      {
+        "label": "s4",
+        "labelT": 19.099999999999998,
+        "visibleAt": 19.099999999999998,
+        "offset": 0
+      },
+      {
+        "label": "s5",
+        "labelT": 24.299999999999997,
+        "visibleAt": 24.299999999999997,
+        "offset": 0
+      },
+      {
+        "label": "s6",
+        "labelT": 29.499999999999996,
+        "visibleAt": 29.499999999999996,
+        "offset": 0
+      },
+      {
+        "label": "s7",
+        "labelT": 38.99999999999999,
+        "visibleAt": 39.099999999999994,
+        "offset": 0.09999999999999999
+      },
+      {
+        "label": "s8",
+        "labelT": 44.199999999999996,
+        "visibleAt": 44.199999999999996,
+        "offset": 0
+      },
+      {
+        "label": "s9",
+        "labelT": 49.4,
+        "visibleAt": 49.4,
+        "offset": 0
+      },
+      {
+        "label": "s10",
+        "labelT": 54.6,
+        "visibleAt": 54.6,
+        "offset": 0
+      }
+    ],
+    "dualVisibleFrames": 8,
+    "frameSampleCount": 490,
+    "swaps": [
+      {
+        "index": 0,
+        "label": "s1",
+        "at": 1012.5,
+        "text": "Shop order captured.",
+        "opacity": 0
+      },
+      {
+        "index": 1,
+        "label": "s2",
+        "at": 1662.9000000003725,
+        "text": "Accounts verifies the order.",
+        "opacity": 0
+      },
+      {
+        "index": 2,
+        "label": "s3",
+        "at": 2313.800000000745,
+        "text": "Cartons reserved from crates and packed. Stock is not deducted yet.",
+        "opacity": 0
+      },
+      {
+        "index": 3,
+        "label": "s4",
+        "at": 2962.2000000011176,
+        "text": "Dispatch confirmed. Stock leaves the godown once.",
+        "opacity": 0
+      },
+      {
+        "index": 4,
+        "label": "s5",
+        "at": 3612.5999999996275,
+        "text": "Draft invoice note prepared from the confirmed dispatch.",
+        "opacity": 0
+      },
+      {
+        "index": 5,
+        "label": "s6",
+        "at": 4263,
+        "text": "Delivered to the shop with proof of delivery.",
+        "opacity": 0
+      },
+      {
+        "index": 6,
+        "label": "s7",
+        "at": 5445.4000000003725,
+        "text": "Inbound stock counted, damage set aside, cases allocated to crates.",
+        "opacity": 0
+      },
+      {
+        "index": 7,
+        "label": "s8",
+        "at": 6095.9000000003725,
+        "text": "Every crate counted against the system. Differences need a reason and approval.",
+        "opacity": 0
+      },
+      {
+        "index": 8,
+        "label": "s9",
+        "at": 6745.700000001118,
+        "text": "Damage recorded where it happened and verified before stock is deducted.",
+        "opacity": 0
+      },
+      {
+        "index": 9,
+        "label": "s10",
+        "at": 7396.200000001118,
+        "text": "Accounts checks credit and billing before anything is posted.",
+        "opacity": 0
+      },
+      {
+        "index": 9,
+        "label": "s10",
+        "at": 8696.5,
+        "text": "Accounts checks credit and billing before anything is posted.",
+        "opacity": 0
+      },
+      {
+        "index": 8,
+        "label": "s9",
+        "at": 8696.599999999627,
+        "text": "Damage recorded where it happened and verified before stock is deducted.",
+        "opacity": 0
+      }
+    ]
+  },
+  "closeFill": [
+    {
+      "viewport": "1440x900",
+      "rows": [
+        {
+          "index": 1,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014207368403982,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.3754577636719
+        },
+        {
+          "index": 2,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.601420644696648,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.3753967285156
+        },
+        {
+          "index": 3,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014207829122733,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.37548828125
+        },
+        {
+          "index": 4,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014207829122733,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.37548828125
+        },
+        {
+          "index": 5,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014205986247729,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.3753662109375
+        },
+        {
+          "index": 6,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014205986247729,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.3753662109375
+        },
+        {
+          "index": 7,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014206907685231,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.37542724609375
+        },
+        {
+          "index": 8,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014207368403982,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.3754577636719
+        },
+        {
+          "index": 9,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014206907685231,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.37542724609375
+        },
+        {
+          "index": 10,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6014207829122733,
+          "close": 3.009090909090909,
+          "scale": 3.009091,
+          "panelW": 662.390625,
+          "figW": 398.37548828125
+        }
+      ]
+    },
+    {
+      "viewport": "1100x800",
+      "rows": [
+        {
+          "index": 1,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011139036638463,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.16363525390625
+        },
+        {
+          "index": 2,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011139036638463,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.16363525390625
+        },
+        {
+          "index": 3,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011139036638463,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.16363525390625
+        },
+        {
+          "index": 4,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011140242866848,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.1636962890625
+        },
+        {
+          "index": 5,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011140242866848,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.1636962890625
+        },
+        {
+          "index": 6,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011140242866848,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.1636962890625
+        },
+        {
+          "index": 7,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011139036638463,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.16363525390625
+        },
+        {
+          "index": 8,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011138433524271,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.1636047363281
+        },
+        {
+          "index": 9,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011140242866848,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.1636962890625
+        },
+        {
+          "index": 10,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.6011139036638463,
+          "close": 3.0059405940594055,
+          "scale": 3.005941,
+          "panelW": 506,
+          "figW": 304.16363525390625
+        }
+      ]
+    },
+    {
+      "viewport": "900x700",
+      "rows": [
+        {
+          "index": 1,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985316400942595,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79209899902344
+        },
+        {
+          "index": 2,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985315663803027,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.7920684814453
+        },
+        {
+          "index": 3,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985315295233242,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79205322265625
+        },
+        {
+          "index": 4,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985315295233242,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79205322265625
+        },
+        {
+          "index": 5,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985316769512379,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.7921142578125
+        },
+        {
+          "index": 6,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985315295233242,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79205322265625
+        },
+        {
+          "index": 7,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.598531603237281,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79208374023438
+        },
+        {
+          "index": 8,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.598531603237281,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.79208374023438
+        },
+        {
+          "index": 9,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985316769512379,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.7921142578125
+        },
+        {
+          "index": 10,
+          "fillFromScale": 0.6,
+          "fillFromScreen": 0.5985316769512379,
+          "close": 2.992771084337349,
+          "scale": 2.992771,
+          "panelW": 414,
+          "figW": 247.7921142578125
+        }
+      ]
+    }
+  ],
+  "routes": {
+    "gated": true,
+    "absentFromProd": true
+  },
+  "errors": []
+}

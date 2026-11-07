@@ -197,6 +197,8 @@ function reportViewer(userId: string | undefined) {
 export const reportKeys = {
   dashboard: (userId: string | undefined, branch: string) =>
     ["operations-dashboard", reportViewer(userId), branch] as const,
+  damageDashboard: (userId: string | undefined, branch: string) =>
+    ["damage-dashboard", reportViewer(userId), branch] as const,
   inventory: (userId: string | undefined, filters: Record<string, unknown>) =>
     ["inventory-report", reportViewer(userId), filters] as const,
   lots: (userId: string | undefined, filters: Record<string, unknown>) =>
@@ -217,6 +219,60 @@ export function getOperationsDashboard(filter_branch?: string | null) {
   return callRpc<OperationsDashboard>("get_operations_dashboard", {
     filter_branch: filter_branch || null,
   })
+}
+
+/**
+ * Flip to true only after get_operations_dashboard_period is approved and applied.
+ * The snapshot dashboard must not depend on this RPC.
+ */
+export const OPERATIONS_PERIOD_RPC_ENABLED = false
+
+export type DashboardPeriodSeriesPoint = {
+  day: string
+  count: number
+}
+
+export type DashboardPeriodMetric = {
+  visible: boolean
+  /** Owner-facing label from the period RPC when present. */
+  label?: string
+  total: number
+  series: DashboardPeriodSeriesPoint[]
+}
+
+export type OperationsDashboardPeriod = {
+  timezone: "UTC"
+  filter_branch: string | null
+  window_from: string
+  window_to: string
+  scope_note: string
+  orders_created: DashboardPeriodMetric
+  picking_completed: DashboardPeriodMetric
+  dispatches_consumed: DashboardPeriodMetric
+  receipts_created: DashboardPeriodMetric
+  damage_reports_created: DashboardPeriodMetric
+}
+
+export function getOperationsDashboardPeriod(args: {
+  filter_branch?: string | null
+  window_from: string
+  window_to: string
+}) {
+  if (!OPERATIONS_PERIOD_RPC_ENABLED) {
+    return Promise.reject(
+      new Error(
+        "Period reporting RPC is not enabled. Snapshot metrics remain available.",
+      ),
+    )
+  }
+  return callRpc<OperationsDashboardPeriod>(
+    "get_operations_dashboard_period",
+    {
+      filter_branch: args.filter_branch || null,
+      window_from: args.window_from,
+      window_to: args.window_to,
+    },
+  )
 }
 
 export function listInventoryReport(args: Record<string, unknown>) {

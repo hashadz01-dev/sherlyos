@@ -48,14 +48,14 @@ function mount({ stage, svg, read }, tickH) {
       ticks[i].mark.setAttribute("d", "")
       return
     }
-    const [ring, inner] = rings(x - 4, y, x + 4, y + 7, 1, 0.4)
+    const [ring, inner] = rings(x - 5.5, y, x + 5.5, y + 9, 1.2, 0.5)
     put(ticks[i].s, prism(P, front, ring, inner, z, z + rise))
     ticks[i].mark.setAttribute(
       "d",
       open([
-        P(x - 2.4, y + 3.4, z + rise),
-        P(x - 0.5, y + 1.6, z + rise),
-        P(x + 2.8, y + 5.4, z + rise),
+        P(x - 3.2, y + 4.2, z + rise),
+        P(x - 0.6, y + 1.8, z + rise),
+        P(x + 3.6, y + 6.4, z + rise),
       ]),
     )
   }
@@ -139,7 +139,8 @@ hairline({
   means:
     "A crate rack with a clipboard: the pointer tallies each crate, and a mismatch raises a flag then takes a supervisor stamp.",
   rules: [1, 2, 4, 8],
-  range: [1.2, 2.6, 4.2],
+  // Taller ticks so the answer moves more ink in the 240px thumbnail.
+  range: [6, 11, 18],
   tour: [[120, 200], [175, 188], [230, 195], null],
   mount,
 })

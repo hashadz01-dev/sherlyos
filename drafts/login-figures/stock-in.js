@@ -90,7 +90,8 @@ function mount({ stage, svg, read }, sweep) {
     )
   })
 
-  const homes = [64, 48, 32, 16]
+  // Wider home spacing so an answer sweep moves more ink at 240px.
+  const homes = [72, 52, 32, 12]
   const cartons = homes.map(() => solid(g))
   const belt = spring(0.12)
   let prev = -1
@@ -139,7 +140,8 @@ function mount({ stage, svg, read }, sweep) {
   }
   function leave() {
     hot = false
-    belt.t = 0.14
+    // Rest must park the belt at 0 so the answer sweep moves real ink, not a near-rest delta.
+    belt.t = 0
     read.textContent = "rest"
     lorry.sil.classList.add("hi")
     table.sil.classList.remove("hi")
@@ -165,7 +167,7 @@ hairline({
   means:
     "An inbound lorry at a bay: the pointer rolls cartons onto a counting table, peels a few to a damage tray, and slides the rest into crates.",
   rules: [1, 3, 4, 8],
-  range: [18, 36, 54],
+  range: [28, 48, 72],
   tour: [
     [260, 150],
     [210, 170],

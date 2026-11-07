@@ -67,11 +67,16 @@ const WIDE_HOLD = 2.5
 const ACT_GAP = 2.5
 const FADE = 1
 const LOOP_PAUSE = 1.5
+/** Old caption must be fully gone before the new line fades in. Keep under 0.1 s to the push-in label. */
+const CAPTION_OUT = 0.08
+const CAPTION_IN = 0.28
 const WIDE_OPACITY = 0.7
 const IDLE_OPACITY = 0.35
 const PLAY_INTENSITY = 0.5
 const CARTON = 44
 const DOCK_GAP = 28
+/** Target figure fill of the panel at close. */
+const CLOSE_FILL = 0.6
 /** Act 1 is the carton's journey. Act 2 plates are supporting operations. */
 const CARTON_LAST = 5
 
@@ -195,6 +200,7 @@ type LayoutState = {
 /**
  * Ten plates: act 1 zigzags on the lower band, act 2 on the upper band.
  * Wide shot keeps a 6% margin. Plate width targets ~60% panel fill at close.
+ * Bottom reserve keeps the route clear of the overlaid caption dock.
  */
 function buildLayout(width: number, height: number): PlateBox[] {
   const plateW = Math.min(width * 0.2, width * (0.6 / CLOSE_FALLBACK))
@@ -202,6 +208,7 @@ function buildLayout(width: number, height: number): PlateBox[] {
   const tag = 22
   const marginX = MARGIN * width
   const marginY = MARGIN * height
+  const captionReserve = Math.min(150, Math.max(96, height * 0.18))
   let minX = marginX + plateW / 2
   let maxX = width - marginX - plateW / 2
   if (maxX < minX) {
@@ -209,7 +216,7 @@ function buildLayout(width: number, height: number): PlateBox[] {
     maxX = width / 2
   }
   let minY = marginY + plateH / 2 + tag
-  let maxY = height - marginY - plateH / 2
+  let maxY = height - marginY - plateH / 2 - captionReserve
   if (maxY < minY) {
     const mid = height / 2
     minY = mid
@@ -314,7 +321,8 @@ function placeCarton(point: Point) {
 
 /**
  * Close scale so the focused figure fills ~60% of the panel width.
- * Measured from the figure SVG box while the world is at identity.
+ * Prefer the laid-out plate width (world units at identity). Fall back to the
+ * SVG box when the plate has not been sized yet.
  */
 function measureCloseScales(
   plates: HTMLElement[],
@@ -323,9 +331,14 @@ function measureCloseScales(
 ): number[] {
   return plates.map((plate) => {
     const svg = plate.querySelector("svg")
+    const plateW = plate.offsetWidth
     const box = (svg ?? plate).getBoundingClientRect()
-    const worldW = Math.max(24, box.width / Math.max(camScale, 0.01))
-    return Math.min(3.2, Math.max(1.45, (0.6 * panelWidth) / worldW))
+    const measured =
+      plateW > 8
+        ? plateW
+        : box.width / Math.max(camScale, 0.01)
+    const worldW = Math.max(24, measured)
+    return Math.min(3.4, Math.max(1.5, (CLOSE_FILL * panelWidth) / worldW))
   })
 }
 
@@ -573,6 +586,7 @@ export function LoginFlowStage() {
         const stage = STAGES[index]
         const nextLine = stage ? stage.caption : ""
         const nextLabel = stage ? `${index + 1} / ${STAGE_COUNT}` : ""
+        // Text swaps only while opacity is 0, so old and new never share a frame.
         caption.textContent = nextLine
         marker.textContent = nextLabel
         focusRef.current = index
@@ -583,6 +597,20 @@ export function LoginFlowStage() {
           dot.classList.toggle("bg-white", i === index)
           dot.classList.toggle("bg-white/55", i !== index)
         })
+        if (import.meta.env.DEV) {
+          const probe = (
+            window as Window & {
+              __loginFilm?: { captionSwaps: Array<Record<string, unknown>> }
+            }
+          ).__loginFilm
+          probe?.captionSwaps.push({
+            index,
+            label: `s${index + 1}`,
+            at: performance.now(),
+            text: nextLine,
+            opacity: Number(gsap.getProperty(caption, "opacity")),
+          })
+        }
       }
 
       const showWide = () => {
@@ -633,17 +661,68 @@ export function LoginFlowStage() {
           gsap.set(carton, {
             ...placeCarton(arrival(layoutRef.current!.boxes, 0)),
             opacity: 1,
-            force3D: false,
           })
 
           // Build once. Resize path calls invalidate() instead of recreating.
+          // Do not put force3D on timeline defaults — GSAP 3.15 rejects it on
+          // plain-object camera tweens and skips the property with a warning.
           const timeline = gsap.timeline({
             paused: true,
             repeat: -1,
             repeatDelay: LOOP_PAUSE,
-            defaults: { force3D: false },
           })
           timelineRef.current = timeline
+
+          if (import.meta.env.DEV) {
+            const started = performance.now()
+            ;(
+              window as Window & {
+                __loginFilm?: Record<string, unknown>
+              }
+            ).__loginFilm = {
+              started,
+              timeline,
+              labels: () => ({ ...timeline.labels }),
+              time: () => timeline.time(),
+              totalDuration: () => timeline.totalDuration(),
+              captionSwaps: [] as Array<Record<string, unknown>>,
+              captionOpacity: () => Number(gsap.getProperty(caption, "opacity")),
+              captionText: () => caption.textContent ?? "",
+              closeScales: () => layoutRef.current?.close ?? [],
+              /** Seek with suppressEvents=false so onUpdate write() paints the camera. */
+              seek: (labelOrTime: string | number) => {
+                timeline.pause()
+                timeline.seek(labelOrTime, false)
+                write()
+                return {
+                  time: timeline.time(),
+                  scale: cam.scale,
+                  x: cam.x,
+                  y: cam.y,
+                }
+              },
+              measureFill: (index: number) => {
+                const plate = plates[index]
+                const L = layoutRef.current
+                if (!plate || !L) return null
+                const close = L.close[index] ?? CLOSE_FALLBACK
+                const svg = plate.querySelector("svg")
+                const worldW = plate.offsetWidth || 1
+                const panel = diagram.getBoundingClientRect().width
+                const figW = svg?.getBoundingClientRect().width ?? 0
+                return {
+                  index,
+                  close,
+                  plateWorldW: worldW,
+                  fillPct: (worldW * close) / L.w,
+                  fillFromScreen: panel > 0 ? figW / panel : null,
+                  svgScreenW: figW || null,
+                  panelW: panel || L.w,
+                  scale: cam.scale,
+                }
+              },
+            }
+          }
 
           const layout = () => layoutRef.current!
 
@@ -707,7 +786,7 @@ export function LoginFlowStage() {
             // Caption changes at the push-in. Old line fully out before new in.
             timeline.to(
               [caption, marker],
-              { opacity: 0, duration: 0.2, ease: "power1.in" },
+              { opacity: 0, duration: CAPTION_OUT, ease: "power1.in" },
               stationAt,
             )
             timeline.call(
@@ -716,12 +795,12 @@ export function LoginFlowStage() {
                 showStep(index)
               },
               undefined,
-              stationAt + 0.2,
+              stationAt + CAPTION_OUT,
             )
             timeline.to(
               [caption, marker],
-              { opacity: 1, duration: 0.35, ease: "power1.out" },
-              stationAt + 0.2,
+              { opacity: 1, duration: CAPTION_IN, ease: "power1.out" },
+              stationAt + CAPTION_OUT,
             )
             timeline.call(() => setHolding(true), undefined, holdAt)
             timeline.addLabel(`${label}-hold`, holdAt)
@@ -944,10 +1023,10 @@ export function LoginFlowStage() {
           )
           timeline.to(
             [caption, marker],
-            { opacity: 0, duration: 0.2, ease: "power1.in" },
+            { opacity: 0, duration: CAPTION_OUT, ease: "power1.in" },
             midWide,
           )
-          timeline.call(showWide, undefined, midWide + 0.2)
+          timeline.call(showWide, undefined, midWide + CAPTION_OUT)
           timeline.to(
             carton,
             { opacity: 0.35, duration: 0.4, ease: "power1.out" },
@@ -981,10 +1060,10 @@ export function LoginFlowStage() {
           )
           timeline.to(
             [caption, marker],
-            { opacity: 0, duration: 0.2, ease: "power1.in" },
+            { opacity: 0, duration: CAPTION_OUT, ease: "power1.in" },
             pullAt,
           )
-          timeline.call(showWide, undefined, pullAt + 0.2)
+          timeline.call(showWide, undefined, pullAt + CAPTION_OUT)
 
           const fadeAt = pullAt + PULL_OUT + WIDE_HOLD
           timeline.addLabel("fade", fadeAt)
@@ -1038,12 +1117,13 @@ export function LoginFlowStage() {
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none flex h-full min-h-0 flex-1 flex-col"
+      className="pointer-events-none relative h-full min-h-0 w-full"
       style={stageVars}
     >
+      {/* Diagram fills the panel; caption docks over the lower edge. */}
       <div
         ref={diagramRef}
-        className="relative min-h-0 flex-1 overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         aria-hidden="true"
       >
         <div
@@ -1130,15 +1210,22 @@ export function LoginFlowStage() {
           </div>
         </div>
       </div>
-      <div className="relative z-10 mt-2 shrink-0" aria-hidden="true">
-        <div className="rounded-2xl bg-[#16324f] px-5 py-4 ring-1 ring-white/25">
+      <div
+        className="absolute inset-x-0 bottom-0 z-10 px-8 pb-8 pt-16"
+        aria-hidden="true"
+      >
+        <div className="rounded-2xl bg-[#16324f]/92 px-5 py-4 ring-1 ring-white/25 backdrop-blur-sm">
           <ul
             className={
               reduced ? "space-y-1.5 text-sm leading-6 text-white" : "hidden"
             }
           >
             {STAGES.map((stage) => (
-              <li key={stage.key}>{stage.caption}</li>
+              <li key={stage.key}>
+                <span className="font-medium">{stage.tag}</span>
+                {" — "}
+                {stage.caption}
+              </li>
             ))}
           </ul>
           {/* Collapse the text area in wide shots so dots are not under a blank box. */}
@@ -1153,10 +1240,16 @@ export function LoginFlowStage() {
             data-open="0"
           >
             <div className="relative min-h-0 overflow-hidden">
-              <p className="invisible text-sm leading-6">{LONGEST_CAPTION}</p>
+              <p
+                className="invisible text-sm leading-6"
+                aria-hidden="true"
+              >
+                {LONGEST_CAPTION}
+              </p>
               <p
                 ref={captionRef}
                 className="absolute inset-x-0 top-0 text-sm leading-6 text-white opacity-0"
+                data-login-caption="live"
               />
             </div>
           </div>

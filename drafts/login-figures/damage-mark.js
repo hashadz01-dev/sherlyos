@@ -28,14 +28,15 @@ const SHELF = 16
 
 function mount({ stage, svg, read }, press) {
   const bag = disposer()
-  const C = Cam(45, 0.5, 2.1)
+  // Higher S fills more of the 400×320 frame (look warning was 17% rest cover).
+  const C = Cam(45, 0.5, 2.55)
   fit(
     C,
     [
-      [-52, -24, 0],
-      [64, 52, 0],
-      [-52, -24, 48],
-      [64, 52, 48],
+      [-44, -20, 0],
+      [52, 44, 0],
+      [-44, -20, 42],
+      [52, 44, 42],
     ],
     200,
     168,
@@ -60,7 +61,7 @@ function mount({ stage, svg, read }, press) {
   const crack = mk("path", { class: "nf" }, g)
   const bead = solid(g)
   const stamp = solid(g)
-  const stampZ = tween(SHELF + 24)
+  const stampZ = tween(SHELF + 34)
   const beadDrop = tween(0)
   const crackOpen = tween(0.35)
 
@@ -117,7 +118,7 @@ function mount({ stage, svg, read }, press) {
     if (on === armed) return
     armed = on
     const now = performance.now()
-    tset(stampZ, on ? SHELF + 12 : SHELF + 24, now, 0)
+    tset(stampZ, on ? SHELF + 11 : SHELF + 34, now, 0)
     // Stock bead drops only after the stamp has settled on the carton.
     tset(beadDrop, on ? 1 : 0, now, on ? 220 : 40)
     tset(crackOpen, on ? 1 : 0.35, now, 60)
@@ -135,7 +136,7 @@ function mount({ stage, svg, read }, press) {
   read.textContent = "rest"
   drawCarton(0.35)
   drawBead(0)
-  drawStamp(SHELF + 24)
+  drawStamp(SHELF + 34)
 
   bag.add(
     pointer(stage, {
@@ -157,7 +158,7 @@ hairline({
   means:
     "A cracked carton in a rack slot: the manager stamp lands first, and only then does the shelf count bead fall away.",
   rules: [1, 4, 5, 8],
-  range: [2.2, 3.4, 5],
+  range: [3.2, 5.5, 8],
   tour: [
     [200, 120],
     [190, 180],

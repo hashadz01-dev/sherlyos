@@ -68,32 +68,28 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-svh bg-background min-[900px]:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-navy px-12 py-12 text-white min-[900px]:flex">
-        <div className="relative">
-          <BrandMark />
-        </div>
+      <section className="relative hidden min-h-svh overflow-hidden bg-navy text-white min-[900px]:block">
         <p className="sr-only">
-          A carton travels from a shop order through verification, packing,
-          dispatch, a draft invoice note, and delivery. Behind the counter,
-          inbound stock is counted, crates are checked daily, damage is
-          verified before stock moves, and accounts reviews credit before
-          posting.
+          Ten godown stations: order, verify, pack, dispatch, invoice note,
+          deliver, stock in, daily count, damage, and accounts. A carton
+          travels from a shop order through verification, packing, dispatch, a
+          draft invoice note, and delivery. Behind the counter, inbound stock
+          is counted, crates are checked daily, damage is verified before stock
+          moves, and accounts reviews credit before posting.
         </p>
-        <div className="relative mt-6 flex min-h-0 flex-1 flex-col">
-          {/* Chunk load keeps this navy panel in place until the film mounts. */}
+        {/* Film owns the full navy column now that the brand sits with sign-in. */}
+        <div className="absolute inset-0">
           <LoginStageBoundary>
             <Suspense fallback={null}>
               <LoginFlowStage />
             </Suspense>
           </LoginStageBoundary>
         </div>
-        <p className="relative mt-6 text-sm text-white/50">
-          Sherlys distribution operations
-        </p>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          <div className="mb-8 min-[900px]:hidden">
+          {/* Brand sits with the form so the sign-in column owns the product name. */}
+          <div className="mb-8">
             <BrandMark tone="dark" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">

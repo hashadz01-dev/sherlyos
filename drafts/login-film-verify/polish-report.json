@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-07T11:33:24.545Z",
+  "caption1x": {
+    "dualVisibleFrames": 0,
+    "frames": 3906,
+    "duration": 65.1,
+    "wallMs": 65059,
+    "swapsAtZero": 10,
+    "swapCount": 10
+  },
+  "wallLoop1x": {
+    "duration": 65.1,
+    "frames": 3907,
+    "dropped": 22,
+    "wallMs": 65060,
+    "expectedMs": 65100,
+    "expectedFramesAt60": 3906
+  },
+  "errors": [],
+  "slimCard": {
+    "slim": "1",
+    "open": "0",
+    "cardHeight": 22,
+    "paddingClass": "rounded-2xl bg-[#16324f]/92 px-5 ring-1 ring-white/25 backdrop-blur-sm transition-[padding] duration-200 py-2"
+  }
+}

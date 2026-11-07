@@ -67,9 +67,9 @@ const WIDE_HOLD = 2.5
 const ACT_GAP = 2.5
 const FADE = 1
 const LOOP_PAUSE = 1.5
-/** Old caption must be fully gone before the new line fades in. Keep under 0.1 s to the push-in label. */
-const CAPTION_OUT = 0.08
-const CAPTION_IN = 0.28
+/** Caption swaps at the push-in label; fade-out then fade-in (no overlap). */
+const CAPTION_OUT = 0.2
+const CAPTION_IN = 0.25
 const WIDE_OPACITY = 0.7
 const IDLE_OPACITY = 0.35
 const PLAY_INTENSITY = 0.5
@@ -277,7 +277,11 @@ function arrival(boxes: PlateBox[], index: number): Point {
   return prev ? outside(plate, prev) : { x: plate.x, y: plate.y }
 }
 
-/** Solid route for the carton's act 1. Dashed links for supporting act 2. */
+/**
+ * Solid route for the carton's act 1. Dashed links for supporting act 2.
+ * Act-2 paths bow below the plates so they never run under a tag (tags sit
+ * above each plate) or cut through a figure body.
+ */
 function connectorPaths(boxes: PlateBox[]) {
   const solid: string[] = []
   const dashed: string[] = []
@@ -287,9 +291,39 @@ function connectorPaths(boxes: PlateBox[]) {
     if (!from || !to) continue
     const start = outside(from, to)
     const end = outside(to, from)
-    const d = `M${start.x.toFixed(1)} ${start.y.toFixed(1)} L${end.x.toFixed(1)} ${end.y.toFixed(1)}`
-    if (index < CARTON_LAST) solid.push(d)
-    else dashed.push(d)
+    if (index < CARTON_LAST) {
+      solid.push(
+        `M${start.x.toFixed(1)} ${start.y.toFixed(1)} L${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
+      )
+      continue
+    }
+    // Prefer a low bow: screen y grows downward, tags are above (smaller y).
+    const clearY =
+      Math.max(from.y + from.h * 0.55, to.y + to.h * 0.55) + DOCK_GAP
+    if (index === CARTON_LAST) {
+      // Act gap 6→7: step out sideways, then under both, then into act 2.
+      const sideX =
+        Math.max(from.x + from.w * 0.65, to.x + to.w * 0.35) + from.w * 0.35
+      const mid1y = from.y + from.h * 0.6
+      const mid2y = Math.max(mid1y, clearY)
+      dashed.push(
+        [
+          `M${start.x.toFixed(1)} ${start.y.toFixed(1)}`,
+          `L${sideX.toFixed(1)} ${mid1y.toFixed(1)}`,
+          `L${sideX.toFixed(1)} ${mid2y.toFixed(1)}`,
+          `L${end.x.toFixed(1)} ${mid2y.toFixed(1)}`,
+          `L${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
+        ].join(" "),
+      )
+    } else {
+      const midX = (start.x + end.x) / 2
+      dashed.push(
+        [
+          `M${start.x.toFixed(1)} ${start.y.toFixed(1)}`,
+          `Q${midX.toFixed(1)} ${clearY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
+        ].join(" "),
+      )
+    }
   }
   return { solid: solid.join(" "), dashed: dashed.join(" ") }
 }
@@ -580,13 +614,35 @@ export function LoginFlowStage() {
         if (!captionWrap) return
         captionWrap.style.gridTemplateRows = open ? "1fr" : "0fr"
         captionWrap.dataset.open = open ? "1" : "0"
+        // Wide shot: collapse to a slim dots-only bar (no empty tall card).
+        const card = captionWrap.parentElement
+        if (card) {
+          card.dataset.slim = open ? "0" : "1"
+          card.classList.toggle("py-4", open)
+          card.classList.toggle("py-2", !open)
+          card.classList.toggle("px-5", true)
+        }
+        const dotsRow = captionWrap.nextElementSibling as HTMLElement | null
+        if (dotsRow) {
+          dotsRow.classList.toggle("mt-3", open)
+          dotsRow.classList.toggle("mt-0", !open)
+          dotsRow.classList.toggle("justify-end", !open)
+          dotsRow.classList.toggle("justify-between", open)
+        }
+        // Drop the invisible marker's min-size so the slim bar stays short.
+        marker.style.minHeight = open ? "" : "0px"
+        marker.style.minWidth = open ? "" : "0px"
+        marker.style.width = open ? "" : "0px"
+        marker.style.overflow = open ? "" : "hidden"
       }
 
       const showStep = (index: number) => {
         const stage = STAGES[index]
         const nextLine = stage ? stage.caption : ""
         const nextLabel = stage ? `${index + 1} / ${STAGE_COUNT}` : ""
-        // Text swaps only while opacity is 0, so old and new never share a frame.
+        // Force opacity 0 before the text swap so old and new never share a frame
+        // (GSAP fade-out can still read ~0.01 on the same tick as the call).
+        gsap.set([caption, marker], { opacity: 0 })
         caption.textContent = nextLine
         marker.textContent = nextLabel
         focusRef.current = index
@@ -783,12 +839,13 @@ export function LoginFlowStage() {
                 stationAt,
               )
             })
-            // Caption changes at the push-in. Old line fully out before new in.
+            // Caption changes at the push-in. Fade out, swap at 0, then fade in.
             timeline.to(
               [caption, marker],
               { opacity: 0, duration: CAPTION_OUT, ease: "power1.in" },
               stationAt,
             )
+            timeline.set([caption, marker], { opacity: 0 }, stationAt + CAPTION_OUT)
             timeline.call(
               () => {
                 setHolding(false)
@@ -797,10 +854,11 @@ export function LoginFlowStage() {
               undefined,
               stationAt + CAPTION_OUT,
             )
+            // One-frame gap after the swap so opacity-0 and new text share a paint.
             timeline.to(
               [caption, marker],
               { opacity: 1, duration: CAPTION_IN, ease: "power1.out" },
-              stationAt + CAPTION_OUT,
+              stationAt + CAPTION_OUT + 1 / 60,
             )
             timeline.call(() => setHolding(true), undefined, holdAt)
             timeline.addLabel(`${label}-hold`, holdAt)
@@ -1214,7 +1272,11 @@ export function LoginFlowStage() {
         className="absolute inset-x-0 bottom-0 z-10 px-8 pb-8 pt-16"
         aria-hidden="true"
       >
-        <div className="rounded-2xl bg-[#16324f]/92 px-5 py-4 ring-1 ring-white/25 backdrop-blur-sm">
+        {/* data-slim=1: wide shot — padding collapses to a dots-only bar. */}
+        <div
+          className="rounded-2xl bg-[#16324f]/92 px-5 py-2 ring-1 ring-white/25 backdrop-blur-sm transition-[padding] duration-200"
+          data-slim="1"
+        >
           <ul
             className={
               reduced ? "space-y-1.5 text-sm leading-6 text-white" : "hidden"
@@ -1253,7 +1315,7 @@ export function LoginFlowStage() {
               />
             </div>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="mt-0 flex items-center justify-end gap-3">
             <span
               ref={markerRef}
               className={

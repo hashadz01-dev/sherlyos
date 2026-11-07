@@ -1,0 +1,17 @@
+{
+  "explanation": {
+    "157.14_kb": "Dirty working-tree build that included uncommitted dashboard WIP. Vite re-split the entry (index-C_-GIM0E.js raw 506.77 kB → gzip 157.14 kB). Not comparable to the film baseline.",
+    "241.79_kb_and_241.81_kb": "Clean film-only worktree builds with the same ~825 kB main-chunk architecture as parent fb5b866."
+  },
+  "baseline": {
+    "commit": "fb5b866 (parent of b1370f4)",
+    "main": { "file": "index-pobkcawu.js", "rawKb": 825.47, "gzipKb": 241.77 },
+    "login": { "file": "LoginFlowStage-lNXSu2pL.js", "rawKb": 37.71, "gzipKb": 15.08 }
+  },
+  "current": {
+    "commit": "71bf125 + polish (film-only worktree)",
+    "main": { "file": "index-DlhPz9CI.js", "rawKb": 825.48, "gzipKb": 241.81 },
+    "login": { "file": "LoginFlowStage-BShYzDX9.js", "rawKb": 53.64, "gzipKb": 20.07 }
+  },
+  "delta": { "mainGzipKb": 0.04, "loginGzipKb": 4.99 }
+}

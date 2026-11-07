@@ -4,9 +4,9 @@ import { HL } from "./kernel"
 import { create, type FigureContext, type FigureOptions } from "./create"
 
 /**
- * Damage at a rack slot: a cracked carton, a count bead on the shelf lip, and
- * a manager stamp plate. The pointer brings the stamp down; only after it lands
- * does the bead drop away. The slider is how deep the stamp presses.
+ * Damage: one cracked carton in a single rack slot. The manager stamp lands,
+ * then the shelf count bead falls away. Distinct from daily-count — no
+ * clipboard, no crate row, no tally ticks.
  */
 const {
   Cam,
@@ -18,7 +18,6 @@ const {
   put,
   solid,
   open,
-  poly,
   tdone,
   tset,
   tval,
@@ -29,19 +28,18 @@ const {
   register,
 } = HL
 
-const SHELF = 16
+const SHELF = 14
 
 function mount({ stage, svg, read }: FigureContext, press: number) {
   const bag = disposer()
-  // Higher S fills more of the 400×320 frame (look warning was 17% rest cover).
-  const C = Cam(45, 0.5, 2.55)
+  const C = Cam(45, 0.5, 2.85)
   fit(
     C,
     [
-      [-44, -20, 0],
-      [52, 44, 0],
-      [-44, -20, 42],
-      [52, 44, 42],
+      [-40, -22, 0],
+      [48, 40, 0],
+      [-40, -22, 44],
+      [48, 40, 44],
     ],
     200,
     168,
@@ -57,30 +55,44 @@ function mount({ stage, svg, read }: FigureContext, press: number) {
     return s
   }
 
-  slab(g, -40, -8, -32, 8, 0, 42, 1.1)
-  slab(g, 36, -8, 44, 8, 0, 42, 1.1)
-  slab(g, -40, -6, 44, 4, 38, 42, 1.2)
-  slab(g, -34, -2, 38, 16, SHELF - 2, SHELF, 1.2)
-  const slot = slab(g, -16, 0, 20, 14, SHELF, SHELF + 10, 1.3)
+  // Single bay: posts + one shelf slot — not a multi-crate count rack.
+  slab(g, -34, -10, -26, 6, 0, 40, 1.1)
+  slab(g, 28, -10, 36, 6, 0, 40, 1.1)
+  slab(g, -34, -8, 36, 2, 36, 40, 1.2)
+  slab(g, -28, -4, 30, 14, SHELF - 2, SHELF, 1.2)
+  const slot = slab(g, -14, 0, 16, 12, SHELF, SHELF + 9, 1.2)
+
   const carton = solid(g)
   const crack = mk("path", { class: "nf" }, g)
+  const crack2 = mk("path", { class: "nf" }, g)
   const bead = solid(g)
   const stamp = solid(g)
-  const stampZ = tween(SHELF + 34)
+  const stampZ = tween(SHELF + 32)
   const beadDrop = tween(0)
-  const crackOpen = tween(0.35)
+  const crackOpen = tween(0.4)
 
   function drawCarton(openAmt) {
-    const [ring, inner] = rings(-8, 2, 12, 12, 1.2, 0.5)
-    put(carton, prism(P, front, ring, inner, SHELF + 1, SHELF + 11))
-    const z = SHELF + 11.1
+    // Larger carton face so the crack is the hero mark.
+    const [ring, inner] = rings(-10, 1, 14, 13, 1.3, 0.55)
+    put(carton, prism(P, front, ring, inner, SHELF + 1, SHELF + 12))
+    const z = SHELF + 12.2
+    // Two zig-zag strokes — readable as a crack even at rest.
     crack.setAttribute(
       "d",
       open([
-        P(-2, 4, z),
-        P(1, 6 + openAmt * 2, z),
-        P(4, 5, z),
-        P(7, 8 + openAmt * 3, z),
+        P(-6, 3, z),
+        P(-2, 5 + openAmt * 2.5, z),
+        P(2, 4, z),
+        P(6, 8 + openAmt * 3.5, z),
+        P(10, 7, z),
+      ]),
+    )
+    crack2.setAttribute(
+      "d",
+      open([
+        P(-4, 8, z),
+        P(0, 9 + openAmt * 1.5, z),
+        P(5, 11 + openAmt * 2, z),
       ]),
     )
   }
@@ -91,13 +103,14 @@ function mount({ stage, svg, read }: FigureContext, press: number) {
       bead.cr.setAttribute("d", "")
       return
     }
-    const z = SHELF + 10.4 - drop * 12
-    const [ring, inner] = rings(22, 4, 28, 10, 2.2, 0.8)
-    put(bead, prism(P, front, ring, inner, z, z + 4))
+    const z = SHELF + 10 - drop * 14
+    const [ring, inner] = rings(20, 3, 28, 11, 2.4, 0.9)
+    put(bead, prism(P, front, ring, inner, z, z + 5))
   }
 
   function drawStamp(z) {
-    const [ring, inner] = rings(-4, 3, 8, 11, 1.3, 0.55)
+    // Manager plate: wider and thicker so it reads before the bead drops.
+    const [ring, inner] = rings(-6, 2, 10, 12, 1.5, 0.6)
     put(stamp, prism(P, front, ring, inner, z, z + press))
   }
 
@@ -123,14 +136,14 @@ function mount({ stage, svg, read }: FigureContext, press: number) {
     if (on === armed) return
     armed = on
     const now = performance.now()
-    // Longer stamp travel + bead drop so the 240px answer moves more ink.
-    tset(stampZ, on ? SHELF + 11 : SHELF + 34, now, 0)
-    // Stock bead drops only after the stamp has settled on the carton.
-    tset(beadDrop, on ? 1 : 0, now, on ? 220 : 40)
-    tset(crackOpen, on ? 1 : 0.35, now, 60)
+    tset(stampZ, on ? SHELF + 12 : SHELF + 32, now, 0)
+    // Count bead falls only after the stamp has settled.
+    tset(beadDrop, on ? 1 : 0, now, on ? 240 : 40)
+    tset(crackOpen, on ? 1 : 0.4, now, 70)
     stamp.sil.classList.toggle("hi", on)
     carton.sil.classList.toggle("hi", on)
     crack.classList.toggle("hi", on)
+    crack2.classList.toggle("hi", on)
     bead.sil.classList.toggle("hi", !on)
     slot.sil.classList.toggle("hi", !on)
     read.textContent = on ? "hold" : "rest"
@@ -140,9 +153,9 @@ function mount({ stage, svg, read }: FigureContext, press: number) {
   slot.sil.classList.add("hi")
   bead.sil.classList.add("hi")
   read.textContent = "rest"
-  drawCarton(0.35)
+  drawCarton(0.4)
   drawBead(0)
-  drawStamp(SHELF + 34)
+  drawStamp(SHELF + 32)
 
   bag.add(
     pointer(stage, {

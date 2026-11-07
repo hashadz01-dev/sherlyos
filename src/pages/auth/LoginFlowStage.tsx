@@ -2,11 +2,15 @@ import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
 import { useRef, useState, type CSSProperties } from "react"
 import {
+  AccountsDesk,
+  DailyCount,
+  DamageMark,
   DeliveryVan,
   DispatchBay,
   InvoiceNote,
   OrderDesk,
   PackRack,
+  StockIn,
   VerifyLedger,
 } from "@/features/auth/stage/hairline/react"
 
@@ -48,32 +52,34 @@ function installLoginStageShims() {
 
 installLoginStageShims()
 
-/** Wide, medium, and close framings. Close is 2.4 so a plate fills about 60% of the panel. */
 const WIDE = 1
 const MEDIUM = 1.35
-const CLOSE = 2.4
 const MARGIN = 0.06
+/** Fallback close scale until each plate's figure box is measured. */
+const CLOSE_FALLBACK = 2.4
 
 const ESTABLISH = 3.5
 const PUSH = 1.2
 const HOLD = 3
 const ARC = 1
 const PULL_OUT = 1.8
-const WIDE_HOLD = 3
+const WIDE_HOLD = 2.5
+const ACT_GAP = 2.5
 const FADE = 1
 const LOOP_PAUSE = 1.5
-
 const WIDE_OPACITY = 0.7
 const IDLE_OPACITY = 0.35
 const PLAY_INTENSITY = 0.5
 const CARTON = 44
 const DOCK_GAP = 28
+/** Act 1 is the carton's journey. Act 2 plates are supporting operations. */
+const CARTON_LAST = 5
 
 const PLATE_COLOR = "#0e1c33"
 
 /**
- * One loop is about 42s: a wide shot, six stations, a pull-back, a reset, and a pause.
- * Station 5 is a draft note only. Nothing in this film is a tax invoice.
+ * Act 1 (~40 s) follows one carton. Act 2 is four supporting stations after a
+ * wide gap. Station 5 stays a draft note only — never a tax invoice.
  */
 const STAGES = [
   {
@@ -82,6 +88,7 @@ const STAGES = [
     tag: "1 Order",
     label: "An order desk",
     caption: "Shop order captured.",
+    act: 1 as const,
   },
   {
     key: "verify",
@@ -89,6 +96,7 @@ const STAGES = [
     tag: "2 Verify",
     label: "An accounts ledger",
     caption: "Accounts verifies the order.",
+    act: 1 as const,
   },
   {
     key: "pack",
@@ -97,6 +105,7 @@ const STAGES = [
     label: "A packing rack",
     caption:
       "Cartons reserved from crates and packed. Stock is not deducted yet.",
+    act: 1 as const,
   },
   {
     key: "dispatch",
@@ -104,6 +113,7 @@ const STAGES = [
     tag: "4 Dispatch",
     label: "A dispatch bay",
     caption: "Dispatch confirmed. Stock leaves the godown once.",
+    act: 1 as const,
   },
   {
     key: "invoice",
@@ -111,6 +121,7 @@ const STAGES = [
     tag: "5 Invoice note",
     label: "A draft invoice note",
     caption: "Draft invoice note prepared from the confirmed dispatch.",
+    act: 1 as const,
   },
   {
     key: "deliver",
@@ -118,10 +129,50 @@ const STAGES = [
     tag: "6 Deliver",
     label: "A delivery van",
     caption: "Delivered to the shop with proof of delivery.",
+    act: 1 as const,
+  },
+  {
+    key: "stock-in",
+    Figure: StockIn,
+    tag: "7 Stock in",
+    label: "An inbound supplier bay",
+    caption:
+      "Inbound stock counted, damage set aside, cases allocated to crates.",
+    act: 2 as const,
+  },
+  {
+    key: "daily-count",
+    Figure: DailyCount,
+    tag: "8 Daily count",
+    label: "A daily crate count",
+    caption:
+      "Every crate counted against the system. Differences need a reason and approval.",
+    act: 2 as const,
+  },
+  {
+    key: "damage",
+    Figure: DamageMark,
+    tag: "9 Damage",
+    label: "A damaged carton on a rack",
+    caption:
+      "Damage recorded where it happened and verified before stock is deducted.",
+    act: 2 as const,
+  },
+  {
+    key: "accounts",
+    Figure: AccountsDesk,
+    tag: "10 Accounts",
+    label: "An accounts desk",
+    caption: "Accounts checks credit and billing before anything is posted.",
+    act: 2 as const,
   },
 ] as const
 
-const LONGEST_CAPTION = STAGES[2].caption
+const STAGE_COUNT = STAGES.length
+const LONGEST_CAPTION = STAGES.reduce(
+  (best, stage) => (stage.caption.length > best.length ? stage.caption : best),
+  "",
+)
 
 const stageVars = {
   "--hairline-plate": PLATE_COLOR,
@@ -134,15 +185,21 @@ const stageVars = {
 type Point = { x: number; y: number }
 type PlateBox = { x: number; y: number; w: number; h: number }
 type Cam = { x: number; y: number; scale: number }
+type LayoutState = {
+  w: number
+  h: number
+  boxes: PlateBox[]
+  close: number[]
+}
 
 /**
- * Six plates on a left-to-right zigzag. At scale 1 the route fits the panel
- * with a 6% margin. Plate width is 25% so the close scale of 2.4 fills ~60%.
+ * Ten plates: act 1 zigzags on the lower band, act 2 on the upper band.
+ * Wide shot keeps a 6% margin. Plate width targets ~60% panel fill at close.
  */
 function buildLayout(width: number, height: number): PlateBox[] {
-  const plateW = width * (0.6 / CLOSE)
+  const plateW = Math.min(width * 0.2, width * (0.6 / CLOSE_FALLBACK))
   const plateH = plateW * 0.8
-  const tag = 24
+  const tag = 22
   const marginX = MARGIN * width
   const marginY = MARGIN * height
   let minX = marginX + plateW / 2
@@ -158,17 +215,29 @@ function buildLayout(width: number, height: number): PlateBox[] {
     minY = mid
     maxY = mid
   }
-  const last = STAGES.length - 1
-  const span = maxY - minY
-  return STAGES.map((_, index) => {
-    const x = minX + (index / last) * (maxX - minX)
-    const low = index % 2 === 0
-    const y = low ? maxY - span * 0.06 : minY + span * 0.06
+  const midY = (minY + maxY) / 2
+  const upper = midY - (maxY - minY) * 0.28
+  const lower = midY + (maxY - minY) * 0.28
+
+  return STAGES.map((stage, index) => {
+    if (stage.act === 1) {
+      const last = CARTON_LAST
+      const x = minX + (index / last) * (maxX - minX)
+      const low = index % 2 === 0
+      const y = low ? lower + (maxY - lower) * 0.15 : lower - (lower - midY) * 0.2
+      return { x, y, w: plateW, h: plateH }
+    }
+    const actIndex = index - (CARTON_LAST + 1)
+    const actLast = STAGE_COUNT - CARTON_LAST - 2
+    const x =
+      minX +
+      ((actIndex + 0.5) / (actLast + 1.5)) * (maxX - minX)
+    const low = actIndex % 2 === 0
+    const y = low ? upper + (midY - upper) * 0.1 : upper - (upper - minY) * 0.15
     return { x, y, w: plateW, h: plateH }
   })
 }
 
-/** Where a ray from the plate centre hits the plate rectangle. */
 function edgePoint(plate: PlateBox, toward: Point): Point {
   const dx = toward.x - plate.x
   const dy = toward.y - plate.y
@@ -179,7 +248,6 @@ function edgePoint(plate: PlateBox, toward: Point): Point {
   return { x: plate.x + dx * s, y: plate.y + dy * s }
 }
 
-/** A point just outside the plate, so a connector meets the edge and misses the figure. */
 function outside(plate: PlateBox, toward: Point): Point {
   const edge = edgePoint(plate, toward)
   const dx = edge.x - plate.x
@@ -191,7 +259,6 @@ function outside(plate: PlateBox, toward: Point): Point {
   }
 }
 
-/** The carton waits on the incoming edge. Plate 1 waits on the edge that leaves toward plate 2. */
 function arrival(boxes: PlateBox[], index: number): Point {
   const plate = boxes[index]
   if (!plate) return { x: 0, y: 0 }
@@ -203,25 +270,23 @@ function arrival(boxes: PlateBox[], index: number): Point {
   return prev ? outside(plate, prev) : { x: plate.x, y: plate.y }
 }
 
-function connectorPath(boxes: PlateBox[]) {
-  const parts: string[] = []
+/** Solid route for the carton's act 1. Dashed links for supporting act 2. */
+function connectorPaths(boxes: PlateBox[]) {
+  const solid: string[] = []
+  const dashed: string[] = []
   for (let index = 0; index < boxes.length - 1; index += 1) {
     const from = boxes[index]
     const to = boxes[index + 1]
     if (!from || !to) continue
     const start = outside(from, to)
     const end = outside(to, from)
-    parts.push(
-      `M${start.x.toFixed(1)} ${start.y.toFixed(1)} L${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
-    )
+    const d = `M${start.x.toFixed(1)} ${start.y.toFixed(1)} L${end.x.toFixed(1)} ${end.y.toFixed(1)}`
+    if (index < CARTON_LAST) solid.push(d)
+    else dashed.push(d)
   }
-  return parts.join(" ")
+  return { solid: solid.join(" "), dashed: dashed.join(" ") }
 }
 
-/**
- * x/y put `point` on the panel centre at this scale.
- * Origin is the world's top-left, so the wide shot is the identity transform.
- */
 function frame(
   width: number,
   height: number,
@@ -235,7 +300,6 @@ function frame(
   }
 }
 
-/** A midpoint offset sideways, so the pull-back bows instead of zooming on a straight line. */
 function bow(from: Cam, to: Cam): Cam {
   return {
     x: (from.x + to.x) / 2 + (to.y - from.y) * 0.12,
@@ -249,33 +313,62 @@ function placeCarton(point: Point) {
 }
 
 /**
- * The floor is a sibling of the world and only takes 60% of the camera move,
- * so the grid drifts behind the stations.
- * Transforms stay 2D (`force3D` is off) so a close-up is not promoted to a soft layer.
+ * Close scale so the focused figure fills ~60% of the panel width.
+ * Measured from the figure SVG box while the world is at identity.
  */
-function applyCamera(world: HTMLElement, floor: HTMLElement, cam: Cam) {
+function measureCloseScales(
+  plates: HTMLElement[],
+  panelWidth: number,
+  camScale: number,
+): number[] {
+  return plates.map((plate) => {
+    const svg = plate.querySelector("svg")
+    const box = (svg ?? plate).getBoundingClientRect()
+    const worldW = Math.max(24, box.width / Math.max(camScale, 0.01))
+    return Math.min(3.2, Math.max(1.45, (0.6 * panelWidth) / worldW))
+  })
+}
+
+function applyCamera(
+  world: HTMLElement,
+  floor: HTMLElement,
+  cam: Cam,
+  tags: Array<HTMLElement | null>,
+  focusIndex: number,
+  connectors: Array<SVGPathElement | null>,
+) {
   world.style.transformOrigin = "0 0"
   floor.style.transformOrigin = "0 0"
   world.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.scale})`
-  const scale = 1 + (cam.scale - 1) * 0.6
-  floor.style.transform = `translate(${cam.x * 0.6}px, ${cam.y * 0.6}px) scale(${scale})`
+  const floorScale = 1 + (cam.scale - 1) * 0.6
+  floor.style.transform = `translate(${cam.x * 0.6}px, ${cam.y * 0.6}px) scale(${floorScale})`
+
+  // Tags keep a constant screen size by counter-scaling the camera.
+  const inv = 1 / Math.max(cam.scale, 0.01)
+  const closeShot = cam.scale > MEDIUM + 0.05
+  tags.forEach((tag, index) => {
+    if (!tag) return
+    tag.style.transform = `translateX(-50%) scale(${inv})`
+    tag.style.transformOrigin = "50% 100%"
+    if (closeShot) {
+      tag.style.opacity = index === focusIndex ? "1" : "0"
+    } else {
+      tag.style.opacity = "1"
+    }
+  })
+
+  const linkOpacity = closeShot ? 0 : 1
+  connectors.forEach((path) => {
+    if (path) path.style.opacity = String(linkOpacity)
+  })
 }
 
-/**
- * jsdom and a few old hosts have no matchMedia. Treat that as reduced
- * motion so the stage renders one still frame instead of throwing.
- */
 function prefersReducedMotion() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function")
     return true
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
-/**
- * Pauses the master timeline, and reports it, while the tab is hidden or
- * the diagram has no box on screen. The focused figure reads that flag and
- * stops too, so only a visible station keeps playing.
- */
 function watchPlayback(
   timeline: gsap.core.Timeline,
   node: HTMLElement,
@@ -327,6 +420,19 @@ function watchPlayback(
   }
 }
 
+function placePlates(
+  plates: Array<HTMLDivElement | null>,
+  boxes: PlateBox[],
+) {
+  plates.forEach((node, index) => {
+    const box = boxes[index]
+    if (!node || !box) return
+    node.style.left = `${box.x}px`
+    node.style.top = `${box.y}px`
+    node.style.width = `${box.w}px`
+  })
+}
+
 const FLOOR_DOTS = Array.from({ length: 22 }, (_, row) =>
   Array.from({ length: 30 }, (_, col) => ({
     x: col * 28 + (row % 2 ? 14 : 0),
@@ -335,8 +441,9 @@ const FLOOR_DOTS = Array.from({ length: 22 }, (_, row) =>
 ).flat()
 
 /**
- * Isometric login film. One GSAP timeline moves the camera; Hairline's React
- * wrapper destroys each figure on unmount, and `useGSAP` reverts the timeline.
+ * Isometric login film. The master timeline is built once. Resize only
+ * recomputes layout targets and calls timeline.invalidate() — it must not
+ * recreate the timeline (that truncated the first loop after Dispatch).
  */
 export function LoginFlowStage() {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -345,18 +452,80 @@ export function LoginFlowStage() {
   const floorRef = useRef<HTMLDivElement>(null)
   const cartonRef = useRef<HTMLDivElement>(null)
   const captionRef = useRef<HTMLParagraphElement>(null)
+  const captionWrapRef = useRef<HTMLDivElement>(null)
   const markerRef = useRef<HTMLSpanElement>(null)
+  const solidLinkRef = useRef<SVGPathElement>(null)
+  const dashedLinkRef = useRef<SVGPathElement>(null)
   const plateNodes = useRef<Array<HTMLDivElement | null>>([])
-  const [size, setSize] = useState({ w: 0, h: 0 })
+  const tagNodes = useRef<Array<HTMLSpanElement | null>>([])
+  const dotNodes = useRef<Array<HTMLSpanElement | null>>([])
+  const layoutRef = useRef<LayoutState | null>(null)
+  const timelineRef = useRef<gsap.core.Timeline | null>(null)
+  const focusRef = useRef(-1)
+  const camRef = useRef<Cam>({ x: 0, y: 0, scale: WIDE })
+
+  const [ready, setReady] = useState(false)
   const [reduced, setReduced] = useState(prefersReducedMotion)
   const [focus, setFocus] = useState(-1)
   const [holding, setHolding] = useState(false)
   const [running, setRunning] = useState(true)
-  const [line, setLine] = useState("")
-  const [stepLabel, setStepLabel] = useState("")
+  const [paths, setPaths] = useState({ solid: "", dashed: "" })
 
-  const ready = size.w > 10 && size.h > 10
-  const boxes = ready ? buildLayout(size.w, size.h) : []
+  useGSAP(
+    () => {
+      const diagram = diagramRef.current
+      if (!diagram || typeof ResizeObserver !== "function") return
+
+      const syncLayout = (width: number, height: number, rebuildClose: boolean) => {
+        const boxes = buildLayout(width, height)
+        const plates = plateNodes.current.filter(
+          (node): node is HTMLDivElement => node !== null,
+        )
+        placePlates(plateNodes.current, boxes)
+        const close =
+          rebuildClose && plates.length === STAGE_COUNT
+            ? measureCloseScales(plates, width, camRef.current.scale)
+            : (layoutRef.current?.close ??
+              Array.from({ length: STAGE_COUNT }, () => CLOSE_FALLBACK))
+        layoutRef.current = { w: width, h: height, boxes, close }
+        const nextPaths = connectorPaths(boxes)
+        setPaths(nextPaths)
+        if (solidLinkRef.current) solidLinkRef.current.setAttribute("d", nextPaths.solid)
+        if (dashedLinkRef.current)
+          dashedLinkRef.current.setAttribute("d", nextPaths.dashed)
+        // Functional tweens re-read layoutRef on the next tick after invalidate.
+        timelineRef.current?.invalidate()
+      }
+
+      let timer = 0
+      let seen = false
+      const measure = () => {
+        const width = diagram.clientWidth
+        const height = diagram.clientHeight
+        if (width < 10 || height < 10) return
+        const first = !layoutRef.current
+        syncLayout(width, height, first || !timelineRef.current)
+        if (first) setReady(true)
+      }
+
+      const observer = new ResizeObserver(() => {
+        // First box starts the film. Later changes only invalidate targets.
+        if (!seen) {
+          seen = true
+          measure()
+          return
+        }
+        window.clearTimeout(timer)
+        timer = window.setTimeout(measure, 200)
+      })
+      observer.observe(diagram)
+      return () => {
+        window.clearTimeout(timer)
+        observer.disconnect()
+      }
+    },
+    { scope: diagramRef },
+  )
 
   useGSAP(
     () => {
@@ -365,42 +534,69 @@ export function LoginFlowStage() {
       const floor = floorRef.current
       const carton = cartonRef.current
       const caption = captionRef.current
+      const captionWrap = captionWrapRef.current
       const marker = markerRef.current
       if (!diagram || !world || !floor || !carton || !caption || !marker) return
-      if (!ready) return
+      if (!ready || !layoutRef.current) return
 
       const plates = plateNodes.current.filter(
         (node): node is HTMLDivElement => node !== null,
       )
-      if (plates.length !== STAGES.length) return
+      if (plates.length !== STAGE_COUNT) return
 
-      const layout = buildLayout(size.w, size.h)
-      const width = size.w
-      const height = size.h
-      const cam: Cam = { x: 0, y: 0, scale: WIDE }
-      const write = () => applyCamera(world, floor, cam)
+      // Re-measure close scales now that every figure SVG is in the tree.
+      const { w: width, boxes } = layoutRef.current
+      layoutRef.current.close = measureCloseScales(plates, width, 1)
+      placePlates(plateNodes.current, boxes)
+      setPaths(connectorPaths(boxes))
+
+      const cam = camRef.current
+      const write = () =>
+        applyCamera(
+          world,
+          floor,
+          cam,
+          tagNodes.current,
+          focusRef.current,
+          [solidLinkRef.current, dashedLinkRef.current],
+        )
+
       const media = gsap.matchMedia()
 
-      // Write the DOM in the same tick the fade-out ends, then let React catch up.
-      // A shared element never shows the old line and the new line together.
+      const setCaptionOpen = (open: boolean) => {
+        if (!captionWrap) return
+        captionWrap.style.gridTemplateRows = open ? "1fr" : "0fr"
+        captionWrap.dataset.open = open ? "1" : "0"
+      }
+
       const showStep = (index: number) => {
         const stage = STAGES[index]
         const nextLine = stage ? stage.caption : ""
-        const nextLabel = stage ? `${index + 1} / 6` : ""
+        const nextLabel = stage ? `${index + 1} / ${STAGE_COUNT}` : ""
         caption.textContent = nextLine
         marker.textContent = nextLabel
+        focusRef.current = index
         setFocus(index)
-        setLine(nextLine)
-        setStepLabel(nextLabel)
+        setCaptionOpen(Boolean(nextLine))
+        dotNodes.current.forEach((dot, i) => {
+          if (!dot) return
+          dot.classList.toggle("bg-white", i === index)
+          dot.classList.toggle("bg-white/55", i !== index)
+        })
       }
 
       const showWide = () => {
         caption.textContent = ""
         marker.textContent = ""
+        focusRef.current = -1
         setFocus(-1)
         setHolding(false)
-        setLine("")
-        setStepLabel("")
+        setCaptionOpen(false)
+        dotNodes.current.forEach((dot) => {
+          if (!dot) return
+          dot.classList.remove("bg-white")
+          dot.classList.add("bg-white/55")
+        })
       }
 
       media.add(
@@ -414,10 +610,9 @@ export function LoginFlowStage() {
               ?.reduceMotion,
           )
           setReduced(still)
-          const shop = layout.length - 1
 
           if (still) {
-            setFocus(shop)
+            setFocus(-1)
             setHolding(false)
             setRunning(false)
             cam.x = 0
@@ -425,11 +620,8 @@ export function LoginFlowStage() {
             cam.scale = WIDE
             write()
             gsap.set(plates, { opacity: 1 })
-            gsap.set(carton, {
-              ...placeCarton(arrival(layout, shop)),
-              opacity: 1,
-              force3D: false,
-            })
+            gsap.set(carton, { opacity: 0 })
+            setCaptionOpen(false)
             return
           }
 
@@ -439,48 +631,62 @@ export function LoginFlowStage() {
           gsap.set(plates, { opacity: WIDE_OPACITY })
           gsap.set([caption, marker], { opacity: 0 })
           gsap.set(carton, {
-            ...placeCarton(arrival(layout, 0)),
+            ...placeCarton(arrival(layoutRef.current!.boxes, 0)),
             opacity: 1,
             force3D: false,
           })
 
+          // Build once. Resize path calls invalidate() instead of recreating.
           const timeline = gsap.timeline({
             paused: true,
             repeat: -1,
             repeatDelay: LOOP_PAUSE,
             defaults: { force3D: false },
           })
+          timelineRef.current = timeline
+
+          const layout = () => layoutRef.current!
 
           timeline.set(cam, { x: 0, y: 0, scale: WIDE }, 0)
           timeline.call(write, undefined, 0)
           timeline.set(plates, { opacity: WIDE_OPACITY }, 0)
           timeline.set(
             carton,
-            { ...placeCarton(arrival(layout, 0)), opacity: 1 },
+            {
+              x: () => placeCarton(arrival(layout().boxes, 0)).x,
+              y: () => placeCarton(arrival(layout().boxes, 0)).y,
+              opacity: 1,
+            },
             0,
           )
           timeline.call(showWide, undefined, 0)
+          timeline.addLabel("wide0", 0)
 
           let cursor = ESTABLISH
-          layout.forEach((plate, index) => {
-            const close = frame(width, height, plate, CLOSE)
-            const drifted = frame(
-              width,
-              height,
-              {
-                x: plate.x + plate.w * 0.03,
-                y: plate.y - plate.h * 0.03,
-              },
-              CLOSE * 1.03,
-            )
+
+          const pushStation = (index: number) => {
             const stationAt = cursor
             const holdAt = stationAt + PUSH
             const arcAt = holdAt + HOLD
+            const label = `s${index + 1}`
+            timeline.addLabel(label, stationAt)
 
             timeline.to(
               cam,
               {
-                ...close,
+                x: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  return frame(L.w, L.h, plate, L.close[index] ?? CLOSE_FALLBACK)
+                    .x
+                },
+                y: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  return frame(L.w, L.h, plate, L.close[index] ?? CLOSE_FALLBACK)
+                    .y
+                },
+                scale: () => layout().close[index] ?? CLOSE_FALLBACK,
                 duration: PUSH,
                 ease: "power3.inOut",
                 onUpdate: write,
@@ -498,6 +704,7 @@ export function LoginFlowStage() {
                 stationAt,
               )
             })
+            // Caption changes at the push-in. Old line fully out before new in.
             timeline.to(
               [caption, marker],
               { opacity: 0, duration: 0.2, ease: "power1.in" },
@@ -514,13 +721,42 @@ export function LoginFlowStage() {
             timeline.to(
               [caption, marker],
               { opacity: 1, duration: 0.35, ease: "power1.out" },
-              stationAt + 0.25,
+              stationAt + 0.2,
             )
             timeline.call(() => setHolding(true), undefined, holdAt)
+            timeline.addLabel(`${label}-hold`, holdAt)
             timeline.to(
               cam,
               {
-                ...drifted,
+                x: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const close = L.close[index] ?? CLOSE_FALLBACK
+                  return frame(
+                    L.w,
+                    L.h,
+                    {
+                      x: plate.x + plate.w * 0.03,
+                      y: plate.y - plate.h * 0.03,
+                    },
+                    close * 1.03,
+                  ).x
+                },
+                y: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const close = L.close[index] ?? CLOSE_FALLBACK
+                  return frame(
+                    L.w,
+                    L.h,
+                    {
+                      x: plate.x + plate.w * 0.03,
+                      y: plate.y - plate.h * 0.03,
+                    },
+                    close * 1.03,
+                  ).y
+                },
+                scale: () => (layout().close[index] ?? CLOSE_FALLBACK) * 1.03,
                 duration: HOLD,
                 ease: "power1.inOut",
                 onUpdate: write,
@@ -528,21 +764,91 @@ export function LoginFlowStage() {
               holdAt,
             )
 
-            const next = layout[index + 1]
-            const medium = next
-              ? frame(
-                  width,
-                  height,
-                  { x: (plate.x + next.x) / 2, y: (plate.y + next.y) / 2 },
-                  MEDIUM,
-                )
-              : frame(width, height, plate, MEDIUM)
-            const bend = bow(drifted, medium)
             timeline.call(() => setHolding(false), undefined, arcAt)
             timeline.to(
               cam,
               {
-                ...bend,
+                x: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const next = L.boxes[index + 1]
+                  const close = L.close[index] ?? CLOSE_FALLBACK
+                  const drifted = frame(
+                    L.w,
+                    L.h,
+                    {
+                      x: plate.x + plate.w * 0.03,
+                      y: plate.y - plate.h * 0.03,
+                    },
+                    close * 1.03,
+                  )
+                  const medium = next
+                    ? frame(
+                        L.w,
+                        L.h,
+                        {
+                          x: (plate.x + next.x) / 2,
+                          y: (plate.y + next.y) / 2,
+                        },
+                        MEDIUM,
+                      )
+                    : frame(L.w, L.h, plate, MEDIUM)
+                  return bow(drifted, medium).x
+                },
+                y: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const next = L.boxes[index + 1]
+                  const close = L.close[index] ?? CLOSE_FALLBACK
+                  const drifted = frame(
+                    L.w,
+                    L.h,
+                    {
+                      x: plate.x + plate.w * 0.03,
+                      y: plate.y - plate.h * 0.03,
+                    },
+                    close * 1.03,
+                  )
+                  const medium = next
+                    ? frame(
+                        L.w,
+                        L.h,
+                        {
+                          x: (plate.x + next.x) / 2,
+                          y: (plate.y + next.y) / 2,
+                        },
+                        MEDIUM,
+                      )
+                    : frame(L.w, L.h, plate, MEDIUM)
+                  return bow(drifted, medium).y
+                },
+                scale: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const next = L.boxes[index + 1]
+                  const close = L.close[index] ?? CLOSE_FALLBACK
+                  const drifted = frame(
+                    L.w,
+                    L.h,
+                    {
+                      x: plate.x + plate.w * 0.03,
+                      y: plate.y - plate.h * 0.03,
+                    },
+                    close * 1.03,
+                  )
+                  const medium = next
+                    ? frame(
+                        L.w,
+                        L.h,
+                        {
+                          x: (plate.x + next.x) / 2,
+                          y: (plate.y + next.y) / 2,
+                        },
+                        MEDIUM,
+                      )
+                    : frame(L.w, L.h, plate, MEDIUM)
+                  return bow(drifted, medium).scale
+                },
                 duration: ARC / 2,
                 ease: "power3.inOut",
                 onUpdate: write,
@@ -552,18 +858,55 @@ export function LoginFlowStage() {
             timeline.to(
               cam,
               {
-                ...medium,
+                x: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const next = L.boxes[index + 1]
+                  return next
+                    ? frame(
+                        L.w,
+                        L.h,
+                        {
+                          x: (plate.x + next.x) / 2,
+                          y: (plate.y + next.y) / 2,
+                        },
+                        MEDIUM,
+                      ).x
+                    : frame(L.w, L.h, plate, MEDIUM).x
+                },
+                y: () => {
+                  const L = layout()
+                  const plate = L.boxes[index]!
+                  const next = L.boxes[index + 1]
+                  return next
+                    ? frame(
+                        L.w,
+                        L.h,
+                        {
+                          x: (plate.x + next.x) / 2,
+                          y: (plate.y + next.y) / 2,
+                        },
+                        MEDIUM,
+                      ).y
+                    : frame(L.w, L.h, plate, MEDIUM).y
+                },
+                scale: MEDIUM,
                 duration: ARC / 2,
                 ease: "power3.inOut",
                 onUpdate: write,
               },
               arcAt + ARC / 2,
             )
-            if (next) {
+
+            // Carton hand-off only on the act 1 route.
+            if (index < CARTON_LAST) {
               timeline.to(
                 carton,
                 {
-                  ...placeCarton(arrival(layout, index + 1)),
+                  x: () =>
+                    placeCarton(arrival(layout().boxes, index + 1)).x,
+                  y: () =>
+                    placeCarton(arrival(layout().boxes, index + 1)).y,
                   duration: ARC,
                   ease: "power3.inOut",
                 },
@@ -572,8 +915,16 @@ export function LoginFlowStage() {
             }
 
             cursor = arcAt + ARC
-          })
+          }
 
+          // Act 1: carton journey.
+          for (let index = 0; index <= CARTON_LAST; index += 1) {
+            pushStation(index)
+          }
+
+          // Wide between acts.
+          const midWide = cursor
+          timeline.addLabel("act-gap", midWide)
           timeline.to(
             cam,
             {
@@ -584,21 +935,59 @@ export function LoginFlowStage() {
               ease: "power3.inOut",
               onUpdate: write,
             },
-            cursor,
+            midWide,
           )
           timeline.to(
             plates,
             { opacity: WIDE_OPACITY, duration: PULL_OUT, ease: "power3.inOut" },
-            cursor,
+            midWide,
           )
           timeline.to(
             [caption, marker],
             { opacity: 0, duration: 0.2, ease: "power1.in" },
-            cursor,
+            midWide,
           )
-          timeline.call(showWide, undefined, cursor + 0.2)
+          timeline.call(showWide, undefined, midWide + 0.2)
+          timeline.to(
+            carton,
+            { opacity: 0.35, duration: 0.4, ease: "power1.out" },
+            midWide + 0.3,
+          )
+          cursor = midWide + PULL_OUT + ACT_GAP
 
-          const fadeAt = cursor + PULL_OUT + WIDE_HOLD
+          // Act 2: supporting operations (no carton hand-off).
+          for (let index = CARTON_LAST + 1; index < STAGE_COUNT; index += 1) {
+            pushStation(index)
+          }
+
+          const pullAt = cursor
+          timeline.addLabel("pull-end", pullAt)
+          timeline.to(
+            cam,
+            {
+              x: 0,
+              y: 0,
+              scale: WIDE,
+              duration: PULL_OUT,
+              ease: "power3.inOut",
+              onUpdate: write,
+            },
+            pullAt,
+          )
+          timeline.to(
+            plates,
+            { opacity: WIDE_OPACITY, duration: PULL_OUT, ease: "power3.inOut" },
+            pullAt,
+          )
+          timeline.to(
+            [caption, marker],
+            { opacity: 0, duration: 0.2, ease: "power1.in" },
+            pullAt,
+          )
+          timeline.call(showWide, undefined, pullAt + 0.2)
+
+          const fadeAt = pullAt + PULL_OUT + WIDE_HOLD
+          timeline.addLabel("fade", fadeAt)
           timeline.to(
             [carton, ...plates],
             { opacity: 0, duration: FADE * 0.45, ease: "power1.in" },
@@ -617,7 +1006,10 @@ export function LoginFlowStage() {
           )
           timeline.set(
             carton,
-            placeCarton(arrival(layout, 0)),
+            {
+              x: () => placeCarton(arrival(layout().boxes, 0)).x,
+              y: () => placeCarton(arrival(layout().boxes, 0)).y,
+            },
             fadeAt + FADE * 0.5,
           )
           timeline.to(
@@ -631,46 +1023,16 @@ export function LoginFlowStage() {
             fadeAt + FADE * 0.5,
           )
 
-          return watchPlayback(timeline, diagram, setRunning)
+          const stopWatch = watchPlayback(timeline, diagram, setRunning)
+          return () => {
+            stopWatch()
+            timelineRef.current = null
+          }
         },
       )
     },
-    { scope: rootRef, dependencies: [size.w, size.h], revertOnUpdate: true },
-  )
-
-  useGSAP(
-    () => {
-      const diagram = diagramRef.current
-      if (!diagram || typeof ResizeObserver !== "function") return
-      let timer = 0
-      let seen = false
-      const measure = () => {
-        const width = diagram.clientWidth
-        const height = diagram.clientHeight
-        if (width < 10 || height < 10) return
-        setSize((prev) =>
-          prev.w === width && prev.h === height
-            ? prev
-            : { w: width, h: height },
-        )
-      }
-      const observer = new ResizeObserver(() => {
-        // The first box starts the film. Later changes wait so a drag does not rebuild every frame.
-        if (!seen) {
-          seen = true
-          measure()
-          return
-        }
-        window.clearTimeout(timer)
-        timer = window.setTimeout(measure, 200)
-      })
-      observer.observe(diagram)
-      return () => {
-        window.clearTimeout(timer)
-        observer.disconnect()
-      }
-    },
-    { scope: diagramRef },
+    // Ready flips once. Do not list size — that recreated the timeline mid-loop.
+    { scope: rootRef, dependencies: [ready], revertOnUpdate: true },
   )
 
   return (
@@ -703,9 +1065,11 @@ export function LoginFlowStage() {
           </svg>
         </div>
         <div ref={worldRef} className="absolute inset-0">
-          <svg className="absolute inset-0 h-full w-full overflow-visible">
+          {/* Connectors sit under the plates so they never cross a figure. */}
+          <svg className="absolute inset-0 z-0 h-full w-full overflow-visible">
             <path
-              d={connectorPath(boxes)}
+              ref={solidLinkRef}
+              d={paths.solid}
               fill="none"
               stroke="var(--hairline-edge)"
               strokeWidth="1.25"
@@ -713,9 +1077,19 @@ export function LoginFlowStage() {
               strokeOpacity="0.55"
               vectorEffect="non-scaling-stroke"
             />
+            <path
+              ref={dashedLinkRef}
+              d={paths.dashed}
+              fill="none"
+              stroke="var(--hairline-edge)"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeDasharray="4 5"
+              strokeOpacity="0.4"
+              vectorEffect="non-scaling-stroke"
+            />
           </svg>
           {STAGES.map((stage, index) => {
-            const box = boxes[index]
             const Figure = stage.Figure
             const live = !reduced && running && holding && index === focus
             return (
@@ -724,22 +1098,23 @@ export function LoginFlowStage() {
                 ref={(node) => {
                   plateNodes.current[index] = node
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 opacity-70"
-                style={
-                  box
-                    ? {
-                        left: box.x,
-                        top: box.y,
-                        width: box.w,
-                        zIndex: index === focus ? 6 : 1,
-                      }
-                    : { left: "-100%", top: 0, width: 0 }
-                }
+                className="absolute z-[1] -translate-x-1/2 -translate-y-1/2 opacity-70"
+                style={{
+                  left: "-100%",
+                  top: 0,
+                  width: 0,
+                  zIndex: index === focus ? 6 : 1,
+                }}
               >
-                <span className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium tracking-wide whitespace-nowrap text-white ring-1 ring-white/25">
+                <span
+                  ref={(node) => {
+                    tagNodes.current[index] = node
+                  }}
+                  className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium tracking-wide whitespace-nowrap text-white ring-1 ring-white/25"
+                >
                   {stage.tag}
                 </span>
-                {box ? (
+                {ready ? (
                   <Figure
                     theme="dark"
                     play={live}
@@ -766,15 +1141,24 @@ export function LoginFlowStage() {
               <li key={stage.key}>{stage.caption}</li>
             ))}
           </ul>
-          {/* One caption node. The old line fades out fully before the next line is written. */}
-          <div className={reduced ? "hidden" : "relative"}>
-            <p className="invisible text-sm leading-6">{LONGEST_CAPTION}</p>
-            <p
-              ref={captionRef}
-              className="absolute inset-x-0 top-0 text-sm leading-6 text-white opacity-0"
-            >
-              {line}
-            </p>
+          {/* Collapse the text area in wide shots so dots are not under a blank box. */}
+          <div
+            ref={captionWrapRef}
+            className={
+              reduced
+                ? "hidden"
+                : "grid transition-[grid-template-rows] duration-200 ease-out"
+            }
+            style={{ gridTemplateRows: "0fr" }}
+            data-open="0"
+          >
+            <div className="relative min-h-0 overflow-hidden">
+              <p className="invisible text-sm leading-6">{LONGEST_CAPTION}</p>
+              <p
+                ref={captionRef}
+                className="absolute inset-x-0 top-0 text-sm leading-6 text-white opacity-0"
+              />
+            </div>
           </div>
           <div className="mt-3 flex items-center justify-between gap-3">
             <span
@@ -782,15 +1166,16 @@ export function LoginFlowStage() {
               className={
                 reduced
                   ? "hidden"
-                  : "inline-block min-h-4 min-w-10 text-xs tracking-wide text-white/80 tabular-nums opacity-0"
+                  : "inline-block min-h-4 min-w-12 text-xs tracking-wide text-white/80 tabular-nums opacity-0"
               }
-            >
-              {stepLabel}
-            </span>
+            />
             <div className="flex gap-1.5">
               {STAGES.map((stage, index) => (
                 <span
                   key={stage.key}
+                  ref={(node) => {
+                    dotNodes.current[index] = node
+                  }}
                   className={
                     index === focus
                       ? "size-1.5 rounded-full bg-white"
@@ -806,7 +1191,6 @@ export function LoginFlowStage() {
   )
 }
 
-/** Stroke-only isometric cube. Colours come from the Hairline tokens on the stage. */
 function CartonMark() {
   return (
     <svg viewBox="0 0 48 52" className="h-11 w-11 overflow-visible">

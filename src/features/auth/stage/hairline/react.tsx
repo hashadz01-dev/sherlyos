@@ -8,11 +8,15 @@ import {
   type HTMLAttributes,
 } from "react"
 import type { FigureHandle, FigureOptions } from "./create"
+import { accountsDesk } from "./accounts-desk"
+import { dailyCount } from "./daily-count"
+import { damageMark } from "./damage-mark"
 import { deliveryVan } from "./delivery-van"
 import { dispatchBay } from "./dispatch-bay"
 import { invoiceNote } from "./invoice-note"
 import { orderDesk } from "./order-desk"
 import { packRack } from "./pack-rack"
+import { stockIn } from "./stock-in"
 import { verifyLedger } from "./verify-ledger"
 
 const useIsoLayoutEffect =
@@ -89,3 +93,7 @@ export const PackRack = make("PackRack", packRack)
 export const DispatchBay = make("DispatchBay", dispatchBay)
 export const InvoiceNote = make("InvoiceNote", invoiceNote)
 export const DeliveryVan = make("DeliveryVan", deliveryVan)
+export const StockIn = make("StockIn", stockIn)
+export const DailyCount = make("DailyCount", dailyCount)
+export const DamageMark = make("DamageMark", damageMark)
+export const AccountsDesk = make("AccountsDesk", accountsDesk)

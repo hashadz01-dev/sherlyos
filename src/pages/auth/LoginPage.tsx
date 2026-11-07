@@ -74,7 +74,10 @@ export function LoginPage() {
         </div>
         <p className="sr-only">
           A carton travels from a shop order through verification, packing,
-          dispatch, and a draft invoice note, and is delivered to the shop.
+          dispatch, a draft invoice note, and delivery. Behind the counter,
+          inbound stock is counted, crates are checked daily, damage is
+          verified before stock moves, and accounts reviews credit before
+          posting.
         </p>
         <div className="relative mt-6 flex min-h-0 flex-1 flex-col">
           {/* Chunk load keeps this navy panel in place until the film mounts. */}

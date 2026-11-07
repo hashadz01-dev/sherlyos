@@ -124,6 +124,18 @@ export const appRouteObjects: RouteObject[] = [
     element: <LoginPage />,
     errorElement: <RouteErrorPage />,
   },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: "/dev/login-figures",
+          lazy: async () => {
+            const page = await import("@/pages/dev/LoginFiguresPage")
+            return { Component: page.default }
+          },
+          errorElement: <RouteErrorPage />,
+        } satisfies RouteObject,
+      ]
+    : []),
   {
     path: "/terms",
     element: <TermsPage />,
